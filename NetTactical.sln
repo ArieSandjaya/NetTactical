@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DC42B131-7E70-4D6B-9A13-664C2627BE61}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TacticalRmm.Api", "src\TacticalRmm.Api\TacticalRmm.Api.csproj", "{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TacticalRmm.Application", "src\TacticalRmm.Application\TacticalRmm.Application.csproj", "{D752FB1B-0A19-49EF-8E81-A51FB2E95632}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TacticalRmm.Domain", "src\TacticalRmm.Domain\TacticalRmm.Domain.csproj", "{79EB718A-B561-4EF8-BA1A-C41B5389661D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TacticalRmm.Infrastructure", "src\TacticalRmm.Infrastructure\TacticalRmm.Infrastructure.csproj", "{5B7ABF04-AA06-404C-8F9A-72648CC804E9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F896F763-F78E-43C5-B9A5-513AEDAD4FC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TacticalRmm.Tests", "tests\TacticalRmm.Tests\TacticalRmm.Tests.csproj", "{66D74D97-E917-4192-A7B9-623BA9D59FFD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D752FB1B-0A19-49EF-8E81-A51FB2E95632}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D752FB1B-0A19-49EF-8E81-A51FB2E95632}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D752FB1B-0A19-49EF-8E81-A51FB2E95632}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D752FB1B-0A19-49EF-8E81-A51FB2E95632}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79EB718A-B561-4EF8-BA1A-C41B5389661D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79EB718A-B561-4EF8-BA1A-C41B5389661D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79EB718A-B561-4EF8-BA1A-C41B5389661D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79EB718A-B561-4EF8-BA1A-C41B5389661D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B7ABF04-AA06-404C-8F9A-72648CC804E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B7ABF04-AA06-404C-8F9A-72648CC804E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B7ABF04-AA06-404C-8F9A-72648CC804E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B7ABF04-AA06-404C-8F9A-72648CC804E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66D74D97-E917-4192-A7B9-623BA9D59FFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66D74D97-E917-4192-A7B9-623BA9D59FFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66D74D97-E917-4192-A7B9-623BA9D59FFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66D74D97-E917-4192-A7B9-623BA9D59FFD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3FF6E2B7-ECFF-4239-AFC5-699CC1DAA258} = {DC42B131-7E70-4D6B-9A13-664C2627BE61}
+		{D752FB1B-0A19-49EF-8E81-A51FB2E95632} = {DC42B131-7E70-4D6B-9A13-664C2627BE61}
+		{79EB718A-B561-4EF8-BA1A-C41B5389661D} = {DC42B131-7E70-4D6B-9A13-664C2627BE61}
+		{5B7ABF04-AA06-404C-8F9A-72648CC804E9} = {DC42B131-7E70-4D6B-9A13-664C2627BE61}
+		{66D74D97-E917-4192-A7B9-623BA9D59FFD} = {F896F763-F78E-43C5-B9A5-513AEDAD4FC5}
+	EndGlobalSection
+EndGlobal
