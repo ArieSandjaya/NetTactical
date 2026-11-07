@@ -52,7 +52,7 @@ Dev: skema dibuat via `EnsureCreated`. Produksi: `dotnet ef migrations add Initi
 Token installer tampil sekali di log saat pertama jalan.
 
 ## Status verifikasi (jujur)
-- `Domain` + `Application` dibangun dan diuji: **59 + 123 + 55 asersi logika lulus** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
+- `Domain` + `Application` dibangun dan diuji: **59 + 123 asersi logika lulus, ditambah 12 test untuk skor kesehatan, aturan metrik, dan parser data agent** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
 - Seluruh solusi **dikompilasi lolos** terhadap stub sementara untuk EF Core / NATS / MessagePack (bagian ASP.NET dikompilasi dengan SDK asli). Ini hanya membuktikan kode konsisten, **bukan** bahwa pemanggilan API paket-paket itu sudah benar.
 - Belum pernah `dotnet build` dengan paket NuGet asli, dan belum diuji terhadap agent Go, NATS, MeshCentral, atau Postgres sungguhan.
 - Tidak ada `NuGet.config` di zip ini; build memakai nuget.org seperti biasa.
