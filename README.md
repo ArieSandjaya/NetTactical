@@ -28,6 +28,15 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 - **Organisasi** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (butuh `can_edit_agent` + scope site asal & tujuan).
 - **Policy** — `automation/policies` CRUD (hapus ditolak bila masih punya task, supaya agent dibersihkan lebih dulu).
 
+## Dashboard armada (baru)
+- **Metrik historis** — tiap hasil check CPU/memori/disk disimpan sebagai titik di tabel `check_metric` (jeda minimum `Tactical:MetricMinIntervalSeconds`, default 240 dtk). `MetricRetentionJob` menghapus data lebih tua dari `Tactical:MetricRetentionDays` (default 90).
+- **Skor kesehatan 0-100** — `HealthScorer` (logika murni): pengurang untuk offline, disk, CPU, memori, alert terbuka, update tertunda, perlu reboot, uptime panjang, agent usang. Bobot dan ambang level bisa diubah lewat `Tactical:Health`. Setiap skor membawa daftar faktor + kode stabil untuk diterjemahkan di UI.
+- **Endpoint** (izin `can_list_agents`, scope client/site berlaku):
+  - `GET /fleet/summary?client_id=&site_id=&days=30&risk_limit=10` — total, alert, patch, skor per client, perangkat berisiko, alert terbaru, sebaran OS, versi agent, tren harian.
+  - `GET /agents/{agentId}/overview` — fakta perangkat, skor + faktor, metrik terkini, disk, **daftar masalah** (check/task gagal beserta stdout/stderr/kode keluar, offline, patch, agent usang), check, task, patch, layanan otomatis yang berhenti.
+  - `GET /agents/{agentId}/metrics?metric=cpu|memory|disk&label=C:&days=30` — deret waktu (di-downsample ke maks 1000 titik).
+- Belum ada: usia perangkat/hardware (agent tidak mengirimnya), prediksi, dan riwayat kejadian error setelah alert selesai (hanya masalah yang sedang terbuka).
+
 ## Belum dicakup (sengaja, "inti dulu")
 Policy inheritance penuh (client/site level), penjadwalan & persetujuan winupdate otomatis, instalasi chocolatey, file transfer, hasil 'collector' ke custom field (histresult), sinkronisasi izin Mesh (`run_sync_task`), terminal & WebSocket (SignalR),
 notifikasi email/SMS/webhook, AlertTemplate, custom field, snippet script, reporting & SSO (`ee/`, lisensi sponsor terpisah), Mesh.
@@ -43,7 +52,7 @@ Dev: skema dibuat via `EnsureCreated`. Produksi: `dotnet ef migrations add Initi
 Token installer tampil sekali di log saat pertama jalan.
 
 ## Status verifikasi (jujur)
-- `Domain` + `Application` dibangun dan diuji: **59 + 123 asersi logika lulus** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
+- `Domain` + `Application` dibangun dan diuji: **59 + 123 + 55 asersi logika lulus** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
 - Seluruh solusi **dikompilasi lolos** terhadap stub sementara untuk EF Core / NATS / MessagePack (bagian ASP.NET dikompilasi dengan SDK asli). Ini hanya membuktikan kode konsisten, **bukan** bahwa pemanggilan API paket-paket itu sudah benar.
 - Belum pernah `dotnet build` dengan paket NuGet asli, dan belum diuji terhadap agent Go, NATS, MeshCentral, atau Postgres sungguhan.
 - Tidak ada `NuGet.config` di zip ini; build memakai nuget.org seperti biasa.

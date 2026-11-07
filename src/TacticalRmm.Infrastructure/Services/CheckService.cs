@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TacticalRmm.Application.Abstractions;
 using TacticalRmm.Application.Dtos;
 using TacticalRmm.Application.Logic;
@@ -8,7 +9,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskService tasks) : ICheckService
+public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskService tasks, IOptions<TacticalOptions> opt) : ICheckService
 {
     // Kunci identitas untuk aturan override: check milik agent mengalahkan check policy yang sama.
     private static string Identity(Check c) => $"{c.CheckType}|{c.Disk}|{c.Ip}|{c.SvcName}|{c.ScriptId}|{c.LogName}|{c.EventId}";
@@ -69,7 +70,9 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
             db.CheckResults.Add(result);
         }
 
+        var previousRun = result.LastRun;
         CheckEvaluator.Apply(check, result, p);
+        RecordMetric(agent, check, p, previousRun);
         await db.SaveChangesAsync(ct);
 
         if (result.Status == CheckStatus.Failing)
@@ -84,5 +87,19 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
             await alerts.ResolveCheckAsync(agent, check, ct);
         }
         return "ok";
+    }
+
+    /// <summary>Simpan titik metrik historis (persen terpakai) untuk check cpu/memori/disk, dengan jeda minimum.</summary>
+    private void RecordMetric(Agent agent, Check check, CheckResultPayload p, DateTime? previousRun)
+    {
+        var now = DateTime.UtcNow;
+        if (previousRun is { } prev && (now - prev).TotalSeconds < opt.Value.MetricMinIntervalSeconds) return;
+        var value = MetricRules.UsedPercent(check.CheckType, p);
+        if (value is null) return;
+        db.CheckMetrics.Add(new CheckMetric
+        {
+            AgentId = agent.Id, CheckId = check.Id, CheckType = check.CheckType, Time = now,
+            Value = value.Value, Label = check.CheckType == CheckType.DiskSpace ? check.Disk : null
+        });
     }
 }

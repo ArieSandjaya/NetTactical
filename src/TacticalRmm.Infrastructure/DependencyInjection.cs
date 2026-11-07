@@ -56,8 +56,10 @@ public static class DependencyInjection
         s.AddScoped<IRoleAdminService, RoleAdminService>();
         s.AddScoped<IOrgAdminService, OrgAdminService>();
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
+        s.AddScoped<IFleetService, FleetService>();
         s.AddHostedService<AgentOutagesJob>();
         s.AddHostedService<TaskSyncJob>();
+        s.AddHostedService<MetricRetentionJob>();
         return s;
     }
 }

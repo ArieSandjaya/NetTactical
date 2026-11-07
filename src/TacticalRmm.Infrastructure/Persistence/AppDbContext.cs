@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AutomatedTask> AutomatedTasks => Set<AutomatedTask>();
     public DbSet<TaskResult> TaskResults => Set<TaskResult>();
     public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<CheckMetric> CheckMetrics => Set<CheckMetric>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<WinUpdate> WinUpdates => Set<WinUpdate>();
     public DbSet<WinUpdatePolicy> WinUpdatePolicies => Set<WinUpdatePolicy>();
@@ -93,6 +94,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.AgentId).IsUnique();
         });
         b.Entity<AgentNote>().HasIndex(x => x.AgentId);
+        b.Entity<CheckMetric>(e =>
+        {
+            e.HasIndex(x => new { x.AgentId, x.CheckType, x.Time });
+            e.HasIndex(x => x.Time);
+            e.HasOne<Agent>().WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Cascade);
+        });
         b.Entity<Alert>(e =>
         {
             e.HasIndex(x => new { x.AgentId, x.Resolved });

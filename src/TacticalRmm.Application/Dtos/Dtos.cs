@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TacticalRmm.Application.Logic;
 
 namespace TacticalRmm.Application.Dtos;
 
@@ -90,6 +91,11 @@ public class TacticalOptions
     public int MaxRequestSizeBytes { get; set; } = 10 * 1024 * 1024; // = TRMM_MAX_REQUEST_SIZE
     public MeshOptions Mesh { get; set; } = new();
     public AgentRuntimeOptions Agent { get; set; } = new();
+    /// <summary>Berapa hari metrik historis disimpan sebelum dihapus job retensi.</summary>
+    public int MetricRetentionDays { get; set; } = 90;
+    /// <summary>Jeda minimum antar titik metrik per check (detik), agar tabel tidak membengkak.</summary>
+    public int MetricMinIntervalSeconds { get; set; } = 240;
+    public HealthWeights Health { get; set; } = new();
 }
 
 public class CheckRunnerItem
