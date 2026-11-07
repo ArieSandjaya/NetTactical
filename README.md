@@ -37,6 +37,15 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
   - `GET /agents/{agentId}/metrics?metric=cpu|memory|disk&label=C:&days=30` — deret waktu (di-downsample ke maks 1000 titik).
 - Belum ada: usia perangkat/hardware (agent tidak mengirimnya), prediksi, dan riwayat kejadian error setelah alert selesai (hanya masalah yang sedang terbuka).
 
+## UI dashboard (baru)
+Dilayani langsung oleh API dari `src/TacticalRmm.Api/wwwroot` (buka `/` di browser setelah API berjalan; tanpa Node, tanpa build, tanpa CDN).
+- **Login** (+kode 2FA bila aktif), token disimpan di `sessionStorage`, sesi kedaluwarsa otomatis kembali ke login.
+- **Ringkasan armada** (`#/`): skor kesehatan, agent online, alert, update tertunda, tren CPU/memori/disk (7/30/90 hari), skor per client (klik untuk menyaring), perangkat berisiko, alert terbaru, status patch, sistem operasi, versi agent. Menyegarkan diri tiap 60 detik.
+- **Detail perangkat** (`#/device/<agentId>`): skor + faktor penurunnya, metrik terkini, riwayat metrik, lalu tab Masalah (output/stderr/kode keluar), Check, Task, Patch, Disk & layanan.
+- Keamanan: seluruh DOM dibuat dengan `textContent` (tanpa `innerHTML`) karena nama perangkat dan output check berasal dari agent; CSP `default-src 'self'` tanpa skrip/gaya inline; mendukung mode gelap dan lebar ponsel.
+- Diuji dengan mock API berbentuk sama dengan DTO + Playwright (login, filter, tab, 401/404, mode gelap, ponsel, payload XSS tidak tereksekusi). Belum diuji terhadap backend sungguhan.
+- Belum ada di UI: halaman daftar perangkat, alert, patch, serta CRUD (API-nya sudah ada).
+
 ## Belum dicakup (sengaja, "inti dulu")
 Policy inheritance penuh (client/site level), penjadwalan & persetujuan winupdate otomatis, instalasi chocolatey, file transfer, hasil 'collector' ke custom field (histresult), sinkronisasi izin Mesh (`run_sync_task`), terminal & WebSocket (SignalR),
 notifikasi email/SMS/webhook, AlertTemplate, custom field, snippet script, reporting & SSO (`ee/`, lisensi sponsor terpisah), Mesh.

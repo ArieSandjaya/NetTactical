@@ -45,12 +45,21 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
     await Bootstrap.RunAsync(scope.ServiceProvider, app.Configuration);
 
+// UI dashboard statis (wwwroot). CSP ketat: hanya sumber sendiri, tanpa skrip/gaya inline.
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'";
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/", () => "Tactical RMM (.NET)");
 app.Run();
 
 public partial class Program;
