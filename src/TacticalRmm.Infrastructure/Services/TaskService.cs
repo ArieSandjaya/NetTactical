@@ -18,7 +18,7 @@ public sealed class TaskService(AppDbContext db, IAgentCommandBus bus, IAlertSer
     public async Task<TaskRunnerResponse?> GetForAgentAsync(Agent agent, int taskId, CancellationToken ct = default)
     {
         var task = await db.AutomatedTasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId, ct);
-        if (task is null) return null;
+        if (task is null || task.PendingDeletion) return null;
 
         var allowed = task.AgentId == agent.Id
             || (task.PolicyId is not null && task.PolicyId == agent.PolicyId && !agent.BlockPolicyInheritance

@@ -69,6 +69,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<AutomatedTask>(e =>
         {
             e.Property(x => x.Actions).HasColumnType("jsonb");
+            e.HasIndex(x => x.WinTaskName).IsUnique();
             e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Policy).WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.AssignedCheck).WithMany().HasForeignKey(x => x.AssignedCheckId).OnDelete(DeleteBehavior.SetNull);

@@ -49,7 +49,15 @@ public static class DependencyInjection
         s.AddScoped<IAgentTelemetryService, AgentTelemetryService>();
         s.AddHttpClient("mesh");
         s.AddScoped<IMeshService, MeshService>();
+        s.AddScoped<ICheckAdminService, CheckAdminService>();
+        s.AddScoped<ITaskSyncService, TaskSyncService>();
+        s.AddScoped<ITaskAdminService, TaskAdminService>();
+        s.AddScoped<IUserAdminService, UserAdminService>();
+        s.AddScoped<IRoleAdminService, RoleAdminService>();
+        s.AddScoped<IOrgAdminService, OrgAdminService>();
+        s.AddScoped<IPolicyAdminService, PolicyAdminService>();
         s.AddHostedService<AgentOutagesJob>();
+        s.AddHostedService<TaskSyncJob>();
         return s;
     }
 }

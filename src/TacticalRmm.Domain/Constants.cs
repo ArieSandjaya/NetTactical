@@ -17,6 +17,7 @@ public static class TaskType
     public const string Daily = "daily", Weekly = "weekly", Monthly = "monthly", MonthlyDow = "monthlydow",
         CheckFailure = "checkfailure", Manual = "manual", RunOnce = "runonce", Onboarding = "onboarding";
 }
+public static class TaskSyncStatus { public const string Synced = "synced", NotSynced = "notsynced", PendingDeletion = "pendingdeletion", Initial = "initial"; }
 public static class TaskRunStatus { public const string Running = "running", Completed = "completed"; }
 public static class ScriptShell
 {
@@ -40,5 +41,16 @@ public static class Perm
         ListChecks = "can_list_checks", ManageChecks = "can_manage_checks",
         ListTasks = "can_list_autotasks", ManageTasks = "can_manage_autotasks",
         ListAlerts = "can_list_alerts", ManageAlerts = "can_manage_alerts",
-        ViewAuditLog = "can_view_auditlogs", ManageAccounts = "can_manage_accounts";
+        ViewAuditLog = "can_view_auditlogs", ManageAccounts = "can_manage_accounts",
+        EditAgent = "can_edit_agent", ListSites = "can_list_sites", ManageSites = "can_manage_sites",
+        RunChecks = "can_run_checks", RunTasks = "can_run_autotasks",
+        ListPolicies = "can_list_automation_policies", ManagePolicies = "can_manage_automation_policies";
+
+    /// <summary>Daftar lengkap izin yang sah; dipakai untuk validasi Role.</summary>
+    public static readonly IReadOnlyList<string> All =
+    [
+        ListClients, ManageClients, ListSites, ManageSites, ListAgents, ManageAgents, EditAgent, UninstallAgents,
+        RebootAgents, RunScripts, RunCommands, ListScripts, ManageScripts, ListChecks, ManageChecks, RunChecks,
+        ListTasks, ManageTasks, RunTasks, ListAlerts, ManageAlerts, ListPolicies, ManagePolicies, ViewAuditLog, ManageAccounts
+    ];
 }

@@ -21,8 +21,15 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 `taskrunner`, `newagent`, `syncmesh`, `choco`, `software`, `winupdates` (PUT/PATCH/POST), `superseded`, `histresult`, `installer` (GET/POST),
 `meshexe`, `meshreinstall`. Integrasi MeshCentral (token AES-GCM, daftar device group via WebSocket, unduh installer) diisi lewat `Tactical:Mesh`.
 
+## CRUD dashboard (baru)
+- **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (validasi per tipe: disk, cpu, memory, ping, winsvc, script, eventlog; host ping dicek anti-injeksi).
+- **Task terjadwal** — `GET agents/{agentId}/tasks`, `GET/PUT/DELETE tasks/{id}`, `POST tasks`, `POST tasks/{id}/run`. Perubahan didorong ke Task Scheduler agent (`schedtask`/`delschedtask`) oleh `TaskSyncJob` (tiap 2 menit); penghapusan baru final setelah agent mengonfirmasi.
+- **Akun** — `accounts/users` (CRUD, reset password, reset TOTP; 2FA sendiri via `accounts/totp/setup|enable`) dan `accounts/roles` (CRUD) + `accounts/permissions`. Perlindungan eskalasi: non-superuser tak bisa menyentuh superuser atau memberi izin yang tidak dimilikinya; superuser aktif terakhir tak bisa dihapus/dinonaktifkan; reset password/nonaktif mencabut semua token.
+- **Organisasi** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (butuh `can_edit_agent` + scope site asal & tujuan).
+- **Policy** — `automation/policies` CRUD (hapus ditolak bila masih punya task, supaya agent dibersihkan lebih dulu).
+
 ## Belum dicakup (sengaja, "inti dulu")
-Policy inheritance penuh (client/site level), penjadwalan & persetujuan winupdate otomatis, instalasi chocolatey, file transfer, hasil 'collector' ke custom field (histresult), sinkronisasi izin Mesh (`run_sync_task`), CRUD Check/Task/User/Role di dashboard, terminal & WebSocket (SignalR),
+Policy inheritance penuh (client/site level), penjadwalan & persetujuan winupdate otomatis, instalasi chocolatey, file transfer, hasil 'collector' ke custom field (histresult), sinkronisasi izin Mesh (`run_sync_task`), terminal & WebSocket (SignalR),
 notifikasi email/SMS/webhook, AlertTemplate, custom field, snippet script, reporting & SSO (`ee/`, lisensi sponsor terpisah), Mesh.
 
 ## Menjalankan
@@ -36,7 +43,7 @@ Dev: skema dibuat via `EnsureCreated`. Produksi: `dotnet ef migrations add Initi
 Token installer tampil sekali di log saat pertama jalan.
 
 ## Status verifikasi (jujur)
-- `Domain` + `Application` dibangun dan diuji: **59 asersi logika lulus** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot).
+- `Domain` + `Application` dibangun dan diuji: **59 + 123 asersi logika lulus** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
 - Seluruh solusi **dikompilasi lolos** terhadap stub sementara untuk EF Core / NATS / MessagePack (bagian ASP.NET dikompilasi dengan SDK asli). Ini hanya membuktikan kode konsisten, **bukan** bahwa pemanggilan API paket-paket itu sudah benar.
 - Belum pernah `dotnet build` dengan paket NuGet asli, dan belum diuji terhadap agent Go, NATS, MeshCentral, atau Postgres sungguhan.
 - Tidak ada `NuGet.config` di zip ini; build memakai nuget.org seperti biasa.

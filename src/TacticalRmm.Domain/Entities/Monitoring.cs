@@ -91,10 +91,36 @@ public class AutomatedTask : AuditableEntity
     public bool TextAlert { get; set; }
     public bool DashboardAlert { get; set; }
     public string TaskType { get; set; } = Domain.TaskType.Manual;
-    public string? WinTaskName { get; set; }
+    /// <summary>Nama task di Windows Task Scheduler pada agent (unik).</summary>
+    public string WinTaskName { get; set; } = GenerateWinTaskName();
     public string Actions { get; set; } = "[]"; // jsonb: [{type:"cmd"|"script", ...}]
     public DateTime? RunTimeDate { get; set; }
+    public DateTime? ExpireDate { get; set; }
+    public int? DailyInterval { get; set; }
+    public int? WeeklyInterval { get; set; }
+    public int? RunTimeBitWeekdays { get; set; }
+    public long? MonthlyDaysOfMonth { get; set; }
+    public int? MonthlyMonthsOfYear { get; set; }
+    public int? MonthlyWeeksOfMonth { get; set; }
+    public string? TaskRepetitionDuration { get; set; }
+    public string? TaskRepetitionInterval { get; set; }
+    public bool StopTaskAtDurationEnd { get; set; }
+    public string? RandomTaskDelay { get; set; }
+    public bool RemoveIfNotScheduled { get; set; }
+    public bool RunAsapAfterMissed { get; set; }
+    public int TaskInstancePolicy { get; set; } = 1;
     public bool ManagedByPolicy { get; set; }
+    /// <summary>Penghapusan menunggu konfirmasi agent (delschedtask); baris dihapus oleh TaskSyncJob.</summary>
+    public bool PendingDeletion { get; set; }
+
+    public static string GenerateWinTaskName()
+    {
+        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        return "TacticalRMM_" + string.Create(35, 0, (span, _) =>
+        {
+            for (var i = 0; i < span.Length; i++) span[i] = chars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(chars.Length)];
+        });
+    }
 }
 
 public class TaskResult
@@ -111,6 +137,7 @@ public class TaskResult
     public DateTime? LastRun { get; set; }
     public string Status { get; set; } = CheckStatus.Pending;
     public string RunStatus { get; set; } = TaskRunStatus.Completed;
+    public string SyncStatus { get; set; } = TaskSyncStatus.Initial;
 }
 
 public class Alert

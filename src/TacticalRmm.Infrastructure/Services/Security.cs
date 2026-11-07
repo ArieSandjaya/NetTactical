@@ -104,6 +104,23 @@ public static class Totp
         return false;
     }
 
+    public static string GenerateSecret()
+    {
+        const string alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var bytes = RandomNumberGenerator.GetBytes(20);
+        var sb = new StringBuilder(); int buffer = 0, bits = 0;
+        foreach (var b in bytes)
+        {
+            buffer = (buffer << 8) | b; bits += 8;
+            while (bits >= 5) { bits -= 5; sb.Append(alpha[(buffer >> bits) & 31]); }
+        }
+        if (bits > 0) sb.Append(alpha[(buffer << (5 - bits)) & 31]);
+        return sb.ToString();
+    }
+
+    public static string ProvisioningUri(string issuer, string account, string secret) =>
+        $"otpauth://totp/{Uri.EscapeDataString(issuer)}:{Uri.EscapeDataString(account)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}";
+
     private static string Compute(byte[] key, long counter)
     {
         var msg = BitConverter.GetBytes(counter);
