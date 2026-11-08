@@ -8,12 +8,12 @@ public static class PermissionEvaluator
 
     public static bool Has(User u, string perm)
     {
-        if (u.IsInstallerUser || u.AgentId != null) return false; // akun agent tidak pernah boleh memakai API dashboard
+        if (u.IsInstallerUser || u.AgentId != null) return false; // agent accounts may never use the dashboard API
         if (IsSuper(u)) return true;
-        return u.Role is not null && u.Role.Permissions.Contains(perm); // role kosong => ditolak
+        return u.Role is not null && u.Role.Permissions.Contains(perm); // empty role => rejected
     }
 
-    /// <summary>Scope per client/site. Role tanpa pembatasan = akses penuh (perilaku sama dengan Django).</summary>
+    /// <summary>Scope per client/site. A role without restrictions = full access (same behaviour as Django).</summary>
     public static bool CanSeeSite(User u, Site site)
     {
         if (u.IsInstallerUser || u.AgentId != null) return false;

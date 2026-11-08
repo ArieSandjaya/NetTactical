@@ -15,7 +15,7 @@ public static partial class TaskValidator
 
     [GeneratedRegex(@"^\d{1,4}[dhmsDHMS]$")] private static partial Regex DurationPattern();
 
-    /// <summary>Validasi aturan jadwal + field umum. <paramref name="t"/> sudah berisi nilai akhir (data lama + perubahan).</summary>
+    /// <summary>Validates schedule rules + common fields. <paramref name="t"/> already holds the final values (existing data + changes).</summary>
     public static string? Validate(TaskUpsert t, string taskType, DateTime nowUtc)
     {
         if (taskType == TaskType.Onboarding) return "Onboarding tasks are not supported yet";

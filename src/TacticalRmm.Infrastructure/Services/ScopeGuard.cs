@@ -5,7 +5,7 @@ namespace TacticalRmm.Infrastructure.Services;
 
 internal static class ScopeGuard
 {
-    /// <summary>Agent harus dimuat dengan Site.</summary>
+    /// <summary>The Agent must be loaded with its Site.</summary>
     public static bool CanSeeAgent(User u, Agent a) => PermissionEvaluator.CanSeeSite(u, a.Site);
     public static bool CanSeeClient(User u, int clientId) => PermissionEvaluator.CanSeeSite(u, new Site { Id = -1, ClientId = clientId });
 }

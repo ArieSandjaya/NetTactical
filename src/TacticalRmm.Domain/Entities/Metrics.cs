@@ -1,6 +1,6 @@
 namespace TacticalRmm.Domain.Entities;
 
-/// <summary>Satu titik metrik historis (CPU/memori/disk dalam persen terpakai) dari hasil check agent.</summary>
+/// <summary>Satu titik metrik historis (CPU/memory/disk as percent used) from an agent check result.</summary>
 public class CheckMetric
 {
     public long Id { get; set; }
@@ -9,8 +9,8 @@ public class CheckMetric
     /// <summary>cpuload | memory | diskspace</summary>
     public string CheckType { get; set; } = "";
     public DateTime Time { get; set; }
-    /// <summary>Persen terpakai, 0-100.</summary>
+    /// <summary>Percent used, 0-100.</summary>
     public double Value { get; set; }
-    /// <summary>Untuk disk: huruf drive (mis. "C:"). Selain itu null.</summary>
+    /// <summary>For disk: the drive letter (e.g. "C:"). Otherwise null.</summary>
     public string? Label { get; set; }
 }

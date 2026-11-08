@@ -11,7 +11,7 @@ namespace TacticalRmm.Infrastructure.Services;
 
 public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskService tasks, IOptions<TacticalOptions> opt) : ICheckService
 {
-    // Kunci identitas untuk aturan override: check milik agent mengalahkan check policy yang sama.
+    // Identity key for the override rule: an agent's own check beats the same policy check.
     private static string Identity(Check c) => $"{c.CheckType}|{c.Disk}|{c.Ip}|{c.SvcName}|{c.ScriptId}|{c.LogName}|{c.EventId}";
 
     public async Task<IReadOnlyList<Check>> GetChecksForAgentAsync(Agent agent, CancellationToken ct = default)
@@ -58,7 +58,7 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
 
     public async Task<string> HandleResultAsync(Agent agent, CheckResultPayload p, CancellationToken ct = default)
     {
-        // Perbaikan keamanan vs Django: agent hanya boleh melapor untuk check yang memang berlaku baginya.
+        // Security fix vs Django: an agent may only report for checks that actually apply to it.
         var applicable = await GetChecksForAgentAsync(agent, ct);
         var check = applicable.FirstOrDefault(c => c.Id == p.Id);
         if (check is null) return "forbidden";
@@ -89,7 +89,7 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
         return "ok";
     }
 
-    /// <summary>Simpan titik metrik historis (persen terpakai) untuk check cpu/memori/disk, dengan jeda minimum.</summary>
+    /// <summary>Stores a historical metric point (percent used) for cpu/memory/disk checks, with a minimum gap.</summary>
     private void RecordMetric(Agent agent, Check check, CheckResultPayload p, DateTime? previousRun)
     {
         var now = DateTime.UtcNow;

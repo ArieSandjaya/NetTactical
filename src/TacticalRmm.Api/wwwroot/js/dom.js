@@ -1,12 +1,12 @@
-// Pembuat DOM yang aman: semua teks lewat textContent/createTextNode, tidak pernah innerHTML.
-// Penting karena output check/task dan nama perangkat berasal dari agent (data tak tepercaya).
+// Safe DOM builder: all text goes through textContent/createTextNode, never innerHTML.
+// Important because check/task output and device names come from agents (untrusted data).
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function apply(el, attrs) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v == null || v === false) continue;
     if (k === 'class') el.setAttribute('class', v);
-    else if (k === 'style') Object.assign(el.style, v);           // CSSOM: sesuai CSP tanpa 'unsafe-inline'
+    else if (k === 'style') Object.assign(el.style, v);           // CSSOM: compatible with a CSP without 'unsafe-inline'
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
     else el.setAttribute(k, v === true ? '' : String(v));
   }

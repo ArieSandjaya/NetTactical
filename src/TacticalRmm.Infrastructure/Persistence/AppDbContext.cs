@@ -107,8 +107,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
         b.Entity<AuditLog>(e => { e.Property(x => x.BeforeValue).HasColumnType("jsonb"); e.Property(x => x.AfterValue).HasColumnType("jsonb"); e.Property(x => x.DebugInfo).HasColumnType("jsonb"); });
 
-        // Skema snake_case. Tabel agents_agent + kolomnya HARUS sama dengan Django karena
-        // layanan Go nats-api (natsapi/svc.go) menulis ke tabel itu lewat SQL mentah.
+        // snake_case schema. The agents_agent table + its columns MUST match Django because
+        // the Go nats-api service (natsapi/svc.go) writes to that table via raw SQL.
         foreach (var et in b.Model.GetEntityTypes())
         {
             et.SetTableName(et.ClrType == typeof(Agent) ? "agents_agent" : Snake(et.GetTableName() ?? et.ClrType.Name));

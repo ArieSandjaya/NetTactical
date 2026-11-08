@@ -26,7 +26,7 @@ public sealed class AgentTelemetryService(AppDbContext db) : IAgentTelemetryServ
 
     public async Task<bool> SaveHistoryResultAsync(Agent agent, long historyId, string scriptResultsJson, string? stdout, int userId, CancellationToken ct = default)
     {
-        // riwayat harus milik agent yang sedang autentikasi (filter agent__user di Django)
+        // the history entry must belong to the authenticated agent (agent__user filter in Django)
         var hist = await db.AgentHistory.FirstOrDefaultAsync(h => h.Id == historyId && h.AgentId == agent.Id, ct);
         if (hist is null) return false;
 

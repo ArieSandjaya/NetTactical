@@ -29,7 +29,7 @@ public static class HttpContextExtensions
 }
 
 /// <summary>
-/// Header "Authorization: Token xxx" (Knox / DRF authtoken) atau "X-API-KEY: xxx" — sama dengan Django.
+/// Header "Authorization: Token xxx" (Knox / DRF authtoken) or "X-API-KEY: xxx" — same as Django.
 /// </summary>
 public sealed class TokenAuthHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder,
@@ -70,7 +70,7 @@ public sealed class TokenAuthHandler(
     }
 }
 
-/// <summary>[RequirePerm(Perm.X)] — akun agent/installer selalu ditolak; role kosong ditolak.</summary>
+/// <summary>[RequirePerm(Perm.X)] — agent/installer accounts are always rejected; an empty role is rejected.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 public sealed class RequirePermAttribute(string permission) : Attribute, IAsyncAuthorizationFilter
 {

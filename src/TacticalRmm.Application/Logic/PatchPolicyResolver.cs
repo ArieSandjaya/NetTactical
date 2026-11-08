@@ -2,7 +2,7 @@ namespace TacticalRmm.Application.Logic;
 
 public static class PatchPolicyResolver
 {
-    /// <summary>Nilai efektif reboot_after_install: setting agent menang kecuali "inherit".</summary>
+    /// <summary>Effective reboot_after_install value: the agent setting wins unless it is "inherit".</summary>
     public static string EffectiveReboot(string agentValue, string? policyValue) =>
         agentValue != "inherit" ? agentValue : (policyValue ?? agentValue);
 

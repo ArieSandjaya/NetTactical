@@ -10,7 +10,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Messaging;
 
-/// <summary>Port tacticalrmm/utils.py::reload_nats — menghasilkan nats-rmm.conf (JSON) dengan akun TRMM & AGENTS.</summary>
+/// <summary>Port tacticalrmm/utils.py::reload_nats — generates nats-rmm.conf (JSON) with the TRMM & AGENTS accounts.</summary>
 public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> opt, ILogger<NatsConfigWriter> log) : INatsConfigWriter
 {
     private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -81,6 +81,6 @@ public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> 
             using var p = Process.Start(new ProcessStartInfo(o.NatsServerBin, "-signal reload") { RedirectStandardOutput = true, RedirectStandardError = true });
             if (p is not null) await p.WaitForExitAsync(ct);
         }
-        catch (Exception e) { log.LogWarning(e, "nats-server reload gagal (abaikan bila nats berjalan di container terpisah)"); }
+        catch (Exception e) { log.LogWarning(e, "nats-server reload failed (ignore if nats runs in a separate container)"); }
     }
 }

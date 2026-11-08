@@ -16,7 +16,7 @@ public sealed class MeshService(IHttpClientFactory http, IOptions<TacticalOption
     public async Task<byte[]> DownloadAgentAsync(int ident, string plat, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(M.TokenKey) || string.IsNullOrEmpty(M.Username))
-            throw new MeshUnavailableException("Mesh belum dikonfigurasi (Tactical:Mesh)");
+            throw new MeshUnavailableException("Mesh is not configured (Tactical:Mesh)");
 
         try
         {
@@ -26,7 +26,7 @@ public sealed class MeshService(IHttpClientFactory http, IOptions<TacticalOption
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(15));
-            var client = http.CreateClient("mesh"); // TLS tetap divalidasi; tidak ada verify=False seperti Django
+            var client = http.CreateClient("mesh"); // TLS is still validated; no verify=False as in Django
             using var resp = await client.GetAsync(url, cts.Token);
             resp.EnsureSuccessStatusCode();
             return await resp.Content.ReadAsByteArrayAsync(cts.Token);
@@ -59,7 +59,7 @@ public sealed class MeshService(IHttpClientFactory http, IOptions<TacticalOption
                 r = await ws.ReceiveAsync(buf, cts.Token);
                 if (r.MessageType == WebSocketMessageType.Close) throw new InvalidOperationException("Mesh menutup koneksi");
                 ms.Write(buf, 0, r.Count);
-                if (ms.Length > 100 * 1024 * 1024) throw new InvalidOperationException("Pesan Mesh terlalu besar");
+                if (ms.Length > 100 * 1024 * 1024) throw new InvalidOperationException("Mesh message too large");
             } while (!r.EndOfMessage);
 
             using var doc = JsonDocument.Parse(ms.ToArray());
@@ -73,8 +73,8 @@ public sealed class MeshService(IHttpClientFactory http, IOptions<TacticalOption
                 var i = id.IndexOf("mesh//", StringComparison.Ordinal);
                 if (i >= 0) return id[(i + 6)..];
             }
-            throw new InvalidOperationException($"Device group '{M.DeviceGroup}' tidak ditemukan di Mesh");
+            throw new InvalidOperationException($"Device group '{M.DeviceGroup}' not found in Mesh");
         }
-        throw new InvalidOperationException("Koneksi Mesh terputus sebelum daftar grup diterima");
+        throw new InvalidOperationException("Mesh connection dropped before the group list was received");
     }
 }

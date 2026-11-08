@@ -3,7 +3,7 @@ using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Subset dari Script.parse_script_args: mengganti {{agent.xxx}}, {{site.name}}, {{client.name}}.</summary>
+/// <summary>Subset of Script.parse_script_args: replaces {{agent.xxx}}, {{site.name}}, {{client.name}}.</summary>
 public static partial class ScriptArgParser
 {
     [GeneratedRegex(@"\{\{\s*([a-zA-Z_]+)\.([a-zA-Z_]+)\s*\}\}")]

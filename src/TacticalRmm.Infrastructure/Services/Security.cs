@@ -47,7 +47,7 @@ public sealed class TokenService(AppDbContext db, IOptions<TacticalOptions> opt)
 
     public async Task<string> CreateAgentTokenAsync(int userId, CancellationToken ct = default)
     {
-        var key = Convert.ToHexString(RandomNumberGenerator.GetBytes(20)).ToLowerInvariant(); // 40 hex seperti DRF authtoken
+        var key = Convert.ToHexString(RandomNumberGenerator.GetBytes(20)).ToLowerInvariant(); // 40 hex like the DRF authtoken
         db.AgentTokens.Add(new AgentToken { Key = key, UserId = userId, Created = DateTime.UtcNow });
         await db.SaveChangesAsync(ct);
         return key;
@@ -90,7 +90,7 @@ public sealed class TokenService(AppDbContext db, IOptions<TacticalOptions> opt)
     }
 }
 
-/// <summary>TOTP RFC 6238 (HMAC-SHA1, 6 digit, 30 dtk) — kompatibel dengan pyotp / Google Authenticator.</summary>
+/// <summary>TOTP RFC 6238 (HMAC-SHA1, 6 digit, 30 s) — compatible with pyotp / Google Authenticator.</summary>
 public static class Totp
 {
     public static bool Verify(string base32Secret, string code, int window = 1)

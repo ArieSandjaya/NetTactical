@@ -75,7 +75,7 @@ public sealed class AgentService(
 
         await audit.LogAsync(installerUser, AuditAction.AgentInstall, "agent", $"{installerUser} installed new agent {agent.Hostname}",
             agent.Hostname, agent.Id, ip, ct);
-        await natsConf.ReloadAsync(ct); // agent baru harus terdaftar di nats-rmm.conf
+        await natsConf.ReloadAsync(ct); // a new agent must be registered in nats-rmm.conf
         return new NewAgentResult(agent.Id, token);
     }
 
@@ -132,7 +132,7 @@ public sealed class AgentService(
                 await bus.PublishAsync(agent.AgentId, data, ct);
                 return "ok";
             default:
-                throw new NotSupportedException($"output '{req.Output}' belum diimplementasikan (hanya wait/forget)");
+                throw new NotSupportedException($"output '{req.Output}' is not implemented yet (only wait/forget)");
         }
     }
 }

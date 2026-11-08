@@ -100,7 +100,7 @@ public sealed class TaskAdminService(AppDbContext db, ITaskService tasks, ITaskS
         if (task is null) return Outcome.NotFound<bool>();
         if (task.Agent is not null && !ScopeGuard.CanSeeAgent(caller, task.Agent)) return Outcome.Forbidden<bool>();
 
-        // Task harus dihapus dari Task Scheduler agent dulu; baris DB dihapus TaskSyncJob setelah agent konfirmasi.
+        // The task must first be removed from the agent's Task Scheduler; the DB row is deleted by TaskSyncJob after the agent confirms.
         task.PendingDeletion = true;
         task.Enabled = false;
         var results = await db.TaskResults.Where(r => r.TaskId == id).ToListAsync(ct);
@@ -109,7 +109,7 @@ public sealed class TaskAdminService(AppDbContext db, ITaskService tasks, ITaskS
 
         await audit.LogAsync(caller.Username, AuditAction.Delete, "automatedtask", $"{caller.Username} deleted task '{task.Name}'",
             task.Agent?.Hostname, task.AgentId, ct: ct);
-        if (task.AgentId is { } aid) await sync.SyncOneAsync(task.Id, aid, ct);   // coba langsung; sisanya oleh job
+        if (task.AgentId is { } aid) await sync.SyncOneAsync(task.Id, aid, ct);   // try immediately; the job handles the rest
         return Outcome.Ok(true);
     }
 

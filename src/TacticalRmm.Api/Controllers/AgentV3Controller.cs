@@ -11,7 +11,7 @@ using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Api.Controllers;
 
-/// <summary>Port apiv3/views.py — endpoint yang dipanggil agent Go. Path & JSON identik dengan Django.</summary>
+/// <summary>Port apiv3/views.py — endpoints called by the Go agent. Paths and JSON are identical to Django.</summary>
 [ApiController, Route("api/v3")]
 public class AgentV3Controller(
     IAgentService agents, ICheckService checks, ITaskService tasks,
@@ -85,7 +85,7 @@ public class AgentV3Controller(
     {
         var me = await Me(ct);
         if (me is null) return NotFound();
-        if (await tasks.GetForAgentAsync(me, pk, ct) is null) return Forbid(); // task harus berlaku untuk agent ini
+        if (await tasks.GetForAgentAsync(me, pk, ct) is null) return Forbid(); // the task must apply to this agent
         await tasks.SaveResultAsync(me, pk, body, ct);
         return Ok("ok");
     }
@@ -99,7 +99,7 @@ public class AgentV3Controller(
         catch (InvalidOperationException e) { return BadRequest(e.Message); }
     }
 
-    // ------------------------------------------------------------------ telemetry sederhana
+    // ------------------------------------------------------------------ simple telemetry
 
     [Authorize(AuthDefaults.AgentPolicy)]
     [HttpPost("syncmesh")]
@@ -109,7 +109,7 @@ public class AgentV3Controller(
         if (me is null) return NotFound();
         if (string.IsNullOrWhiteSpace(body.NodeId)) return BadRequest("nodeid required");
         await telemetry.SetMeshNodeIdAsync(me, body.NodeId, ct);
-        // body.RunSyncTask (sync_mesh_perms_task) belum diport: sinkronisasi izin Mesh di luar cakupan inti.
+        // body.RunSyncTask (sync_mesh_perms_task) not ported yet: Mesh permission sync is outside the core scope.
         return Ok("ok");
     }
 
@@ -144,7 +144,7 @@ public class AgentV3Controller(
             return BadRequest("script_results required");
 
         var node = JsonNode.Parse(sr.GetRawText())!.AsObject();
-        if (Request.ContentLength > opt.Value.MaxRequestSizeBytes) // sama dengan TRMM_MAX_REQUEST_SIZE di Django
+        if (Request.ContentLength > opt.Value.MaxRequestSizeBytes) // same as TRMM_MAX_REQUEST_SIZE in Django
         {
             node["stdout"] = "";
             node["stderr"] = "Content truncated due to excessive request size.";
@@ -152,7 +152,7 @@ public class AgentV3Controller(
         }
         var stdout = node["stdout"]?.ToString();
         var ok = await telemetry.SaveHistoryResultAsync(me, pk, node.ToJsonString(), stdout, HttpContext.GetUser().Id, ct);
-        // Catatan: hasil "collector" (custom field) belum diport karena CustomField di luar cakupan inti.
+        // Catatan: the "collector" result (custom field) is not ported yet because CustomField is outside the core scope.
         return ok ? Ok("ok") : NotFound();
     }
 
@@ -201,7 +201,7 @@ public class AgentV3Controller(
 
     [Authorize(AuthDefaults.InstallerPolicy)]
     [HttpGet("installer")]
-    public IActionResult InstallerCheck() => Ok("ok"); // hanya memvalidasi token (401 bila tidak valid)
+    public IActionResult InstallerCheck() => Ok("ok"); // only validates the token (401 if invalid)
 
     [Authorize(AuthDefaults.InstallerPolicy)]
     [HttpPost("installer")]

@@ -4,7 +4,7 @@ using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Port dari CheckResult.handle_check (checks/models.py). Murni, tanpa I/O, mudah diuji.</summary>
+/// <summary>Port of CheckResult.handle_check (checks/models.py). Pure, no I/O, easy to test.</summary>
 public static class CheckEvaluator
 {
     public static int? HistorySample(Check check, CheckResultPayload d) => check.CheckType switch
@@ -64,7 +64,7 @@ public static class CheckEvaluator
                 r.MoreInfo = d.Output;
                 if (r.Status == CheckStatus.Failing) r.AlertSeverity = check.AlertSeverity;
                 break;
-            default: // winsvc & eventlog: agent mengirim status final
+            default: // winsvc & eventlog: the agent sends the final status
                 r.Status = d.Status ?? CheckStatus.Failing;
                 r.MoreInfo = d.MoreInfo;
                 if (r.Status == CheckStatus.Failing) r.AlertSeverity = check.AlertSeverity;
@@ -78,7 +78,7 @@ public static class CheckEvaluator
 
     private static void Fail(CheckResult r, string severity) { r.Status = CheckStatus.Failing; r.AlertSeverity = severity; }
 
-    /// <summary>Alert hanya dibuat setelah gagal berturut-turut sebanyak fails_b4_alert.</summary>
+    /// <summary>An alert is only created after fails_b4_alert consecutive failures.</summary>
     public static bool ShouldAlert(Check check, CheckResult r) =>
         r.Status == CheckStatus.Failing && r.FailCount >= Math.Max(1, check.FailsB4Alert);
 

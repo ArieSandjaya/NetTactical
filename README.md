@@ -1,72 +1,72 @@
-# NetTactical — Tactical RMM backend dalam ASP.NET Core (.NET 8, C#)
+# NetTactical — Tactical RMM backend in ASP.NET Core (.NET 8, C#)
 
-Port **cakupan inti** backend Tactical RMM (Django) ke C# N-Tier. Agent Go dan `nats-api` asli **tidak diubah**:
-path REST `/api/v3/*`, nama field JSON, subject NATS, dan skema tabel `agents_agent` dipertahankan.
+A port of the **core scope** of the Tactical RMM backend (Django) to a C# N-Tier architecture. The original Go agent and `nats-api` are **left unchanged**:
+the REST paths `/api/v3/*`, JSON field names, NATS subjects, and the `agents_agent` table schema are all preserved.
 
-## Struktur
-| Proyek | Isi | Padanan Django |
+## Structure
+| Project | Contents | Django equivalent |
 |---|---|---|
-| `Domain` | Entitas + konstanta | `*/models.py`, `constants.py` |
-| `Application` | Interface, DTO, logika murni (CheckEvaluator, PermissionEvaluator, dsb.) | `checks/models.py::handle_check`, `permissions.py` |
-| `Infrastructure` | EF Core + Npgsql, NATS.Net + MessagePack, service, background job | ORM, `nats_utils.py`, Celery |
-| `Api` | Controller, autentikasi token, rate limit | `views.py`, `urls.py`, Knox/DRF |
-| `tests` | xunit untuk logika murni | `tests.py` |
+| `Domain` | Entities + constants | `*/models.py`, `constants.py` |
+| `Application` | Interfaces, DTOs, pure logic (CheckEvaluator, PermissionEvaluator, etc.) | `checks/models.py::handle_check`, `permissions.py` |
+| `Infrastructure` | EF Core + Npgsql, NATS.Net + MessagePack, services, background jobs | ORM, `nats_utils.py`, Celery |
+| `Api` | Controllers, token authentication, rate limiting | `views.py`, `urls.py`, Knox/DRF |
+| `tests` | xunit tests for the pure logic | `tests.py` |
 
-## Sudah dicakup
-Login (+TOTP, throttle 10/menit & 300/hari), token Knox-style, API key, RBAC + scope client/site, Client/Site/Agent,
-registrasi agent + `nats-rmm.conf`, `apiv3` (checkin, config, checkrunner GET/PATCH, runchecks, checkinterval, taskrunner GET/PATCH, newagent),
-Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via NATS, Audit log, job outage agent (pengganti celery beat).
+## Covered so far
+Login (+TOTP, throttle 10/minute & 300/day), Knox-style tokens, API key, RBAC + client/site scope, Client/Site/Agent,
+agent registration + `nats-rmm.conf`, `apiv3` (checkin, config, checkrunner GET/PATCH, runchecks, checkinterval, taskrunner GET/PATCH, newagent),
+Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via NATS, Audit log, agent outage job (replaces celery beat).
 
-**Seluruh endpoint `/api/v3` milik agent kini ada** (selain yang tertulis di bawah): `checkin`, `config`, `checkrunner`, `runchecks`, `checkinterval`,
+**All of the agent's `/api/v3` endpoints now exist** (apart from those listed below): `checkin`, `config`, `checkrunner`, `runchecks`, `checkinterval`,
 `taskrunner`, `newagent`, `syncmesh`, `choco`, `software`, `winupdates` (PUT/PATCH/POST), `superseded`, `histresult`, `installer` (GET/POST),
-`meshexe`, `meshreinstall`. Integrasi MeshCentral (token AES-GCM, daftar device group via WebSocket, unduh installer) diisi lewat `Tactical:Mesh`.
+`meshexe`, `meshreinstall`. The MeshCentral integration (AES-GCM token, device group listing via WebSocket, installer download) is configured through `Tactical:Mesh`.
 
-## CRUD dashboard (baru)
-- **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (validasi per tipe: disk, cpu, memory, ping, winsvc, script, eventlog; host ping dicek anti-injeksi).
-- **Task terjadwal** — `GET agents/{agentId}/tasks`, `GET/PUT/DELETE tasks/{id}`, `POST tasks`, `POST tasks/{id}/run`. Perubahan didorong ke Task Scheduler agent (`schedtask`/`delschedtask`) oleh `TaskSyncJob` (tiap 2 menit); penghapusan baru final setelah agent mengonfirmasi.
-- **Akun** — `accounts/users` (CRUD, reset password, reset TOTP; 2FA sendiri via `accounts/totp/setup|enable`) dan `accounts/roles` (CRUD) + `accounts/permissions`. Perlindungan eskalasi: non-superuser tak bisa menyentuh superuser atau memberi izin yang tidak dimilikinya; superuser aktif terakhir tak bisa dihapus/dinonaktifkan; reset password/nonaktif mencabut semua token.
-- **Organisasi** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (butuh `can_edit_agent` + scope site asal & tujuan).
-- **Policy** — `automation/policies` CRUD (hapus ditolak bila masih punya task, supaya agent dibersihkan lebih dulu).
+## Dashboard CRUD (new)
+- **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (per-type validation: disk, cpu, memory, ping, winsvc, script, eventlog; the ping host is checked against injection).
+- **Scheduled task** — `GET agents/{agentId}/tasks`, `GET/PUT/DELETE tasks/{id}`, `POST tasks`, `POST tasks/{id}/run`. Changes are pushed to the agent's Task Scheduler (`schedtask`/`delschedtask`) by `TaskSyncJob` (every 2 minutes); a deletion is only final once the agent confirms it.
+- **Accounts** — `accounts/users` (CRUD, password reset, TOTP reset; own 2FA via `accounts/totp/setup|enable`) and `accounts/roles` (CRUD) + `accounts/permissions`. Escalation protection: a non-superuser cannot touch a superuser or grant permissions they do not have; the last active superuser cannot be deleted/deactivated; a password reset/deactivation revokes all tokens.
+- **Organisation** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (requires `can_edit_agent` + scope on both the source and destination site).
+- **Policy** — `automation/policies` CRUD (deletion is rejected while the policy still has tasks, so that agents are cleaned up first).
 
-## Dashboard aset (baru)
-- **Metrik historis** — tiap hasil check CPU/memori/disk disimpan sebagai titik di tabel `check_metric` (jeda minimum `Tactical:MetricMinIntervalSeconds`, default 240 dtk). `MetricRetentionJob` menghapus data lebih tua dari `Tactical:MetricRetentionDays` (default 90).
-- **Skor kesehatan 0-100** — `HealthScorer` (logika murni): pengurang untuk offline, disk, CPU, memori, alert terbuka, update tertunda, perlu reboot, uptime panjang, agent usang. Bobot dan ambang level bisa diubah lewat `Tactical:Health`. Setiap skor membawa daftar faktor + kode stabil untuk diterjemahkan di UI.
-- **Endpoint** (izin `can_list_agents`, scope client/site berlaku):
-  - `GET /fleet/summary?client_id=&site_id=&days=30&risk_limit=10` — total, alert, patch, skor per client, perangkat berisiko, alert terbaru, sebaran OS, versi agent, tren harian.
-  - `GET /agents/{agentId}/overview` — fakta perangkat, skor + faktor, metrik terkini, disk, **daftar masalah** (check/task gagal beserta stdout/stderr/kode keluar, offline, patch, agent usang), check, task, patch, layanan otomatis yang berhenti.
-  - `GET /agents/{agentId}/metrics?metric=cpu|memory|disk&label=C:&days=30` — deret waktu (di-downsample ke maks 1000 titik).
-- Belum ada: usia perangkat/hardware (agent tidak mengirimnya), prediksi, dan riwayat kejadian error setelah alert selesai (hanya masalah yang sedang terbuka).
+## Asset dashboard (new)
+- **Historical metrics** — every CPU/memory/disk check result is stored as a point in the `check_metric` table (minimum gap `Tactical:MetricMinIntervalSeconds`, default 240 s). `MetricRetentionJob` deletes data older than `Tactical:MetricRetentionDays` (default 90).
+- **Health score 0-100** — `HealthScorer` (pure logic): deductions for offline, disk, CPU, memory, open alerts, pending updates, reboot required, long uptime, outdated agent. Weights and level thresholds can be changed via `Tactical:Health`. Every score carries a list of factors + stable codes for translation in the UI.
+- **Endpoints** (`can_list_agents` permission, client/site scope applies):
+  - `GET /fleet/summary?client_id=&site_id=&days=30&risk_limit=10` — totals, alerts, patches, score per client, at-risk devices, latest alerts, OS distribution, agent versions, daily trends.
+  - `GET /agents/{agentId}/overview` — device facts, score + factors, current metrics, disks, **issue list** (failed checks/tasks with stdout/stderr/exit code, offline, patches, outdated agent), checks, tasks, patches, stopped automatic services.
+  - `GET /agents/{agentId}/metrics?metric=cpu|memory|disk&label=C:&days=30` — time series (downsampled to at most 1000 points).
+- Not available yet: device age/hardware (the agent does not send it), predictions, and an error event history after an alert is resolved (only currently open issues are shown).
 
-## UI dashboard (baru)
-Dilayani langsung oleh API dari `src/TacticalRmm.Api/wwwroot` (buka `/` di browser setelah API berjalan; tanpa Node, tanpa build, tanpa CDN).
-- **Login** (+kode 2FA bila aktif), token disimpan di `sessionStorage`, sesi kedaluwarsa otomatis kembali ke login.
-- **Ringkasan aset** (`#/`): skor kesehatan, agent online, alert, update tertunda, tren CPU/memori/disk (7/30/90 hari), skor per client (klik untuk menyaring), perangkat berisiko, alert terbaru, status patch, sistem operasi, versi agent. Menyegarkan diri tiap 60 detik.
-- **Detail perangkat** (`#/device/<agentId>`): skor + faktor penurunnya, metrik terkini, riwayat metrik, lalu tab Masalah (output/stderr/kode keluar), Check, Task, Patch, Disk & layanan.
-- Keamanan: seluruh DOM dibuat dengan `textContent` (tanpa `innerHTML`) karena nama perangkat dan output check berasal dari agent; CSP `default-src 'self'` tanpa skrip/gaya inline; mendukung mode gelap dan lebar ponsel.
-- Diuji dengan mock API berbentuk sama dengan DTO + Playwright (login, filter, tab, 401/404, mode gelap, ponsel, payload XSS tidak tereksekusi). Belum diuji terhadap backend sungguhan.
-- Belum ada di UI: halaman daftar perangkat, alert, patch, serta CRUD (API-nya sudah ada).
+## Dashboard UI (new)
+Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a browser once the API is running; no Node, no build, no CDN).
+- **Login** (+2FA code if enabled), the token is stored in `sessionStorage`, and an expired session automatically returns to login.
+- **Asset summary** (`#/`): health score, online agents, alerts, pending updates, CPU/memory/disk trends (7/30/90 days), score per client (click to filter), at-risk devices, latest alerts, patch status, operating systems, agent versions. Refreshes itself every 60 seconds.
+- **Device detail** (`#/device/<agentId>`): score + the factors lowering it, current metrics, metric history, then the Issues (output/stderr/exit code), Check, Task, Patch, Disk & services tabs.
+- Security: the entire DOM is built with `textContent` (no `innerHTML`) because device names and check output come from agents; CSP `default-src 'self'` with no inline scripts/styles; supports dark mode and phone widths.
+- Tested with a mock API shaped like the DTOs + Playwright (login, filter, tabs, 401/404, dark mode, phone, XSS payload not executed). Not yet tested against a real backend.
+- Not yet in the UI: device list, alert, and patch pages, plus CRUD (the API for it already exists).
 
-## Belum dicakup (sengaja, "inti dulu")
-Policy inheritance penuh (client/site level), penjadwalan & persetujuan winupdate otomatis, instalasi chocolatey, file transfer, hasil 'collector' ke custom field (histresult), sinkronisasi izin Mesh (`run_sync_task`), terminal & WebSocket (SignalR),
-notifikasi email/SMS/webhook, AlertTemplate, custom field, snippet script, reporting & SSO (`ee/`, lisensi sponsor terpisah), Mesh.
+## Not covered (deliberately, "core first")
+Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
+email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
 
-## Menjalankan
+## Running
 ```bash
-export Tactical__SecretKey="<>=32 karakter acak>"
-export Tactical__BootstrapAdmin__Password="<>=12 karakter>"
+export Tactical__SecretKey="<>=32 random characters>"
+export Tactical__BootstrapAdmin__Password="<>=12 characters>"
 export ConnectionStrings__Default="Host=...;Database=tacticalrmm;Username=...;Password=..."
 dotnet run --project src/TacticalRmm.Api
 ```
-Dev: skema dibuat via `EnsureCreated`. Produksi: `dotnet ef migrations add Initial -p src/TacticalRmm.Infrastructure -s src/TacticalRmm.Api`.
-Token installer tampil sekali di log saat pertama jalan.
+Dev: the schema is created via `EnsureCreated`. Production: `dotnet ef migrations add Initial -p src/TacticalRmm.Infrastructure -s src/TacticalRmm.Api`.
+The installer token is shown once in the log on first run.
 
-## Status verifikasi (jujur)
-- `Domain` + `Application` dibangun dan diuji: **59 + 123 asersi logika lulus, ditambah 12 test untuk skor kesehatan, aturan metrik, dan parser data agent** (evaluasi check, izin, token Mesh AES-GCM, URL Mesh, versi installer, update superseded, keputusan reboot; validator Check/Task, payload Task Scheduler, aturan akun). Service CRUD & controller baru hanya terkompilasi terhadap stub — belum dijalankan terhadap Postgres.
-- Seluruh solusi **dikompilasi lolos** terhadap stub sementara untuk EF Core / NATS / MessagePack (bagian ASP.NET dikompilasi dengan SDK asli). Ini hanya membuktikan kode konsisten, **bukan** bahwa pemanggilan API paket-paket itu sudah benar.
-- Belum pernah `dotnet build` dengan paket NuGet asli, dan belum diuji terhadap agent Go, NATS, MeshCentral, atau Postgres sungguhan.
-- Tidak ada `NuGet.config` di zip ini; build memakai nuget.org seperti biasa.
+## Verification status (honest)
+- `Domain` + `Application` were built and tested: **59 + 123 logic assertions pass, plus 12 tests for the health score, metric rules, and agent data parser** (check evaluation, permissions, Mesh AES-GCM token, Mesh URLs, installer version, superseded updates, reboot decisions; Check/Task validators, Task Scheduler payload, account rules). The new CRUD services & controllers were only compiled against stubs — they have not been run against Postgres.
+- The whole solution **compiled successfully** against temporary stubs for EF Core / NATS / MessagePack (the ASP.NET parts were compiled with the real SDK). This only proves the code is self-consistent, **not** that the calls into those packages' APIs are correct.
+- `dotnet build` has never been run with the real NuGet packages, and nothing has been tested against a real Go agent, NATS, MeshCentral, or Postgres.
+- There is no `NuGet.config` in this zip; the build uses nuget.org as usual.
 
-## Lisensi & asal-usul
-Proyek ini adalah port berbasis perilaku dari [Tactical RMM](https://github.com/amidaware/tacticalrmm) (Amidaware), yang berlisensi **Tactical RMM License v1.0** — *bukan* open source.
-Pemakaian untuk jaringan internal/pelanggan sendiri diizinkan; menjadikannya layanan SaaS/komersial berbayar memerlukan izin tertulis dari Amidaware.
-Folder `ee/` (SSO, Reporting) milik Amidaware memerlukan token sponsor dan **tidak** diport di sini. Pastikan Anda mematuhi lisensi aslinya sebelum membuka repo ini ke publik atau mendistribusikannya.
+## Licence & origin
+This project is a behaviour-based port of [Tactical RMM](https://github.com/amidaware/tacticalrmm) (Amidaware), which is licensed under the **Tactical RMM License v1.0** — it is *not* open source.
+Use on your own internal/customer networks is permitted; turning it into a paid SaaS/commercial service requires written permission from Amidaware.
+Amidaware's `ee/` folder (SSO, Reporting) requires a sponsor token and is **not** ported here. Make sure you comply with the original licence before making this repo public or distributing it.

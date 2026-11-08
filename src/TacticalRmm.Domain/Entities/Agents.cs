@@ -10,7 +10,7 @@ public class Agent : AuditableEntity
     public string Hostname { get; set; } = "";
     public string AgentId { get; set; } = "";
     public DateTime? LastSeen { get; set; }
-    public string? Services { get; set; }   // jsonb, ditulis oleh nats-api
+    public string? Services { get; set; }   // jsonb, written by nats-api
     public string? PublicIp { get; set; }
     public int? TotalRam { get; set; }
     public string? Disks { get; set; }      // jsonb
@@ -23,9 +23,9 @@ public class Agent : AuditableEntity
     public bool OverdueEmailAlert { get; set; }
     public bool OverdueTextAlert { get; set; }
     public bool OverdueDashboardAlert { get; set; }
-    public int OfflineTime { get; set; } = 4;      // menit
-    public int OverdueTime { get; set; } = 30;     // menit
-    public int CheckInterval { get; set; } = 120;  // detik
+    public int OfflineTime { get; set; } = 4;      // minutes
+    public int OverdueTime { get; set; } = 30;     // minutes
+    public int CheckInterval { get; set; } = 120;  // seconds
     public bool NeedsReboot { get; set; }
     public bool ChocoInstalled { get; set; }
     public bool MaintenanceMode { get; set; }

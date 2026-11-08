@@ -4,7 +4,7 @@ using TacticalRmm.Application.Dtos;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Parser defensif untuk jsonb yang ditulis nats-api (disk, layanan). Data buruk tidak pernah melempar.</summary>
+/// <summary>Defensive parser for jsonb written by nats-api (disks, services). Bad data never throws.</summary>
 public static class AgentDataParser
 {
     public static IReadOnlyList<DiskDto> ParseDisks(string? json)
@@ -30,7 +30,7 @@ public static class AgentDataParser
 
     public static double? WorstDiskUsed(IReadOnlyList<DiskDto> disks) => disks.Count == 0 ? null : disks.Max(d => d.Percent);
 
-    /// <summary>Layanan berstart otomatis yang tidak berjalan (maks <paramref name="limit"/>).</summary>
+    /// <summary>Auto-start services that are not running (max <paramref name="limit"/>).</summary>
     public static IReadOnlyList<ServiceIssueDto> ParseStoppedAutoServices(string? json, int limit = 20)
     {
         var list = new List<ServiceIssueDto>();
@@ -54,7 +54,7 @@ public static class AgentDataParser
         return list;
     }
 
-    /// <summary>boot_time (epoch detik) -> hari uptime; null bila tidak ada atau tidak masuk akal.</summary>
+    /// <summary>boot_time (epoch seconds) -> uptime days; null if missing or implausible.</summary>
     public static int? UptimeDays(double? bootEpochSeconds, DateTime nowUtc)
     {
         if (bootEpochSeconds is not { } b || b <= 0) return null;
@@ -66,7 +66,7 @@ public static class AgentDataParser
     public static bool IsOnline(DateTime? lastSeen, int offlineMinutes, DateTime nowUtc) =>
         lastSeen is { } ls && ls > nowUtc.AddMinutes(-(Math.Max(offlineMinutes, 1) + 1));
 
-    public static string? Truncate(string? s, int max = 4000) => s is null ? null : s.Length <= max ? s : s[..max] + "\n… (dipotong)";
+    public static string? Truncate(string? s, int max = 4000) => s is null ? null : s.Length <= max ? s : s[..max] + "\n… (truncated)";
 
     public static string? Compose(string? moreInfo, string? stdout, string? stderr)
     {
@@ -77,7 +77,7 @@ public static class AgentDataParser
         return parts.Count == 0 ? null : Truncate(string.Join("\n\n", parts));
     }
 
-    /// <summary>Kurangi jumlah titik dengan merata-ratakan per bucket, agar respons tetap kecil.</summary>
+    /// <summary>Reduce the number of points by averaging per bucket, to keep the response small.</summary>
     public static IReadOnlyList<MetricPoint> Downsample(IReadOnlyList<MetricPoint> pts, int max)
     {
         if (pts.Count <= max || max < 2) return pts;

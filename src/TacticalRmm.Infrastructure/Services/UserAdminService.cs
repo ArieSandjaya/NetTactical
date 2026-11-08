@@ -13,7 +13,7 @@ public sealed class UserAdminService(AppDbContext db, IPasswordHasher hasher, IA
     private IQueryable<User> Humans => db.Users.Include(u => u.Role).Where(u => !u.IsInstallerUser && u.AgentId == null);
 
     private static UserDto ToDto(User u) => new(u.Id, u.Username, u.Email, u.IsActive, u.IsSuperuser, u.BlockDashboardLogin,
-        u.RoleId, u.Role?.Name, !string.IsNullOrEmpty(u.TotpKey), u.LastLoginIp);   // PasswordHash & TotpKey tidak pernah keluar
+        u.RoleId, u.Role?.Name, !string.IsNullOrEmpty(u.TotpKey), u.LastLoginIp);   // PasswordHash & TotpKey never leave the service
 
     public async Task<Outcome<IReadOnlyList<UserDto>>> ListAsync(User caller, CancellationToken ct = default)
     {
@@ -84,7 +84,7 @@ public sealed class UserAdminService(AppDbContext db, IPasswordHasher hasher, IA
         if (!AccountRules.CanGrant(caller, user.IsSuperuser, user.Role?.Permissions ?? []) && (req.IsSuperuser == true || req.RoleId is not null))
             return Outcome.Forbidden<UserDto>("You cannot grant more privileges than you have");
 
-        // Jangan sampai sistem kehilangan superuser aktif terakhir.
+        // Never let the system lose its last active superuser.
         if (wasSuper && (!PermissionEvaluator.IsSuper(user) || !user.IsActive) && !await AnotherActiveSuperAsync(user.Id, ct))
             return Outcome.Conflict<UserDto>("At least one active superuser must remain");
         _ = losingPower;
@@ -121,7 +121,7 @@ public sealed class UserAdminService(AppDbContext db, IPasswordHasher hasher, IA
 
         user.PasswordHash = hasher.Hash(newPassword);
         await db.SaveChangesAsync(ct);
-        await RevokeTokensAsync(user.Id, ct);       // semua sesi lama dicabut
+        await RevokeTokensAsync(user.Id, ct);       // all existing sessions are revoked
         await audit.LogAsync(caller.Username, AuditAction.Modify, "user", $"{caller.Username} reset password of {user.Username}", ct: ct);
         return Outcome.Ok(true);
     }

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Port meshctrl.utils.get_auth_token: AES-256-GCM, format iv(12)+tag(16)+cipher, base64 dengan '@' '$'.</summary>
+/// <summary>Port meshctrl.utils.get_auth_token: AES-256-GCM, format iv(12)+tag(16)+cipher, base64 with '@' '$'.</summary>
 public static class MeshAuth
 {
     public static string CreateAuthToken(string user, string hexKey, long? unixTime = null, string domain = "")
@@ -20,7 +20,7 @@ public static class MeshAuth
         return Convert.ToBase64String([.. iv, .. tag, .. cipher]).Replace('+', '@').Replace('/', '$');
     }
 
-    /// <summary>Hanya untuk uji: membalik token.</summary>
+    /// <summary>For tests only: reverses the token.</summary>
     public static string Decrypt(string token, string hexKey)
     {
         var raw = Convert.FromBase64String(token.Replace('@', '+').Replace('$', '/'));

@@ -24,7 +24,7 @@ public interface ITaskAdminService
     Task<Outcome<bool>> RunNowAsync(User caller, int id, string? agentId, CancellationToken ct = default);
 }
 
-/// <summary>Mendorong definisi task ke Windows Task Scheduler agent (schedtask / delschedtask).</summary>
+/// <summary>Pushes task definitions to the agent's Windows Task Scheduler (schedtask / delschedtask).</summary>
 public interface ITaskSyncService
 {
     Task<int> SyncPendingAsync(CancellationToken ct = default);
@@ -40,7 +40,7 @@ public interface IUserAdminService
     Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
     Task<Outcome<bool>> ResetPasswordAsync(User caller, int id, string newPassword, CancellationToken ct = default);
     Task<Outcome<bool>> ResetTotpAsync(User caller, int id, CancellationToken ct = default);
-    /// <summary>Membuat secret TOTP baru untuk dirinya sendiri (belum disimpan sampai kode diverifikasi).</summary>
+    /// <summary>Creates a new TOTP secret for the user themselves (not saved until the code is verified).</summary>
     Task<Outcome<TotpSetup>> BeginTotpAsync(User caller, CancellationToken ct = default);
     Task<Outcome<bool>> EnableTotpAsync(User caller, string secret, string code, CancellationToken ct = default);
 }

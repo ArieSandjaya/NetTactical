@@ -23,7 +23,7 @@ public record AgentListItem(int Id, string AgentId, string Hostname, string Plat
 public record RunScriptRequest(int Script, string Output, List<string>? Args, bool RunAsUser,
     List<string>? EnvVars, int Timeout);
 
-// ---------- Protokol agent (apiv3), nama field = snake_case persis seperti Django ----------
+// ---------- Agent protocol (apiv3), field names = snake_case exactly as in Django ----------
 public class AgentCheckInConfig
 {
     [JsonPropertyName("checkin_hello")] public int CheckinHello { get; set; }
@@ -74,10 +74,10 @@ public class AgentRuntimeOptions
     public string DenoDefaultPermissions { get; set; } = "--allow-all";
 }
 
-/// <summary>Bagian konfigurasi "Tactical" di appsettings / environment.</summary>
+/// <summary>The "Tactical" configuration section in appsettings / environment.</summary>
 public class TacticalOptions
 {
-    public string SecretKey { get; set; } = "";                 // juga password user NATS "tacticalrmm"
+    public string SecretKey { get; set; } = "";                 // also the password of the NATS user "tacticalrmm"
     public string NatsUrl { get; set; } = "nats://127.0.0.1:4222";
     public string NatsConfPath { get; set; } = "nats-rmm.conf";
     public string NatsServerBin { get; set; } = "/usr/local/bin/nats-server";
@@ -91,9 +91,9 @@ public class TacticalOptions
     public int MaxRequestSizeBytes { get; set; } = 10 * 1024 * 1024; // = TRMM_MAX_REQUEST_SIZE
     public MeshOptions Mesh { get; set; } = new();
     public AgentRuntimeOptions Agent { get; set; } = new();
-    /// <summary>Berapa hari metrik historis disimpan sebelum dihapus job retensi.</summary>
+    /// <summary>How many days historical metrics are kept before the retention job deletes them.</summary>
     public int MetricRetentionDays { get; set; } = 90;
-    /// <summary>Jeda minimum antar titik metrik per check (detik), agar tabel tidak membengkak.</summary>
+    /// <summary>Minimum gap between metric points per check (seconds), to keep the table from bloating.</summary>
     public int MetricMinIntervalSeconds { get; set; } = 240;
     public HealthWeights Health { get; set; } = new();
 }
@@ -133,7 +133,7 @@ public record CheckRunnerResponse(
     [property: JsonPropertyName("check_interval")] int CheckInterval,
     [property: JsonPropertyName("checks")] List<CheckRunnerItem> Checks);
 
-/// <summary>Payload PATCH checkrunner dari agent; field opsional tergantung tipe check.</summary>
+/// <summary>PATCH checkrunner payload from the agent; optional fields depend on the check type.</summary>
 public class CheckResultPayload
 {
     [JsonPropertyName("id")] public int Id { get; set; }
@@ -181,8 +181,8 @@ public class TaskResultPayload
 
 public class MeshOptions
 {
-    public string Site { get; set; } = "";            // mis. https://mesh.example.com
-    public string Username { get; set; } = "";        // user superuser Mesh untuk API
+    public string Site { get; set; } = "";            // e.g. https://mesh.example.com
+    public string Username { get; set; } = "";        // Mesh superuser account for the API
     public string TokenKey { get; set; } = "";        // MESH_TOKEN_KEY (hex)
     public string DeviceGroup { get; set; } = "TacticalRMM";
     public bool UseExternal { get; set; }

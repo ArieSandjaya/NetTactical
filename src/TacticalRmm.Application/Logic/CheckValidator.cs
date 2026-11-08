@@ -15,7 +15,7 @@ public static partial class CheckValidator
 
     public static bool IsKnownType(string? t) => t != null && Types.Contains(t);
 
-    /// <returns>pesan error, atau null bila valid. <paramref name="merged"/> = nilai akhir setelah digabung dengan data lama.</returns>
+    /// <returns>error message, or null if valid. <paramref name="merged"/> = final values after merging with the existing data.</returns>
     public static string? Validate(string checkType, CheckUpsert merged)
     {
         if (!IsKnownType(checkType)) return $"Unknown check_type '{checkType}'";

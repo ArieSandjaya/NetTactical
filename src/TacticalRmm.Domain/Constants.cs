@@ -1,6 +1,6 @@
 namespace TacticalRmm.Domain;
 
-// Nilai string identik dengan Django (TextChoices) supaya agent Go & nats-api tetap kompatibel.
+// String values are identical to Django (TextChoices) so the Go agent and nats-api stay compatible.
 public static class AgentPlat { public const string Windows = "windows", Linux = "linux", Darwin = "darwin"; }
 public static class GoArch { public const string Amd64 = "amd64", I386 = "386", Arm64 = "arm64", Arm32 = "arm"; }
 public static class AgentMonType { public const string Server = "server", Workstation = "workstation"; }
@@ -31,7 +31,7 @@ public static class AuditAction
         ExecCommand = "execute_command", BulkAction = "bulk_action";
 }
 
-/// <summary>Pengganti puluhan flag boolean di Django Role; disimpan sebagai text[].</summary>
+/// <summary>Replaces the dozens of boolean flags on the Django Role; stored as text[].</summary>
 public static class Perm
 {
     public const string ListClients = "can_list_clients", ManageClients = "can_manage_clients",
@@ -46,7 +46,7 @@ public static class Perm
         RunChecks = "can_run_checks", RunTasks = "can_run_autotasks",
         ListPolicies = "can_list_automation_policies", ManagePolicies = "can_manage_automation_policies";
 
-    /// <summary>Daftar lengkap izin yang sah; dipakai untuk validasi Role.</summary>
+    /// <summary>Complete list of valid permissions; used for Role validation.</summary>
     public static readonly IReadOnlyList<string> All =
     [
         ListClients, ManageClients, ListSites, ManageSites, ListAgents, ManageAgents, EditAgent, UninstallAgents,

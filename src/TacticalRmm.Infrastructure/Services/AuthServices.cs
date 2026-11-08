@@ -14,7 +14,7 @@ public sealed class AuthService(AppDbContext db, IPasswordHasher hasher, ITokenS
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Username == req.Username && u.AgentId == null && !u.IsInstallerUser, ct);
 
-        // Verifikasi selalu dijalankan agar waktu respons tidak membocorkan keberadaan username.
+        // Verification always runs so that response time does not leak whether a username exists.
         var ok = user is not null && user.IsActive && !user.BlockDashboardLogin
                  && hasher.Verify(req.Password, user.PasswordHash);
 

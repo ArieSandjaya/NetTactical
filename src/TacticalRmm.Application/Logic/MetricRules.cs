@@ -7,7 +7,7 @@ public static class MetricRules
 {
     public static readonly string[] Types = [CheckType.CpuLoad, CheckType.Memory, CheckType.DiskSpace];
 
-    /// <summary>Persen terpakai (0-100) dari payload check, atau null bila bukan metrik / tidak ada datanya.</summary>
+    /// <summary>Percent used (0-100) from the check payload, or null if it is not a metric / has no data.</summary>
     public static double? UsedPercent(string checkType, CheckResultPayload p)
     {
         double? v = checkType switch
@@ -20,7 +20,7 @@ public static class MetricRules
         return Math.Round(Math.Clamp(v.Value, 0, 100), 1);
     }
 
-    /// <summary>Nama pendek di API -> tipe check. Mengembalikan null bila tidak dikenal.</summary>
+    /// <summary>Short name in the API -> check type. Returns null if unknown.</summary>
     public static string? FromApiName(string? name) => name?.ToLowerInvariant() switch
     {
         "cpu" => CheckType.CpuLoad,

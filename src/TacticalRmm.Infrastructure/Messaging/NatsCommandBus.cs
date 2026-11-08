@@ -7,8 +7,8 @@ using TacticalRmm.Application.Abstractions;
 namespace TacticalRmm.Infrastructure.Messaging;
 
 /// <summary>
-/// Setara agent.nats_cmd() di Django: subject = agent_id, payload msgpack.
-/// Agent Go tidak perlu diubah sama sekali.
+/// Equivalent of agent.nats_cmd() in Django: subject = agent_id, payload msgpack.
+/// The Go agent does not need any changes.
 /// </summary>
 public sealed class NatsCommandBus(INatsConnection nc, ILogger<NatsCommandBus> log) : IAgentCommandBus
 {
@@ -28,7 +28,7 @@ public sealed class NatsCommandBus(INatsConnection nc, ILogger<NatsCommandBus> l
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return "timeout"; }
         catch (NatsException e)
         {
-            log.LogWarning(e, "NATS error saat request ke {Agent}", agentId);
+            log.LogWarning(e, "NATS error during request to {Agent}", agentId);
             return "natsdown";
         }
     }
@@ -36,6 +36,6 @@ public sealed class NatsCommandBus(INatsConnection nc, ILogger<NatsCommandBus> l
     public async Task PublishAsync(string agentId, IDictionary<string, object?> data, CancellationToken ct = default)
     {
         try { await nc.PublishAsync(agentId, MessagePackSerializer.Serialize(data, Opts), cancellationToken: ct); }
-        catch (NatsException e) { log.LogWarning(e, "NATS publish gagal ke {Agent}", agentId); }
+        catch (NatsException e) { log.LogWarning(e, "NATS publish to {Agent} failed", agentId); }
     }
 }

@@ -22,9 +22,9 @@ public static class Outcome
 // ----------------------------------------------------------------------------- checks
 public class CheckUpsert
 {
-    public string? Agent { get; set; }          // agent_id (string), bukan pk — sama dengan Django
+    public string? Agent { get; set; }          // agent_id (string), not pk — same as Django
     public int? Policy { get; set; }
-    public string? CheckType { get; set; }      // hanya saat create
+    public string? CheckType { get; set; }      // only on create
     public string? Name { get; set; }
     public bool? EmailAlert { get; set; }
     public bool? TextAlert { get; set; }
@@ -101,7 +101,7 @@ public class TaskUpsert
     public bool? RunAsapAfterMissed { get; set; }
     public int? TaskInstancePolicy { get; set; }
     public int? AssignedCheck { get; set; }
-    public JsonElement Actions { get; set; }   // Undefined = tidak dikirim
+    public JsonElement Actions { get; set; }   // Undefined = not sent
 }
 
 public record TaskDto(

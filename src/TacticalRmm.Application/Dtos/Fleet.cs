@@ -1,6 +1,6 @@
 namespace TacticalRmm.Application.Dtos;
 
-// Semua DTO diserialkan snake_case oleh API (lihat Program.cs).
+// All DTOs are serialised as snake_case by the API (see Program.cs).
 
 public record HealthFactorDto(string Code, int Penalty, string Detail);
 public record HealthDto(int Score, string Level, IReadOnlyList<HealthFactorDto> Factors);
@@ -37,7 +37,7 @@ public record AgentFactsDto(
 
 public record AgentMetricsDto(double? Cpu, double? Memory, double? DiskWorst);
 
-/// <summary>Satu masalah terbuka di perangkat: gabungan check gagal, task gagal, availability, patch, versi agent.</summary>
+/// <summary>One open issue on a device: a combination of failed checks, failed tasks, availability, patches and agent version.</summary>
 public record IssueDto(
     string Kind, string Severity, string Title, string Source,
     DateTime? FirstSeen, DateTime? LastSeen, int Count, string? ReturnCode, string? Output,

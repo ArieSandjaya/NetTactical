@@ -3,10 +3,10 @@ using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Port AutomatedTask.generate_nats_task_payload — isi "schedtaskpayload" untuk Windows Task Scheduler di agent.</summary>
+/// <summary>Port AutomatedTask.generate_nats_task_payload — contents of "schedtaskpayload" for the Windows Task Scheduler on the agent.</summary>
 public static class TaskPayloadBuilder
 {
-    /// <summary>Port convert_to_iso_duration (termasuk bentuk "P1DT" persis seperti Django).</summary>
+    /// <summary>Port convert_to_iso_duration (including the "P1DT" form exactly as in Django).</summary>
     public static string ToIsoDuration(string s)
     {
         var t = s.ToUpperInvariant();
@@ -59,7 +59,7 @@ public static class TaskPayloadBuilder
                     break;
                 case TaskType.Monthly:
                     var days = t.MonthlyDaysOfMonth ?? 0;
-                    var last = days >= 0x80000000L;   // bit 31 = "hari terakhir bulan"
+                    var last = days >= 0x80000000L;   // bit 31 = "last day of the month"
                     task["days_of_month"] = last ? days - 0x80000000L : days;
                     task["run_on_last_day_of_month"] = last;
                     task["months_of_year"] = t.MonthlyMonthsOfYear;

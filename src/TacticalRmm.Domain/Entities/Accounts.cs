@@ -28,7 +28,7 @@ public class User : AuditableEntity
     public Agent? Agent { get; set; }
 }
 
-/// <summary>Setara knox_authtoken (user) dan authtoken_token (agent). Hanya digest SHA-512 yang disimpan.</summary>
+/// <summary>Equivalent of knox_authtoken (user) and authtoken_token (agent). Only the SHA-512 digest is stored.</summary>
 public class UserToken
 {
     public long Id { get; set; }
@@ -51,8 +51,8 @@ public class ApiKey : AuditableEntity
 }
 
 /// <summary>
-/// Token agent disimpan apa adanya (bukan hash) karena dipakai sebagai password NATS di nats-rmm.conf
-/// (sama seperti DRF authtoken di Django). Token dashboard memakai <see cref="UserToken"/> berbasis digest.
+/// The agent token is stored as-is (not hashed) because it is used as the NATS password in nats-rmm.conf
+/// (same as the DRF authtoken in Django). Dashboard tokens use the digest-based <see cref="UserToken"/>.
 /// </summary>
 public class AgentToken
 {

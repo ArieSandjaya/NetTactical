@@ -11,7 +11,7 @@ public static partial class AccountRules
     public static string? ValidateUsername(string? u) =>
         u is not null && UsernamePattern().IsMatch(u) ? null : "username must be 3-150 characters: letters, digits and _ . @ + -";
 
-    /// <summary>Minimal 12 karakter, tidak memuat username, minimal 3 dari 4 jenis karakter.</summary>
+    /// <summary>At least 12 characters, must not contain the username, at least 3 of 4 character classes.</summary>
     public static string? ValidatePassword(string? password, string username)
     {
         if (string.IsNullOrEmpty(password) || password.Length < 12) return "Password must be at least 12 characters";
@@ -22,10 +22,10 @@ public static partial class AccountRules
         return classes >= 3 ? null : "Password must mix at least 3 of: lowercase, uppercase, digits, symbols";
     }
 
-    /// <summary>Non-superuser tidak boleh menyentuh superuser (mencegah eskalasi/pengambilalihan).</summary>
+    /// <summary>A non-superuser must not touch a superuser (prevents escalation/takeover).</summary>
     public static bool CanManageUser(User caller, User target) => PermissionEvaluator.IsSuper(caller) || !PermissionEvaluator.IsSuper(target);
 
-    /// <summary>Non-superuser hanya boleh memberi role yang bukan superuser dan izinnya ⊆ izin miliknya sendiri.</summary>
+    /// <summary>A non-superuser may only grant roles that are not superuser and whose permissions are a subset of their own.</summary>
     public static bool CanGrant(User caller, bool roleIsSuperuser, IEnumerable<string> rolePermissions)
     {
         if (PermissionEvaluator.IsSuper(caller)) return true;

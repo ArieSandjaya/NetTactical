@@ -15,12 +15,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddTrmmAuth();
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
-    o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower; // frontend Vue memakai snake_case
+    o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower; // the Vue frontend uses snake_case
     o.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower;
 });
 builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = 64 * 1024 * 1024); // = max_payload NATS
 
-// Throttle login: 10/menit dan 300/hari per IP (TRMM_LOGIN_MIN_THROTTLE / DAY_THROTTLE)
+// Throttle login: 10/minute and 300/day per IP (TRMM_LOGIN_MIN_THROTTLE / DAY_THROTTLE)
 static RateLimitPartition<string> LoginLimit(HttpContext ctx, string suffix, int permits, TimeSpan window) =>
     ctx.Request.Path.StartsWithSegments("/v2/login")
         ? RateLimitPartition.GetFixedWindowLimiter($"{ctx.Connection.RemoteIpAddress}-{suffix}",
@@ -45,7 +45,7 @@ var app = builder.Build();
 await using (var scope = app.Services.CreateAsyncScope())
     await Bootstrap.RunAsync(scope.ServiceProvider, app.Configuration);
 
-// UI dashboard statis (wwwroot). CSP ketat: hanya sumber sendiri, tanpa skrip/gaya inline.
+// Static dashboard UI (wwwroot). Strict CSP: same-origin sources only, no inline scripts/styles.
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'";
@@ -64,13 +64,13 @@ app.Run();
 
 public partial class Program;
 
-/// <summary>Membuat skema (dev) dan akun awal bila database kosong.</summary>
+/// <summary>Creates the schema (dev) and the initial account when the database is empty.</summary>
 static class Bootstrap
 {
     public static async Task RunAsync(IServiceProvider sp, IConfiguration cfg)
     {
         var db = sp.GetRequiredService<AppDbContext>();
-        // Produksi: ganti dengan `dotnet ef migrations add Initial` lalu db.Database.MigrateAsync().
+        // Production: replace with `dotnet ef migrations add Initial` then db.Database.MigrateAsync().
         await db.Database.EnsureCreatedAsync();
 
         if (await db.Users.AnyAsync()) return;
@@ -80,15 +80,15 @@ static class Bootstrap
         var adminUser = cfg["Tactical:BootstrapAdmin:Username"] ?? "admin";
         var adminPass = cfg["Tactical:BootstrapAdmin:Password"];
         if (string.IsNullOrWhiteSpace(adminPass) || adminPass.Length < 12)
-            throw new InvalidOperationException("Set Tactical:BootstrapAdmin:Password (min 12 karakter) untuk pembuatan admin pertama.");
+            throw new InvalidOperationException("Set Tactical:BootstrapAdmin:Password (min 12 characters) to create the first admin.");
 
         db.Users.Add(new User { Username = adminUser, PasswordHash = hasher.Hash(adminPass), IsSuperuser = true });
         var installer = new User { Username = "installer-user", PasswordHash = hasher.Hash(Guid.NewGuid().ToString("N")), IsInstallerUser = true };
         db.Users.Add(installer);
         await db.SaveChangesAsync();
 
-        // Token installer dipakai di perintah install agent; tampil sekali di log.
+        // The installer token is used in the agent install command; shown once in the log.
         var tok = await tokens.CreateAgentTokenAsync(installer.Id);
-        sp.GetRequiredService<ILogger<Program>>().LogWarning("Installer token (simpan, hanya tampil sekali): {Token}", tok);
+        sp.GetRequiredService<ILogger<Program>>().LogWarning("Installer token (save it, shown only once): {Token}", tok);
     }
 }

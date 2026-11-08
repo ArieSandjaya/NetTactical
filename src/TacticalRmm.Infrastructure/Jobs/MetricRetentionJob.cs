@@ -8,7 +8,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Jobs;
 
-/// <summary>Hapus metrik historis yang lebih tua dari Tactical:MetricRetentionDays (cek tiap 6 jam).</summary>
+/// <summary>Deletes historical metrics older than Tactical:MetricRetentionDays (checked every 6 hours).</summary>
 public sealed class MetricRetentionJob(IServiceScopeFactory scopes, IOptions<TacticalOptions> opt, ILogger<MetricRetentionJob> log) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stop)
@@ -22,9 +22,9 @@ public sealed class MetricRetentionJob(IServiceScopeFactory scopes, IOptions<Tac
                 await using var scope = scopes.CreateAsyncScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var n = await db.CheckMetrics.Where(m => m.Time < cutoff).ExecuteDeleteAsync(stop);
-                if (n > 0) log.LogInformation("metric retention: {Count} titik dihapus", n);
+                if (n > 0) log.LogInformation("metric retention: {Count} points deleted", n);
             }
-            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "metric retention gagal"); }
+            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "metric retention failed"); }
         } while (await timer.WaitForNextTickAsync(stop));
     }
 }

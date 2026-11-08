@@ -9,7 +9,7 @@ namespace TacticalRmm.Api.Controllers;
 
 internal static class OutcomeExtensions
 {
-    /// <summary>Petakan Outcome ke respons HTTP: 200 / 404 / 403 / 400 / 409.</summary>
+    /// <summary>Map Outcome to an HTTP response: 200 / 404 / 403 / 400 / 409.</summary>
     public static IActionResult ToResult<T>(this ControllerBase c, Outcome<T> o) => o.Status switch
     {
         OutcomeStatus.Ok => c.Ok(o.Value),
@@ -97,7 +97,7 @@ public class AccountsController(IUserAdminService users, IRoleAdminService roles
     [HttpPost("users/{id:int}/reset-totp"), RequirePerm(Perm.ManageAccounts)]
     public async Task<IActionResult> ResetTotp(int id, CancellationToken ct) => this.ToResult(await users.ResetTotpAsync(HttpContext.GetUser(), id, ct));
 
-    // 2FA milik sendiri: tidak butuh izin khusus
+    // Own 2FA: no special permission required
     [HttpPost("totp/setup")]
     public async Task<IActionResult> TotpSetup(CancellationToken ct) => this.ToResult(await users.BeginTotpAsync(HttpContext.GetUser(), ct));
 
@@ -121,7 +121,7 @@ public class AccountsController(IUserAdminService users, IRoleAdminService roles
     public async Task<IActionResult> DeleteRole(int id, CancellationToken ct) => this.ToResult(await roles.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
-// ------------------------------------------------------------------------------------------ organisasi
+// ------------------------------------------------------------------------------------------ organisation
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class OrgController(IOrgAdminService org) : ControllerBase
 {

@@ -14,22 +14,22 @@ function shell(content, current) {
   return h('div', { class: 'shell' },
     h('aside', { class: 'side' },
       h('div', { class: 'brand' }, mark, 'NetTactical'),
-      h('nav', { 'aria-label': 'Navigasi utama' }, h('a', { href: '#/', 'aria-current': current === 'home' ? 'page' : null }, 'Ringkasan')),
-      h('div', { class: 'who' }, h('button', { onclick: async () => { await logout(); session.clear(); location.hash = '#/login'; } }, 'Keluar'))),
+      h('nav', { 'aria-label': 'Main navigation' }, h('a', { href: '#/', 'aria-current': current === 'home' ? 'page' : null }, 'Overview')),
+      h('div', { class: 'who' }, h('button', { onclick: async () => { await logout(); session.clear(); location.hash = '#/login'; } }, 'Sign out'))),
     h('main', { class: 'main', id: 'view' }, content));
 }
 
 function route() {
   cleanup(); cleanup = () => {};
   const hash = location.hash || '#/';
-  if (hash === '#/login') { cleanup = loginView(app); document.title = 'Masuk · NetTactical'; return; }
+  if (hash === '#/login') { cleanup = loginView(app); document.title = 'Sign in · NetTactical'; return; }
   if (!session.token) { location.hash = '#/login'; return; }
 
   const holder = h('div');
   const m = hash.match(/^#\/device\/(.+)$/);
   app.replaceChildren(shell(holder, m ? 'device' : 'home'));
   if (m) { let id; try { id = decodeURIComponent(m[1]); } catch { id = m[1]; } document.title = `${id} · NetTactical`; cleanup = deviceView(holder, id); }
-  else { document.title = 'Kesehatan aset · NetTactical'; cleanup = dashboardView(holder); }
+  else { document.title = 'Asset health · NetTactical'; cleanup = dashboardView(holder); }
   window.scrollTo(0, 0);
 }
 

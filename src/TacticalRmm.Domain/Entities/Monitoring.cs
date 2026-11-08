@@ -71,7 +71,7 @@ public class CheckResult
     public string? Stderr { get; set; }
     public long? Retcode { get; set; }
     public string? ExecutionTime { get; set; }
-    public List<int> History { get; set; } = new(); // 15 sampel terakhir (cpu/mem)
+    public List<int> History { get; set; } = new(); // last 15 samples (cpu/mem)
 }
 
 public class AutomatedTask : AuditableEntity
@@ -91,7 +91,7 @@ public class AutomatedTask : AuditableEntity
     public bool TextAlert { get; set; }
     public bool DashboardAlert { get; set; }
     public string TaskType { get; set; } = Domain.TaskType.Manual;
-    /// <summary>Nama task di Windows Task Scheduler pada agent (unik).</summary>
+    /// <summary>Task name in the Windows Task Scheduler on the agent (unique).</summary>
     public string WinTaskName { get; set; } = GenerateWinTaskName();
     public string Actions { get; set; } = "[]"; // jsonb: [{type:"cmd"|"script", ...}]
     public DateTime? RunTimeDate { get; set; }
@@ -110,7 +110,7 @@ public class AutomatedTask : AuditableEntity
     public bool RunAsapAfterMissed { get; set; }
     public int TaskInstancePolicy { get; set; } = 1;
     public bool ManagedByPolicy { get; set; }
-    /// <summary>Penghapusan menunggu konfirmasi agent (delschedtask); baris dihapus oleh TaskSyncJob.</summary>
+    /// <summary>Deletion is waiting for agent confirmation (delschedtask); the row is deleted by TaskSyncJob.</summary>
     public bool PendingDeletion { get; set; }
 
     public static string GenerateWinTaskName()

@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Port Agent.delete_superseded_updates: untuk KB ganda, simpan hanya versi terbaru berdasar "(Version x)" di judul.</summary>
+/// <summary>Port Agent.delete_superseded_updates: for duplicate KBs, keep only the newest version based on "(Version x)" in the title.</summary>
 public static partial class SupersededUpdates
 {
     [GeneratedRegex(@"\((Version|Versão)(.*?)\)", RegexOptions.IgnoreCase)]
@@ -18,7 +18,7 @@ public static partial class SupersededUpdates
             foreach (var u in group)
             {
                 var m = VersionPattern().Match(u.Title ?? "");
-                if (!m.Success) { ok = false; break; }   // tanpa info versi: lewati KB ini (sama dengan Django)
+                if (!m.Success) { ok = false; break; }   // no version info: skip this KB (same as Django)
                 parsed.Add((u.Id, m.Groups[2].Value.Trim()));
             }
             if (!ok) continue;
@@ -28,7 +28,7 @@ public static partial class SupersededUpdates
         return obsolete;
     }
 
-    // Padanan sederhana distutils.LooseVersion.
+    // Simple equivalent of distutils.LooseVersion.
     public static int CompareLoose(string a, string b)
     {
         var pa = Regex.Split(a, @"[.\-_ ]+"); var pb = Regex.Split(b, @"[.\-_ ]+");

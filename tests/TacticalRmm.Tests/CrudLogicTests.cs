@@ -7,7 +7,7 @@ using Xunit;
 
 namespace TacticalRmm.Tests;
 
-/// <summary>Logika murni untuk CRUD dashboard: validator check/task, payload Task Scheduler, aturan akun.</summary>
+/// <summary>Pure logic for the dashboard CRUD: check/task validators, Task Scheduler payload, account rules.</summary>
 public class CrudLogicTests
 {
     private static readonly DateTime now = new(2026, 11, 7, 6, 0, 0, DateTimeKind.Utc);

@@ -3,10 +3,10 @@ using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Abstractions;
 
-/// <summary>Jalur server -> agent lewat NATS (subject = agent_id, payload msgpack).</summary>
+/// <summary>Server -> agent channel over NATS (subject = agent_id, payload msgpack).</summary>
 public interface IAgentCommandBus
 {
-    /// <summary>Request/reply. Mengembalikan "timeout" / "natsdown" bila gagal (perilaku sama dengan Django).</summary>
+    /// <summary>Request/reply. Returns "timeout" / "natsdown" on failure (same behaviour as Django).</summary>
     Task<object?> RequestAsync(string agentId, IDictionary<string, object?> data, TimeSpan timeout, CancellationToken ct = default);
     /// <summary>Fire-and-forget.</summary>
     Task PublishAsync(string agentId, IDictionary<string, object?> data, CancellationToken ct = default);
@@ -14,18 +14,18 @@ public interface IAgentCommandBus
 
 public interface ITokenService
 {
-    /// <summary>Token dashboard (hash SHA-512, kadaluarsa + auto-refresh). Token mentah hanya dikembalikan sekali.</summary>
+    /// <summary>Token dashboard (SHA-512 hash, expiry + auto-refresh). The raw token is returned only once.</summary>
     Task<(string RawToken, DateTime Expiry)> CreateUserTokenAsync(int userId, CancellationToken ct = default);
-    /// <summary>Token agent (plaintext, tanpa kadaluarsa) — juga password NATS agent.</summary>
+    /// <summary>Token agent (plaintext, no expiry) — also the agent's NATS password.</summary>
     Task<string> CreateAgentTokenAsync(int userId, CancellationToken ct = default);
-    /// <summary>Memeriksa token agent lalu token dashboard. Mengembalikan user lengkap dengan Role + scope.</summary>
+    /// <summary>Checks the agent token, then the dashboard token. Returns the full user with Role + scope.</summary>
     Task<User?> ValidateAsync(string rawToken, CancellationToken ct = default);
     Task RevokeAsync(string rawToken, CancellationToken ct = default);
 }
 
 public interface INatsConfigWriter
 {
-    /// <summary>Menulis ulang nats-rmm.conf (daftar user agent) dan reload nats-server.</summary>
+    /// <summary>Rewrites nats-rmm.conf (agent user list) and reloads nats-server.</summary>
     Task ReloadAsync(CancellationToken ct = default);
 }
 
@@ -89,11 +89,11 @@ public interface IAlertService
 
 public interface IWinUpdateService
 {
-    /// <summary>PUT winupdates: simpan needs_reboot, reboot bila kebijakan mengharuskan, bersihkan update superseded.</summary>
+    /// <summary>PUT winupdates: save needs_reboot, reboot if the policy requires it, clean up superseded updates.</summary>
     Task SetRebootStateAsync(Agent agent, bool needsReboot, CancellationToken ct = default);
-    /// <summary>PATCH winupdates: tandai hasil instalasi satu update. false bila guid tidak ditemukan.</summary>
+    /// <summary>PATCH winupdates: record the install result of one update. false if the guid is not found.</summary>
     Task<bool> MarkResultAsync(Agent agent, string guid, bool success, CancellationToken ct = default);
-    /// <summary>POST winupdates: sinkronisasi daftar WUA dari agent. false bila payload kosong.</summary>
+    /// <summary>POST winupdates: sync the WUA list from the agent. false if the payload is empty.</summary>
     Task<bool> SyncAsync(Agent agent, IReadOnlyList<WinUpdateItem> updates, CancellationToken ct = default);
     Task RemoveByGuidAsync(Agent agent, string guid, CancellationToken ct = default);
 }
@@ -103,7 +103,7 @@ public interface IAgentTelemetryService
     Task SetMeshNodeIdAsync(Agent agent, string nodeId, CancellationToken ct = default);
     Task SetChocoInstalledAsync(Agent agent, bool installed, CancellationToken ct = default);
     Task SaveSoftwareAsync(Agent agent, string softwareJson, CancellationToken ct = default);
-    /// <summary>PATCH histresult. false bila riwayat bukan milik agent ini.</summary>
+    /// <summary>PATCH histresult. false if the history entry does not belong to this agent.</summary>
     Task<bool> SaveHistoryResultAsync(Agent agent, long historyId, string scriptResultsJson, string? stdout, int userId, CancellationToken ct = default);
 }
 
@@ -111,6 +111,6 @@ public class MeshUnavailableException(string message, Exception? inner = null) :
 
 public interface IMeshService
 {
-    /// <summary>Mengunduh installer MeshAgent dari server Mesh sesuai grup perangkat. Melempar MeshUnavailableException.</summary>
+    /// <summary>Downloads the MeshAgent installer from the Mesh server for the device group. Throws MeshUnavailableException.</summary>
     Task<byte[]> DownloadAgentAsync(int ident, string plat, CancellationToken ct = default);
 }

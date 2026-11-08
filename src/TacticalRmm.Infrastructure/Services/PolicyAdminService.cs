@@ -48,7 +48,7 @@ public sealed class PolicyAdminService(AppDbContext db, IAuditService audit) : I
         if (req.Enforced is { } e) p.Enforced = e;
         await db.SaveChangesAsync(ct);
 
-        // Policy baru diaktifkan -> tandai ulang task-nya agar ikut tersinkron ke agent oleh TaskSyncJob.
+        // Policy newly activated -> re-mark its tasks so TaskSyncJob syncs them to the agents.
         if (!wasActive && p.Active)
         {
             var results = await db.TaskResults.Where(r => r.Task.PolicyId == id).ToListAsync(ct);
@@ -64,7 +64,7 @@ public sealed class PolicyAdminService(AppDbContext db, IAuditService audit) : I
     {
         var p = await db.Policies.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (p is null) return Outcome.NotFound<bool>();
-        // Task policy sudah tersebar di Task Scheduler agent: hapus dulu lewat DELETE task agar bersih di sisi agent.
+        // Policy tasks are already spread across the agents' Task Scheduler: delete them first via DELETE task so the agent side is cleaned up.
         var tasks = await db.AutomatedTasks.CountAsync(t => t.PolicyId == id, ct);
         if (tasks > 0) return Outcome.Conflict<bool>($"Policy still has {tasks} task(s); delete them first so agents are cleaned up");
 

@@ -3,8 +3,8 @@ import { fmtDay } from './format.js';
 
 const W = 640, H = 220, L = 44, R = 624, T = 16, B = 188;
 
-/** Grafik garis 0–100% dari titik {t: ISO, v: angka}. Sumbu X proporsional terhadap waktu. */
-export function lineChart(points, { threshold = 90, label = 'Grafik' } = {}) {
+/** 0–100% line chart from points {t: ISO, v: number}. The X axis is proportional to time. */
+export function lineChart(points, { threshold = 90, label = 'Chart' } = {}) {
   const svg = s('svg', { class: 'chart', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label });
   const y = (v) => B - (Math.min(100, Math.max(0, v)) / 100) * (B - T);
 
@@ -13,10 +13,10 @@ export function lineChart(points, { threshold = 90, label = 'Grafik' } = {}) {
     svg.append(s('text', { class: 'axis', x: L - 8, y: y(g) + 4, 'text-anchor': 'end' }, String(g)));
   }
   svg.append(s('line', { class: 'thr', x1: L, x2: R, y1: y(threshold), y2: y(threshold) }));
-  svg.append(s('text', { class: 'thr-label', x: R, y: y(threshold) - 6, 'text-anchor': 'end' }, `Ambang kritis ${threshold}%`));
+  svg.append(s('text', { class: 'thr-label', x: R, y: y(threshold) - 6, 'text-anchor': 'end' }, `Critical threshold ${threshold}%`));
 
   if (!points.length) {
-    svg.append(s('text', { class: 'axis', x: (L + R) / 2, y: (T + B) / 2, 'text-anchor': 'middle' }, 'Belum ada data untuk rentang ini'));
+    svg.append(s('text', { class: 'axis', x: (L + R) / 2, y: (T + B) / 2, 'text-anchor': 'middle' }, 'No data for this range yet'));
     return svg;
   }
 
@@ -39,10 +39,10 @@ export function lineChart(points, { threshold = 90, label = 'Grafik' } = {}) {
   return svg;
 }
 
-/** Cincin skor 0–100. */
+/** Score ring, 0–100. */
 export function ring(score, cls) {
   const r = 52, c = 2 * Math.PI * r;
-  const svg = s('svg', { class: 'ring', width: 124, height: 124, viewBox: '0 0 124 124', role: 'img', 'aria-label': `Skor kesehatan ${score} dari 100` });
+  const svg = s('svg', { class: 'ring', width: 124, height: 124, viewBox: '0 0 124 124', role: 'img', 'aria-label': `Health score ${score} out of 100` });
   svg.append(s('circle', { class: 'track', cx: 62, cy: 62, r, fill: 'none', 'stroke-width': 12 }));
   const arc = s('circle', { cx: 62, cy: 62, r, fill: 'none', 'stroke-width': 12, 'stroke-linecap': 'round',
     'stroke-dasharray': `${((score / 100) * c).toFixed(1)} ${c.toFixed(1)}`, transform: 'rotate(-90 62 62)' });

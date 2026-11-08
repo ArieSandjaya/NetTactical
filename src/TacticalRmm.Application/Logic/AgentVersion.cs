@@ -9,7 +9,7 @@ public static class AgentVersion
         return Version.TryParse(core, out var r) ? r : null;
     }
 
-    /// <summary>Installer lama ditolak, kecuali versi terbaru berakhiran "-dev" (perilaku Django).</summary>
+    /// <summary>Old installers are rejected, unless the latest version ends with "-dev" (Django behaviour).</summary>
     public static bool IsInstallerOutdated(string installerVersion, string latest)
     {
         if (latest.Contains("-dev")) return false;

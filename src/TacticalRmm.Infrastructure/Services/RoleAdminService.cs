@@ -46,7 +46,7 @@ public sealed class RoleAdminService(AppDbContext db, IAuditService audit) : IRo
         var role = await db.Roles.Include(r => r.CanViewClients).Include(r => r.CanViewSites).FirstOrDefaultAsync(r => r.Id == id, ct);
         if (role is null) return Outcome.NotFound<RoleDto>();
 
-        // Mengubah role superuser / role yang melebihi izin sendiri = eskalasi.
+        // Modifying a superuser role / a role that exceeds one's own permissions = escalation.
         if (!AccountRules.CanGrant(caller, role.IsSuperuser, role.Permissions)) return Outcome.Forbidden<RoleDto>("You cannot modify a role with more privileges than you have");
 
         var name = req.Name ?? role.Name;

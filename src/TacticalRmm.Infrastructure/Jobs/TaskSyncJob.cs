@@ -5,7 +5,7 @@ using TacticalRmm.Application.Abstractions;
 
 namespace TacticalRmm.Infrastructure.Jobs;
 
-/// <summary>Sinkronisasi berkala task terjadwal ke agent (setara celery "sync-scheduled-tasks").</summary>
+/// <summary>Periodic sync of scheduled tasks to the agent (equivalent to celery "sync-scheduled-tasks").</summary>
 public sealed class TaskSyncJob(IServiceScopeFactory scopes, ILogger<TaskSyncJob> log) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stop)
@@ -19,7 +19,7 @@ public sealed class TaskSyncJob(IServiceScopeFactory scopes, ILogger<TaskSyncJob
                 var n = await scope.ServiceProvider.GetRequiredService<ITaskSyncService>().SyncPendingAsync(stop);
                 if (n > 0) log.LogInformation("task sync: {Count} item diproses", n);
             }
-            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "task sync job gagal"); }
+            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "task sync job failed"); }
         } while (await timer.WaitForNextTickAsync(stop));
     }
 }

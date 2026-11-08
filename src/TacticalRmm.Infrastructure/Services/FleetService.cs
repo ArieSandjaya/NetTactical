@@ -9,7 +9,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-/// <summary>Data untuk dashboard aset: ringkasan, detail perangkat (overview), dan deret waktu metrik.</summary>
+/// <summary>Data for the asset dashboard: summary, device detail (overview), and metric time series.</summary>
 public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions<TacticalOptions> opt) : IFleetService
 {
     private HealthWeights W => opt.Value.Health;
@@ -82,7 +82,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var trends = await BuildTrendsAsync(ids, days, now, ct);
 
         var scopeName = siteId is not null ? rows.FirstOrDefault()?.SiteName ?? "Site"
-            : clientId is not null ? rows.FirstOrDefault()?.ClientName ?? "Client" : "Semua client";
+            : clientId is not null ? rows.FirstOrDefault()?.ClientName ?? "Client" : "All clients";
         return Outcome.Ok(new FleetSummaryDto(new FleetScope(clientId, siteId, scopeName), totals, alertSummary, patch, clientRows, risk, recent, os, versions, trends));
     }
 
@@ -91,7 +91,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var result = new Dictionary<int, HealthInput>();
         if (ids.Count == 0) return result;
 
-        // CPU/memori: rata-rata 3 titik terakhir dalam 30 menit terakhir.
+        // CPU/memory: average of the last 3 points within the last 30 minutes.
         var cut = now.AddMinutes(-30);
         var samples = await db.CheckMetrics.AsNoTracking()
             .Where(m => ids.Contains(m.AgentId) && m.Time > cut && (m.CheckType == CheckType.CpuLoad || m.CheckType == CheckType.Memory))
@@ -177,7 +177,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var taskIds = tasks.Select(t => t.Id).ToList();
         var taskResults = await db.TaskResults.AsNoTracking().Where(r => r.AgentId == agent.Id && taskIds.Contains(r.TaskId)).ToDictionaryAsync(r => r.TaskId, ct);
 
-        // ---- masalah terbuka
+        // ---- open issues
         var issues = new List<IssueDto>();
         foreach (var c in applicable)
         {
@@ -190,24 +190,24 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         {
             if (!taskResults.TryGetValue(t.Id, out var r) || r.Status != CheckStatus.Failing) continue;
             var firstSeen = openAlerts.Where(a => a.AssignedTaskId == t.Id).Select(a => (DateTime?)a.AlertTime).Min();
-            issues.Add(new IssueDto("task", t.AlertSeverity ?? AlertSeverity.Warning, $"Task '{t.Name}' failed", "Task terjadwal",
+            issues.Add(new IssueDto("task", t.AlertSeverity ?? AlertSeverity.Warning, $"Task '{t.Name}' failed", "Scheduled task",
                 firstSeen, r.LastRun, 1, r.Retcode?.ToString(), AgentDataParser.Compose(null, r.Stdout, r.Stderr), t.Id));
         }
         if (!online)
         {
             var since = openAlerts.Where(a => a.AlertType == AlertType.Availability).Select(a => (DateTime?)a.AlertTime).Min() ?? agent.LastSeen;
-            issues.Add(new IssueDto("availability", AlertSeverity.Error, "Agent offline", "Ketersediaan agent", since, agent.LastSeen, 1, null,
-                $"Terakhir lapor: {agent.LastSeen:u}\nAmbang offline: {agent.OfflineTime} menit", null));
+            issues.Add(new IssueDto("availability", AlertSeverity.Error, "Agent offline", "Agent availability", since, agent.LastSeen, 1, null,
+                $"Last seen: {agent.LastSeen:u}\nOffline threshold: {agent.OfflineTime} minutes", null));
         }
         foreach (var a in openAlerts.Where(a => a.AlertType == AlertType.Custom))
-            issues.Add(new IssueDto("alert", a.Severity, a.Message ?? "Alert", "Alert kustom", a.AlertTime, a.AlertTime, 1, null, null, a.Id));
+            issues.Add(new IssueDto("alert", a.Severity, a.Message ?? "Alert", "Custom alert", a.AlertTime, a.AlertTime, 1, null, null, a.Id));
         var failedUpdates = updates.Where(u => u.Result == "failed").ToList();
         if (pendingCount >= 5 || failedUpdates.Count > 0)
             issues.Add(new IssueDto("patch", AlertSeverity.Warning,
-                $"{pendingCount} update Windows tertunda" + (failedUpdates.Count > 0 ? $", {failedUpdates.Count} gagal dipasang" : ""), "Patch Windows", null, null, 1, null,
-                string.Join("\n", updates.Take(20).Select(u => $"{u.Kb ?? "-"}  {u.Title}  [{(u.Result == "failed" ? "gagal" : "tertunda")}]")), null));
+                $"{pendingCount} Windows updates pending" + (failedUpdates.Count > 0 ? $", {failedUpdates.Count} failed to install" : ""), "Windows patches", null, null, 1, null,
+                string.Join("\n", updates.Take(20).Select(u => $"{u.Kb ?? "-"}  {u.Title}  [{(u.Result == "failed" ? "failed" : "pending")}]")), null));
         if (outdated)
-            issues.Add(new IssueDto("agent", AlertSeverity.Info, $"Agent {agent.Version} usang (terbaru {opt.Value.LatestAgentVer})", "Agent", null, null, 1, null, null, null));
+            issues.Add(new IssueDto("agent", AlertSeverity.Info, $"Agent {agent.Version} outdated (latest {opt.Value.LatestAgentVer})", "Agent", null, null, 1, null, null, null));
 
         int Rank(string s) => s == AlertSeverity.Error ? 0 : s == AlertSeverity.Warning ? 1 : 2;
         issues = issues.OrderBy(i => Rank(i.Severity)).ThenByDescending(i => i.LastSeen).ToList();

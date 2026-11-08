@@ -8,7 +8,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-/// <summary>Dorong definisi task ke Task Scheduler agent (schedtask) atau hapus (delschedtask).</summary>
+/// <summary>Pushes task definitions to the agent's Task Scheduler (schedtask) or deletes them (delschedtask).</summary>
 public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogger<TaskSyncService> log) : ITaskSyncService
 {
     private static readonly string[] Pending = [TaskSyncStatus.Initial, TaskSyncStatus.NotSynced, TaskSyncStatus.PendingDeletion];
@@ -31,7 +31,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
             await gate.WaitAsync(ct);
             try
             {
-                // Permintaan NATS berjalan paralel; akses DbContext (tidak thread-safe) diserialkan lewat _dbLock.
+                // NATS requests run in parallel; DbContext access (not thread-safe) is serialised via _dbLock.
                 await SyncOneInternalAsync(w.TaskId, w.AgentId, ct);
                 Interlocked.Increment(ref done);
             }
@@ -57,7 +57,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
         finally { _dbLock.Release(); }
         if (task is null || agent is null || result is null) return;
 
-        // Agent non-Windows tidak punya Task Scheduler: anggap sudah sinkron / langsung hapus.
+        // Non-Windows agents have no Task Scheduler: treat as already synced / delete immediately.
         if (agent.Plat != AgentPlat.Windows)
         {
             await Save(() =>
@@ -75,7 +75,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
                 ["func"] = "delschedtask",
                 ["schedtaskpayload"] = new Dictionary<string, object?> { ["name"] = task.WinTaskName }
             }, Timeout, ct);
-            // "ok" atau task memang sudah tidak ada di agent -> hapus catatan; selain itu coba lagi di putaran berikut.
+            // "ok" or the task no longer exists on the agent -> delete the record; otherwise retry in the next round.
             if (reply is string s && (s == "ok" || s.Contains("does not exist", StringComparison.OrdinalIgnoreCase) || s.Contains("not found", StringComparison.OrdinalIgnoreCase)))
             {
                 await Save(() => db.TaskResults.Remove(result), ct);
@@ -112,7 +112,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
         finally { _dbLock.Release(); }
     }
 
-    /// <summary>Task policy aktif harus punya baris TaskResult untuk setiap agent yang mewarisinya (agent baru/ganti policy).</summary>
+    /// <summary>An active policy task must have a TaskResult row for every agent that inherits it (new agent / policy change).</summary>
     private async Task EnsurePolicyResultsAsync(CancellationToken ct)
     {
         var pairs = await (from t in db.AutomatedTasks
@@ -126,7 +126,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
         await db.SaveChangesAsync(ct);
     }
 
-    /// <summary>Task yang menunggu hapus tapi tidak punya agent tujuan (tak pernah tersinkron) langsung dihapus.</summary>
+    /// <summary>Tasks pending deletion that have no target agent (never synced) are deleted immediately.</summary>
     private async Task PurgeOrphanDeletionsAsync(CancellationToken ct)
     {
         var orphans = await db.AutomatedTasks.Where(t => t.PendingDeletion && !db.TaskResults.Any(r => r.TaskId == t.Id)).ToListAsync(ct);

@@ -23,7 +23,7 @@ public class WinUpdate
     public DateTime? DateInstalled { get; set; }
 }
 
-/// <summary>Kebijakan patch per agent atau per Policy. Nilai: inherit | never | required | always (reboot).</summary>
+/// <summary>Patch policy per agent or per Policy. Values: inherit | never | required | always (reboot).</summary>
 public class WinUpdatePolicy : AuditableEntity
 {
     public int Id { get; set; }

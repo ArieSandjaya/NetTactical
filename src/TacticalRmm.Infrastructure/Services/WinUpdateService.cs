@@ -60,7 +60,7 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
             var u = existing.Where(x => x.Guid == item.Guid).MaxBy(x => x.Id);
             if (u is not null) { u.Downloaded = item.Downloaded; u.Installed = item.Installed; continue; }
 
-            if (item.KbArticleIds is not { Count: > 0 }) continue; // tanpa KB: lewati (sama dengan Django)
+            if (item.KbArticleIds is not { Count: > 0 }) continue; // no KB: skip (same as Django)
             db.WinUpdates.Add(new WinUpdate
             {
                 AgentId = agent.Id, Guid = item.Guid, Kb = "KB" + item.KbArticleIds[0], Title = item.Title,
@@ -71,7 +71,7 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
             });
         }
 
-        // update yang belum terinstal dan tidak lagi dilaporkan agent dihapus
+        // updates that are not installed and no longer reported by the agent are deleted
         db.WinUpdates.RemoveRange(existing.Where(x => !x.Installed && (x.Guid is null || !returned.Contains(x.Guid))));
         await db.SaveChangesAsync(ct);
         await DeleteSupersededAsync(agent.Id, ct);
@@ -95,6 +95,6 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
             if (ids.Count == 0) return;
             await db.WinUpdates.Where(x => ids.Contains(x.Id)).ExecuteDeleteAsync(ct);
         }
-        catch (Exception) when (!ct.IsCancellationRequested) { /* best-effort, sama dengan suppress(Exception) di Django */ }
+        catch (Exception) when (!ct.IsCancellationRequested) { /* best-effort, same as suppress(Exception) in Django */ }
     }
 }

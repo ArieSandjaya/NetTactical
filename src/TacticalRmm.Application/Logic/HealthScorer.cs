@@ -1,6 +1,6 @@
 namespace TacticalRmm.Application.Logic;
 
-/// <summary>Bobot pengurang skor (semua nilai = poin yang dikurangkan dari 100). Bisa diatur lewat Tactical:Health.</summary>
+/// <summary>Score deduction weights (every value = points subtracted from 100). Configurable via Tactical:Health.</summary>
 public class HealthWeights
 {
     public int Offline { get; set; } = 45;
@@ -16,14 +16,14 @@ public class HealthWeights
     public int ErrorAlertCap { get; set; } = 24;
     public int PerWarningAlert { get; set; } = 3;
     public int WarningAlertCap { get; set; } = 9;
-    public int PatchesMany { get; set; } = 10;       // >= 10 update tertunda
+    public int PatchesMany { get; set; } = 10;       // >= 10 pending updates
     public int PatchesSome { get; set; } = 7;        // >= 5
     public int PatchesFew { get; set; } = 3;         // >= 1
     public int NeedsReboot { get; set; } = 4;
-    public int UptimeVeryLong { get; set; } = 5;     // > 180 hari
-    public int UptimeLong { get; set; } = 2;         // > 90 hari
+    public int UptimeVeryLong { get; set; } = 5;     // > 180 days
+    public int UptimeLong { get; set; } = 2;         // > 90 days
     public int AgentOutdated { get; set; } = 3;
-    /// <summary>Skor di bawah ini dianggap berisiko; di bawah AttentionBelow = perlu perhatian.</summary>
+    /// <summary>A score below this is considered at risk; below AttentionBelow = needs attention.</summary>
     public int AtRiskBelow { get; set; } = 60;
     public int AttentionBelow { get; set; } = 80;
 }
@@ -35,7 +35,7 @@ public record HealthInput(
     int PendingUpdates, bool NeedsReboot,
     int? UptimeDays, bool AgentOutdated);
 
-/// <summary>Satu faktor yang menurunkan skor. Code stabil untuk dipetakan ke teks di UI.</summary>
+/// <summary>One factor that lowers the score. Code is stable so the UI can map it to text.</summary>
 public record HealthFactor(string Code, int Penalty, string Detail);
 
 public record HealthResult(int Score, string Level, IReadOnlyList<HealthFactor> Factors);
@@ -54,26 +54,26 @@ public static class HealthScorer
 
         if (!i.Online) Add("offline", w.Offline, "Agent offline");
 
-        // Metrik hanya dinilai bila agent online: data lama dari agent offline menyesatkan.
+        // Metrics are only scored when the agent is online: stale data from an offline agent is misleading.
         if (i.Online)
         {
             if (i.DiskWorstUsed is { } d)
             {
                 var p = d >= 95 ? w.DiskCritical : d >= 90 ? w.DiskHigh : d >= 85 ? w.DiskElevated : d >= 80 ? w.DiskWarning : 0;
-                Add("disk_high", p, $"Disk {Math.Round(d)}% terpakai");
+                Add("disk_high", p, $"Disk {Math.Round(d)}% used");
             }
             if (i.Cpu is { } c) Add("cpu_high", c >= 90 ? w.CpuCritical : c >= 80 ? w.CpuElevated : 0, $"CPU {Math.Round(c)}%");
-            if (i.Ram is { } r) Add("ram_high", r >= 90 ? w.RamCritical : r >= 80 ? w.RamElevated : 0, $"Memori {Math.Round(r)}%");
+            if (i.Ram is { } r) Add("ram_high", r >= 90 ? w.RamCritical : r >= 80 ? w.RamElevated : 0, $"Memory {Math.Round(r)}%");
         }
 
-        Add("alerts_error", Math.Min(i.ErrorAlerts * w.PerErrorAlert, w.ErrorAlertCap), $"{i.ErrorAlerts} alert kritis");
-        Add("alerts_warning", Math.Min(i.WarningAlerts * w.PerWarningAlert, w.WarningAlertCap), $"{i.WarningAlerts} alert peringatan");
+        Add("alerts_error", Math.Min(i.ErrorAlerts * w.PerErrorAlert, w.ErrorAlertCap), $"{i.ErrorAlerts} critical alerts");
+        Add("alerts_warning", Math.Min(i.WarningAlerts * w.PerWarningAlert, w.WarningAlertCap), $"{i.WarningAlerts} warning alerts");
 
         var patch = i.PendingUpdates >= 10 ? w.PatchesMany : i.PendingUpdates >= 5 ? w.PatchesSome : i.PendingUpdates >= 1 ? w.PatchesFew : 0;
-        Add("patches_pending", patch, $"{i.PendingUpdates} update tertunda");
-        if (i.NeedsReboot) Add("needs_reboot", w.NeedsReboot, "Perlu reboot");
-        if (i.UptimeDays is { } u) Add("uptime_long", u > 180 ? w.UptimeVeryLong : u > 90 ? w.UptimeLong : 0, $"Uptime {u} hari");
-        if (i.AgentOutdated) Add("agent_outdated", w.AgentOutdated, "Versi agent usang");
+        Add("patches_pending", patch, $"{i.PendingUpdates} pending updates");
+        if (i.NeedsReboot) Add("needs_reboot", w.NeedsReboot, "Reboot required");
+        if (i.UptimeDays is { } u) Add("uptime_long", u > 180 ? w.UptimeVeryLong : u > 90 ? w.UptimeLong : 0, $"Uptime {u} days");
+        if (i.AgentOutdated) Add("agent_outdated", w.AgentOutdated, "Agent version outdated");
 
         var score = Math.Clamp(100 - f.Sum(x => x.Penalty), 0, 100);
         return new HealthResult(score, LevelOf(score, w), f.OrderByDescending(x => x.Penalty).ToList());

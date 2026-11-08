@@ -6,7 +6,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-/// <summary>Alert dashboard. Notifikasi email/SMS/webhook (AlertTemplate) belum termasuk cakupan inti.</summary>
+/// <summary>Dashboard alerts. Email/SMS/webhook notifications (AlertTemplate) are not part of the core scope yet.</summary>
 public sealed class AlertService(AppDbContext db) : IAlertService
 {
     private async Task<Alert> OpenOrCreate(Agent agent, string type, int? checkId, int? taskId, string msg, string severity, CancellationToken ct)

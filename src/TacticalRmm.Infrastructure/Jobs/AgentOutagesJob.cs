@@ -8,7 +8,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Jobs;
 
-/// <summary>Pengganti celery beat "agent-outages-task" (setiap 150 detik).</summary>
+/// <summary>Replacement for celery beat "agent-outages-task" (every 150 seconds).</summary>
 public sealed class AgentOutagesJob(IServiceScopeFactory scopes, ILogger<AgentOutagesJob> log) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stop)
@@ -17,7 +17,7 @@ public sealed class AgentOutagesJob(IServiceScopeFactory scopes, ILogger<AgentOu
         do
         {
             try { await RunOnce(stop); }
-            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "agent outages job gagal"); }
+            catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "agent outages job failed"); }
         } while (await timer.WaitForNextTickAsync(stop));
     }
 
@@ -36,7 +36,7 @@ public sealed class AgentOutagesJob(IServiceScopeFactory scopes, ILogger<AgentOu
             else if (a.LastSeen >= now.AddMinutes(-a.OfflineTime)) await alerts.ResolveAvailabilityAsync(a, ct);
         }
 
-        // Alert yang sudah di-snooze kembali aktif (celery "unsnooze-alerts")
+        // Alerts that were snoozed become active again (celery "unsnooze-alerts")
         var snoozed = await db.Alerts.Where(x => x.Snoozed && x.SnoozeUntil != null && x.SnoozeUntil < now).ToListAsync(ct);
         foreach (var s in snoozed) { s.Snoozed = false; s.SnoozeUntil = null; }
         if (snoozed.Count > 0) await db.SaveChangesAsync(ct);

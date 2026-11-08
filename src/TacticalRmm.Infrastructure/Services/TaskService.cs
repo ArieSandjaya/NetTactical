@@ -43,7 +43,7 @@ public sealed class TaskService(AppDbContext db, IAgentCommandBus bus, IAlertSer
             else if (type == "script")
             {
                 var script = await db.Scripts.AsNoTracking().FirstOrDefaultAsync(s => s.Id == a.GetProperty("script").GetInt32(), ct);
-                if (script is null) continue; // script sudah dihapus: lewati
+                if (script is null) continue; // script already deleted: skip
                 List<string> Strs(string name) => a.TryGetProperty(name, out var arr) && arr.ValueKind == JsonValueKind.Array
                     ? arr.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : new();
                 actions.Add(new TaskActionDto
