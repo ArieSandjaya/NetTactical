@@ -9,7 +9,7 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-/// <summary>Data untuk dashboard armada: ringkasan, detail perangkat (overview), dan deret waktu metrik.</summary>
+/// <summary>Data untuk dashboard aset: ringkasan, detail perangkat (overview), dan deret waktu metrik.</summary>
 public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions<TacticalOptions> opt) : IFleetService
 {
     private HealthWeights W => opt.Value.Health;

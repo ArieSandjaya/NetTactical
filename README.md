@@ -28,7 +28,7 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 - **Organisasi** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (butuh `can_edit_agent` + scope site asal & tujuan).
 - **Policy** — `automation/policies` CRUD (hapus ditolak bila masih punya task, supaya agent dibersihkan lebih dulu).
 
-## Dashboard armada (baru)
+## Dashboard aset (baru)
 - **Metrik historis** — tiap hasil check CPU/memori/disk disimpan sebagai titik di tabel `check_metric` (jeda minimum `Tactical:MetricMinIntervalSeconds`, default 240 dtk). `MetricRetentionJob` menghapus data lebih tua dari `Tactical:MetricRetentionDays` (default 90).
 - **Skor kesehatan 0-100** — `HealthScorer` (logika murni): pengurang untuk offline, disk, CPU, memori, alert terbuka, update tertunda, perlu reboot, uptime panjang, agent usang. Bobot dan ambang level bisa diubah lewat `Tactical:Health`. Setiap skor membawa daftar faktor + kode stabil untuk diterjemahkan di UI.
 - **Endpoint** (izin `can_list_agents`, scope client/site berlaku):
@@ -40,7 +40,7 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 ## UI dashboard (baru)
 Dilayani langsung oleh API dari `src/TacticalRmm.Api/wwwroot` (buka `/` di browser setelah API berjalan; tanpa Node, tanpa build, tanpa CDN).
 - **Login** (+kode 2FA bila aktif), token disimpan di `sessionStorage`, sesi kedaluwarsa otomatis kembali ke login.
-- **Ringkasan armada** (`#/`): skor kesehatan, agent online, alert, update tertunda, tren CPU/memori/disk (7/30/90 hari), skor per client (klik untuk menyaring), perangkat berisiko, alert terbaru, status patch, sistem operasi, versi agent. Menyegarkan diri tiap 60 detik.
+- **Ringkasan aset** (`#/`): skor kesehatan, agent online, alert, update tertunda, tren CPU/memori/disk (7/30/90 hari), skor per client (klik untuk menyaring), perangkat berisiko, alert terbaru, status patch, sistem operasi, versi agent. Menyegarkan diri tiap 60 detik.
 - **Detail perangkat** (`#/device/<agentId>`): skor + faktor penurunnya, metrik terkini, riwayat metrik, lalu tab Masalah (output/stderr/kode keluar), Check, Task, Patch, Disk & layanan.
 - Keamanan: seluruh DOM dibuat dengan `textContent` (tanpa `innerHTML`) karena nama perangkat dan output check berasal dari agent; CSP `default-src 'self'` tanpa skrip/gaya inline; mendukung mode gelap dan lebar ponsel.
 - Diuji dengan mock API berbentuk sama dengan DTO + Playwright (login, filter, tab, 401/404, mode gelap, ponsel, payload XSS tidak tereksekusi). Belum diuji terhadap backend sungguhan.

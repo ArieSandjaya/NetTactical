@@ -25,7 +25,7 @@ export function loginView(root) {
     },
   },
     h('h1', null, 'NetTactical'),
-    h('p', { class: 'muted', style: { margin: '0' } }, 'Masuk untuk melihat kesehatan armada.'),
+    h('p', { class: 'muted', style: { margin: '0' } }, 'Masuk untuk melihat kesehatan aset.'),
     err,
     h('label', null, 'Nama pengguna', user),
     h('label', null, 'Kata sandi', pass),

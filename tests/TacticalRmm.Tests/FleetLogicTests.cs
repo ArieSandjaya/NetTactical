@@ -5,7 +5,7 @@ using Xunit;
 
 namespace TacticalRmm.Tests;
 
-/// <summary>Skor kesehatan, aturan metrik, dan parser data agent untuk dashboard armada.</summary>
+/// <summary>Skor kesehatan, aturan metrik, dan parser data agent untuk dashboard aset.</summary>
 public class FleetLogicTests
 {
     private static readonly HealthWeights W = new();

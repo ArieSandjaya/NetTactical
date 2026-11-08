@@ -13,7 +13,7 @@ export function dashboardView(root) {
 
   async function load(silent = false) {
     ctrl?.abort(); ctrl = new AbortController();
-    if (!silent && !st.data) body.replaceChildren(h('div', { class: 'loading' }, 'Memuat data armada…'));
+    if (!silent && !st.data) body.replaceChildren(h('div', { class: 'loading' }, 'Memuat data aset…'));
     try {
       const q = new URLSearchParams({ days: st.days, risk_limit: 10 });
       if (st.clientId) q.set('client_id', st.clientId);
@@ -52,7 +52,7 @@ export function dashboardView(root) {
     body.replaceChildren(...[
       st.error ? h('div', { class: 'banner', role: 'alert' }, `Gagal menyegarkan: ${st.error}`) : null,
       h('div', { class: 'page-head' },
-        h('div', { class: 'stack' }, h('h1', null, 'Kesehatan armada'),
+        h('div', { class: 'stack' }, h('h1', null, 'Kesehatan aset'),
           h('div', { class: 'muted' }, `${d.scope.name} · ${t.devices} perangkat`)),
         chips),
 

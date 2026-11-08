@@ -6,7 +6,7 @@ using TacticalRmm.Domain;
 
 namespace TacticalRmm.Api.Controllers;
 
-/// <summary>Endpoint untuk dashboard armada (ringkasan, detail perangkat, metrik historis).</summary>
+/// <summary>Endpoint untuk dashboard aset (ringkasan, detail perangkat, metrik historis).</summary>
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class FleetController(IFleetService svc) : ControllerBase
 {

@@ -29,7 +29,7 @@ function route() {
   const m = hash.match(/^#\/device\/(.+)$/);
   app.replaceChildren(shell(holder, m ? 'device' : 'home'));
   if (m) { let id; try { id = decodeURIComponent(m[1]); } catch { id = m[1]; } document.title = `${id} · NetTactical`; cleanup = deviceView(holder, id); }
-  else { document.title = 'Kesehatan armada · NetTactical'; cleanup = dashboardView(holder); }
+  else { document.title = 'Kesehatan aset · NetTactical'; cleanup = dashboardView(holder); }
   window.scrollTo(0, 0);
 }
 
