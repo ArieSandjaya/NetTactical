@@ -2,6 +2,7 @@
 # NetTactical API (ASP.NET Core 8). Build context = repository root.
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
+COPY Directory.Build.props ./
 # Restore first so the layer is cached until a csproj changes.
 COPY src/TacticalRmm.Domain/*.csproj          src/TacticalRmm.Domain/
 COPY src/TacticalRmm.Application/*.csproj     src/TacticalRmm.Application/

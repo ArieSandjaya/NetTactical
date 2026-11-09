@@ -53,6 +53,11 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - **VNC passwords** (`#/vnc`) and the Connect/Test buttons on the asset page: see "VNC remote control".
 - Not yet in the UI: CRUD screens (the API for it already exists) and action buttons on the device page (reboot, run script).
 
+## Security notes
+- **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
+- `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
+- The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
+
 ## Not covered (deliberately, "core first")
 Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
 email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
