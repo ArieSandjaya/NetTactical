@@ -97,6 +97,17 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .cols-upd { grid-template-columns: 110px minmax(220px, 3fr) 110px 120px 70px; }
 .cols-pdev { grid-template-columns: minmax(200px, 2fr) 80px 70px 130px 90px; }
 .cols-vnc { grid-template-columns: 70px minmax(140px, 2fr) 120px 110px minmax(230px, 2fr); }
+.cols-site { grid-template-columns: minmax(180px, 2fr) 110px minmax(160px, 1fr); }
+.cols-user { grid-template-columns: minmax(170px, 1.6fr) minmax(110px, 1fr) minmax(150px, 1.4fr) 110px minmax(250px, 2fr); }
+.cols-role { grid-template-columns: minmax(150px, 1.6fr) 140px minmax(130px, 1fr) 150px; }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; margin-top: 8px; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent, #0d6e84); }
+.nav-section { margin: 14px 12px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .55; }
+select.search { padding-right: 8px; }
+.btn.danger { color: var(--crit); border-color: var(--crit); }
+pre.act-out { margin: 0; padding: 12px 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+pre.act-out.bad { border-color: var(--crit); }
 .search { flex: 1 1 220px; max-width: 360px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
 .list-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
 .list-item:last-child { border-bottom: 0; }

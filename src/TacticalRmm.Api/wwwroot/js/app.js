@@ -7,11 +7,15 @@ import { assetsView } from './views/assets.js';
 import { alertsView } from './views/alerts.js';
 import { patchesView } from './views/patches.js';
 import { vncView } from './views/vnc.js';
+import { clientsView } from './views/clients.js';
+import { usersView } from './views/users.js';
+import { rolesView } from './views/roles.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['vnc', '#/vnc', 'VNC passwords']];
-const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView] };
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['vnc', '#/vnc', 'VNC passwords']];
+const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView],
+  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView] };
 
 function shell(content, current) {
   const mark = s('svg', { width: 28, height: 28, viewBox: '0 0 28 28', 'aria-hidden': 'true' },
@@ -20,7 +24,7 @@ function shell(content, current) {
   return h('div', { class: 'shell' },
     h('aside', { class: 'side' },
       h('div', { class: 'brand' }, mark, 'NetTactical'),
-      h('nav', { 'aria-label': 'Main navigation' }, NAV.map(([key, href, label]) => h('a', { href, 'aria-current': current === key ? 'page' : null }, label))),
+      h('nav', { 'aria-label': 'Main navigation' }, NAV.map(([key, href, label]) => (key === 'section' ? h('div', { class: 'nav-section' }, label) : h('a', { href, 'aria-current': current === key ? 'page' : null }, label)))),
       h('div', { class: 'who' }, h('button', { onclick: async () => { await logout(); session.clear(); location.hash = '#/login'; } }, 'Sign out'))),
     h('main', { class: 'main', id: 'view' }, content));
 }
