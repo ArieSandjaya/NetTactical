@@ -15,6 +15,14 @@ public class FleetController(IFleetService svc) : ControllerBase
         [FromQuery] int days = 30, [FromQuery(Name = "risk_limit")] int riskLimit = 10, CancellationToken ct = default) =>
         this.ToResult(await svc.GetSummaryAsync(HttpContext.GetUser(), clientId, siteId, days, riskLimit, ct));
 
+    [HttpGet("fleet/assets"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> Assets([FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId, CancellationToken ct = default) =>
+        this.ToResult(await svc.GetAssetsAsync(HttpContext.GetUser(), clientId, siteId, ct));
+
+    [HttpGet("fleet/patches"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> Patches([FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId, CancellationToken ct = default) =>
+        this.ToResult(await svc.GetPatchesAsync(HttpContext.GetUser(), clientId, siteId, ct));
+
     [HttpGet("agents/{agentId}/overview"), RequirePerm(Perm.ListAgents)]
     public async Task<IActionResult> Overview(string agentId, CancellationToken ct) =>
         this.ToResult(await svc.GetOverviewAsync(HttpContext.GetUser(), agentId, ct));

@@ -33,6 +33,9 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 - **Health score 0-100** — `HealthScorer` (pure logic): deductions for offline, disk, CPU, memory, open alerts, pending updates, reboot required, long uptime, outdated agent. Weights and level thresholds can be changed via `Tactical:Health`. Every score carries a list of factors + stable codes for translation in the UI.
 - **Endpoints** (`can_list_agents` permission, client/site scope applies):
   - `GET /fleet/summary?client_id=&site_id=&days=30&risk_limit=10` — totals, alerts, patches, score per client, at-risk devices, latest alerts, OS distribution, agent versions, daily trends.
+  - `GET /fleet/assets?client_id=&site_id=` — every asset with score, level, online state, main issue, pending updates, open alerts, last seen.
+  - `GET /fleet/patches?client_id=&site_id=` — outstanding Windows updates grouped by KB (failed first, then by severity) and a per-asset view.
+  - `GET /alerts?resolved=false` (existing; now also returns `agent_id`, `client`, `site`) and `PUT /alerts/{id}/resolve`.
   - `GET /agents/{agentId}/overview` — device facts, score + factors, current metrics, disks, **issue list** (failed checks/tasks with stdout/stderr/exit code, offline, patches, outdated agent), checks, tasks, patches, stopped automatic services.
   - `GET /agents/{agentId}/metrics?metric=cpu|memory|disk&label=C:&days=30` — time series (downsampled to at most 1000 points).
 - Not available yet: device age/hardware (the agent does not send it), predictions, and an error event history after an alert is resolved (only currently open issues are shown).
@@ -44,7 +47,10 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - **Device detail** (`#/device/<agentId>`): score + the factors lowering it, current metrics, metric history, then the Issues (output/stderr/exit code), Check, Task, Patch, Disk & services tabs.
 - Security: the entire DOM is built with `textContent` (no `innerHTML`) because device names and check output come from agents; CSP `default-src 'self'` with no inline scripts/styles; supports dark mode and phone widths.
 - Tested with a mock API shaped like the DTOs + Playwright (login, filter, tabs, 401/404, dark mode, phone, XSS payload not executed). Not yet tested against a real backend.
-- Not yet in the UI: device list, alert, and patch pages, plus CRUD (the API for it already exists).
+- **Assets** (`#/assets`): every asset with score, status, main issue, updates and alerts. Search, health filter (at risk / attention / healthy / offline), client chips and sorting are applied in the browser.
+- **Alerts** (`#/alerts`): open/resolved, severity filter, and a Resolve button (needs `can_manage_alerts`; a 403 is shown as a notice).
+- **Patches** (`#/patches`): totals, outstanding updates by KB (filter failed/pending), and a per-asset view.
+- Not yet in the UI: CRUD screens (the API for it already exists) and action buttons on the device page (reboot, run script).
 
 ## Not covered (deliberately, "core first")
 Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),

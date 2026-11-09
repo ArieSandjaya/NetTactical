@@ -123,4 +123,15 @@ public class FleetLogicTests
         Assert.True(ds.Count <= 1000 && ds.Count > 500, "point count reduced");
         Assert.True(AgentDataParser.Downsample(pts.Take(10).ToList(), 1000).Count == 10, "small input unchanged");
     }
+
+    [Fact]
+    public void PatchStatusAndSeverityOrdering()
+    {
+        Assert.True(PatchRules.StatusOf("failed", "nothing") == PatchRules.Failed, "failed result wins");
+        Assert.True(PatchRules.StatusOf("failed", "ignore") == PatchRules.Failed, "failed even when ignored");
+        Assert.True(PatchRules.StatusOf("n/a", "ignore") == PatchRules.Ignored, "ignored");
+        Assert.True(PatchRules.StatusOf(null, null) == PatchRules.Pending, "default pending");
+        Assert.True(PatchRules.SeverityRank("Critical") < PatchRules.SeverityRank("important"), "critical before important");
+        Assert.True(PatchRules.SeverityRank("Low") < PatchRules.SeverityRank(null), "unknown last");
+    }
 }

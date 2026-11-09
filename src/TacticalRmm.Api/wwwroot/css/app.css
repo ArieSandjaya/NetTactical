@@ -92,6 +92,11 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .cols-check { grid-template-columns: minmax(200px, 2fr) 120px 150px minmax(0, 1.4fr); }
 .cols-task { grid-template-columns: minmax(200px, 2fr) 120px 150px minmax(0, 1fr); }
 .cols-patch { grid-template-columns: 110px minmax(220px, 3fr) 110px 110px; }
+.cols-asset { grid-template-columns: minmax(200px, 2fr) 64px 84px minmax(0, 1.6fr) 70px 64px 90px; }
+.cols-alert { grid-template-columns: 96px minmax(220px, 3fr) minmax(150px, 1.4fr) 110px 100px; }
+.cols-upd { grid-template-columns: 110px minmax(220px, 3fr) 110px 120px 70px; }
+.cols-pdev { grid-template-columns: minmax(200px, 2fr) 80px 70px 130px 90px; }
+.search { flex: 1 1 220px; max-width: 360px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
 .list-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
 .list-item:last-child { border-bottom: 0; }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }

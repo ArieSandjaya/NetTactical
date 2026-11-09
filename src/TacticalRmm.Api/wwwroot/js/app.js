@@ -3,9 +3,14 @@ import { session, logout } from './api.js';
 import { loginView } from './views/login.js';
 import { dashboardView } from './views/dashboard.js';
 import { deviceView } from './views/device.js';
+import { assetsView } from './views/assets.js';
+import { alertsView } from './views/alerts.js';
+import { patchesView } from './views/patches.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches']];
+const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView] };
 
 function shell(content, current) {
   const mark = s('svg', { width: 28, height: 28, viewBox: '0 0 28 28', 'aria-hidden': 'true' },
@@ -14,7 +19,7 @@ function shell(content, current) {
   return h('div', { class: 'shell' },
     h('aside', { class: 'side' },
       h('div', { class: 'brand' }, mark, 'NetTactical'),
-      h('nav', { 'aria-label': 'Main navigation' }, h('a', { href: '#/', 'aria-current': current === 'home' ? 'page' : null }, 'Overview')),
+      h('nav', { 'aria-label': 'Main navigation' }, NAV.map(([key, href, label]) => h('a', { href, 'aria-current': current === key ? 'page' : null }, label))),
       h('div', { class: 'who' }, h('button', { onclick: async () => { await logout(); session.clear(); location.hash = '#/login'; } }, 'Sign out'))),
     h('main', { class: 'main', id: 'view' }, content));
 }
@@ -27,8 +32,10 @@ function route() {
 
   const holder = h('div');
   const m = hash.match(/^#\/device\/(.+)$/);
-  app.replaceChildren(shell(holder, m ? 'device' : 'home'));
+  const page = PAGES[hash];
+  app.replaceChildren(shell(holder, page ? page[0] : m ? 'assets' : 'home'));
   if (m) { let id; try { id = decodeURIComponent(m[1]); } catch { id = m[1]; } document.title = `${id} · NetTactical`; cleanup = deviceView(holder, id); }
+  else if (page) { document.title = `${page[1]} · NetTactical`; cleanup = page[2](holder); }
   else { document.title = 'Asset health · NetTactical'; cleanup = dashboardView(holder); }
   window.scrollTo(0, 0);
 }

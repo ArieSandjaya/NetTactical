@@ -138,10 +138,11 @@ public class AlertsController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> List([FromQuery] bool resolved = false, CancellationToken ct = default)
     {
         var u = HttpContext.GetUser();
-        var rows = await db.Alerts.AsNoTracking().Include(a => a.Agent!).ThenInclude(g => g.Site)
+        var rows = await db.Alerts.AsNoTracking().Include(a => a.Agent!).ThenInclude(g => g.Site).ThenInclude(s => s.Client)
             .Where(a => a.Resolved == resolved && !a.Hidden).OrderByDescending(a => a.AlertTime).Take(500).ToListAsync(ct);
         return Ok(rows.Where(a => a.Agent is null || PermissionEvaluator.CanSeeSite(u, a.Agent.Site))
-            .Select(a => new { a.Id, a.AlertType, a.Message, a.Severity, a.AlertTime, a.Resolved, a.ResolvedOn, a.Snoozed, Hostname = a.Agent?.Hostname }));
+            .Select(a => new { a.Id, a.AlertType, a.Message, a.Severity, a.AlertTime, a.Resolved, a.ResolvedOn, a.Snoozed,
+                Hostname = a.Agent?.Hostname, AgentId = a.Agent?.AgentId, Client = a.Agent?.Site.Client.Name, Site = a.Agent?.Site.Name }));
     }
 
     [HttpPut("{id:int}/resolve"), RequirePerm(Perm.ManageAlerts)]

@@ -24,6 +24,17 @@ public record FleetSummaryDto(
     FleetAgentVersions AgentVersions,
     IReadOnlyDictionary<string, IReadOnlyList<TrendPoint>> Trends);
 
+/// <summary>One asset in the asset list, with its health score and the main reason for it.</summary>
+public record FleetAssetRow(string AgentId, string Hostname, string Client, string Site, string Os, string? Version, int Score, string Level, bool Online,
+    DateTime? LastSeen, int PendingUpdates, int OpenAlerts, bool NeedsReboot, int? UptimeDays, string? TopReason);
+public record FleetAssetsDto(FleetScope Scope, IReadOnlyList<FleetAssetRow> Assets);
+
+public record PatchTotals(int PendingUpdates, int FailedUpdates, int DevicesAffected, int NeedsReboot);
+/// <summary>One update (grouped by KB) and how many assets it is outstanding on.</summary>
+public record PatchUpdateRow(string? Kb, string? Title, string? Severity, string Status, int Devices);
+public record PatchDeviceRow(string AgentId, string Hostname, string Client, int Pending, int Failed, bool NeedsReboot, bool Online);
+public record FleetPatchesDto(FleetScope Scope, PatchTotals Totals, IReadOnlyList<PatchUpdateRow> Updates, IReadOnlyList<PatchDeviceRow> Devices);
+
 public record MetricPoint(DateTime Time, double Value);
 public record MetricSeries(string Metric, string? Label, int Days, IReadOnlyList<MetricPoint> Points);
 

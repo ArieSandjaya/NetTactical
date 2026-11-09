@@ -139,6 +139,71 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         return result;
     }
 
+    // ------------------------------------------------------------------------------------------ asset list
+    private async Task<(List<AgentRow> Rows, string ScopeName)> LoadScopedRowsAsync(User caller, int? clientId, int? siteId, CancellationToken ct)
+    {
+        var rows = await db.Agents.AsNoTracking()
+            .Where(a => (clientId == null || a.Site.ClientId == clientId) && (siteId == null || a.SiteId == siteId))
+            .Select(a => new AgentRow(a.Id, a.AgentId, a.Hostname, a.OperatingSystem, a.Version, a.LastSeen, a.OfflineTime, a.BootTime, a.NeedsReboot,
+                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name))
+            .ToListAsync(ct);
+        rows = rows.Where(r => PermissionEvaluator.CanSeeSite(caller, new Site { Id = r.SiteId, ClientId = r.ClientId })).ToList();
+        var name = siteId is not null ? rows.FirstOrDefault()?.SiteName ?? "Site"
+            : clientId is not null ? rows.FirstOrDefault()?.ClientName ?? "Client" : "All clients";
+        return (rows, name);
+    }
+
+    public async Task<Outcome<FleetAssetsDto>> GetAssetsAsync(User caller, int? clientId, int? siteId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var (rows, scopeName) = await LoadScopedRowsAsync(caller, clientId, siteId, ct);
+        var ids = rows.Select(r => r.Id).ToList();
+        var inputs = await BuildInputsAsync(rows, ids, now, ct);
+
+        var openAlerts = ids.Count == 0 ? new Dictionary<int, int>() : await db.Alerts.AsNoTracking()
+            .Where(a => a.AgentId != null && ids.Contains(a.AgentId.Value) && !a.Resolved && !a.Hidden)
+            .GroupBy(a => a.AgentId!.Value).Select(g => new { Id = g.Key, N = g.Count() }).ToDictionaryAsync(x => x.Id, x => x.N, ct);
+
+        var assets = rows.Select(r =>
+        {
+            var res = HealthScorer.Score(inputs[r.Id], W);
+            return new FleetAssetRow(r.AgentId, r.Hostname, r.ClientName, r.SiteName, r.Os ?? "", r.Version, res.Score, res.Level,
+                AgentDataParser.IsOnline(r.LastSeen, r.OfflineTime, now), r.LastSeen, inputs[r.Id].PendingUpdates, openAlerts.GetValueOrDefault(r.Id),
+                r.NeedsReboot, inputs[r.Id].UptimeDays, res.Factors.FirstOrDefault()?.Detail);
+        }).OrderBy(a => a.Score).ThenBy(a => a.Hostname).ToList();
+
+        return Outcome.Ok(new FleetAssetsDto(new FleetScope(clientId, siteId, scopeName), assets));
+    }
+
+    // ------------------------------------------------------------------------------------------ patches
+    public async Task<Outcome<FleetPatchesDto>> GetPatchesAsync(User caller, int? clientId, int? siteId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var (rows, scopeName) = await LoadScopedRowsAsync(caller, clientId, siteId, ct);
+        var ids = rows.Select(r => r.Id).ToList();
+
+        var outstanding = await db.WinUpdates.AsNoTracking()
+            .Where(u => ids.Contains(u.AgentId) && ((!u.Installed && u.Action != "ignore") || u.Result == "failed"))
+            .Select(u => new { u.AgentId, u.Kb, u.Title, u.Severity, u.Result, u.Action }).ToListAsync(ct);
+        var typed = outstanding.Select(u => (u.AgentId, u.Kb, u.Title, u.Severity, Status: PatchRules.StatusOf(u.Result, u.Action))).ToList();
+
+        var updates = typed.GroupBy(u => (u.Kb, u.Title, u.Severity, u.Status))
+            .Select(g => new PatchUpdateRow(g.Key.Kb, g.Key.Title, g.Key.Severity, g.Key.Status, g.Select(x => x.AgentId).Distinct().Count()))
+            .OrderBy(u => u.Status == PatchRules.Failed ? 0 : 1).ThenBy(u => PatchRules.SeverityRank(u.Severity)).ThenByDescending(u => u.Devices)
+            .ThenBy(u => u.Kb).Take(500).ToList();
+
+        var perAgent = typed.GroupBy(u => u.AgentId).ToDictionary(g => g.Key,
+            g => (Pending: g.Count(x => x.Status == PatchRules.Pending), Failed: g.Count(x => x.Status == PatchRules.Failed)));
+        var devices = rows.Where(r => perAgent.ContainsKey(r.Id) || r.NeedsReboot)
+            .Select(r => { var p = perAgent.GetValueOrDefault(r.Id); return new PatchDeviceRow(r.AgentId, r.Hostname, r.ClientName, p.Pending, p.Failed, r.NeedsReboot,
+                AgentDataParser.IsOnline(r.LastSeen, r.OfflineTime, now)); })
+            .OrderByDescending(d => d.Failed).ThenByDescending(d => d.Pending).ThenBy(d => d.Hostname).ToList();
+
+        var totals = new PatchTotals(typed.Count(u => u.Status == PatchRules.Pending), typed.Count(u => u.Status == PatchRules.Failed),
+            perAgent.Count, rows.Count(r => r.NeedsReboot));
+        return Outcome.Ok(new FleetPatchesDto(new FleetScope(clientId, siteId, scopeName), totals, updates, devices));
+    }
+
     // ------------------------------------------------------------------------------------------ overview
     public async Task<Outcome<AgentOverviewDto>> GetOverviewAsync(User caller, string agentId, CancellationToken ct = default)
     {
@@ -220,7 +285,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
             return new AgentCheckRow(c.Id, c.Name ?? c.CheckType, c.CheckType, r?.Status ?? CheckStatus.Pending, r?.LastRun, c.RunInterval > 0 ? c.RunInterval : agent.CheckInterval, r?.MoreInfo, c.PolicyId is not null); }).ToList();
         var taskRows = tasks.Select(t => { taskResults.TryGetValue(t.Id, out var r);
             return new AgentTaskRow(t.Id, t.Name, t.TaskType, t.Enabled, r?.Status ?? CheckStatus.Pending, r?.LastRun, r?.SyncStatus ?? TaskSyncStatus.Initial, t.PolicyId is not null); }).ToList();
-        var patchRows = updates.Select(u => new AgentPatchRow(u.Kb, u.Title, u.Severity, u.Result == "failed" ? "failed" : u.Action == "ignore" ? "ignored" : "pending")).ToList();
+        var patchRows = updates.Select(u => new AgentPatchRow(u.Kb, u.Title, u.Severity, PatchRules.StatusOf(u.Result, u.Action))).ToList();
 
         return Outcome.Ok(new AgentOverviewDto(facts, new HealthDto(health.Score, health.Level, health.Factors.Select(f => new HealthFactorDto(f.Code, f.Penalty, f.Detail)).ToList()),
             new AgentMetricsDto(cpu is null ? null : Math.Round(cpu.Value, 1), ram is null ? null : Math.Round(ram.Value, 1), worst), disks, issues, checkRows, taskRows, patchRows,

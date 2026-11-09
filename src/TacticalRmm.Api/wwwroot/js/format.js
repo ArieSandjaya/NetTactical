@@ -40,3 +40,5 @@ export const HINTS = {
   alert: 'Review the alert message and follow your procedure.',
 };
 export const METRIC_NAMES = { cpu: 'CPU', memory: 'Memory', disk: 'Disk' };
+
+export const patchSevClass = (s) => ({ critical: 'crit', important: 'warn', moderate: 'info' }[String(s || '').toLowerCase()] || 'neutral');
