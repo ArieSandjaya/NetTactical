@@ -45,6 +45,15 @@ public sealed class TokenService(AppDbContext db, IOptions<TacticalOptions> opt)
         return (raw, expiry);
     }
 
+    public async Task<(string RawToken, DateTime Expiry)> CreateInstallerTokenAsync(int installerUserId, TimeSpan lifetime, CancellationToken ct = default)
+    {
+        var raw = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        var expiry = DateTime.UtcNow + lifetime;
+        db.UserTokens.Add(new UserToken { Digest = Digest(raw), TokenKey = raw[..8], UserId = installerUserId, Created = DateTime.UtcNow, Expiry = expiry });
+        await db.SaveChangesAsync(ct);
+        return (raw, expiry);
+    }
+
     public async Task<string> CreateAgentTokenAsync(int userId, CancellationToken ct = default)
     {
         var key = Convert.ToHexString(RandomNumberGenerator.GetBytes(20)).ToLowerInvariant(); // 40 hex like the DRF authtoken
@@ -72,10 +81,12 @@ public sealed class TokenService(AppDbContext db, IOptions<TacticalOptions> opt)
             if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(t.Digest), Encoding.ASCII.GetBytes(digest))) continue;
             if (t.Expiry is { } exp && exp < DateTime.UtcNow) { db.UserTokens.Remove(t); await db.SaveChangesAsync(ct); return null; }
 
-            if (t.Expiry is { } e2 && DateTime.UtcNow + Ttl - e2 > MinRefresh) // AUTO_REFRESH
+            var owner = await users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == t.UserId && u.IsActive, ct);
+            // AUTO_REFRESH for dashboard sessions only: an installer token keeps the lifetime it was issued with.
+            if (owner is { IsInstallerUser: false } && t.Expiry is { } e2 && DateTime.UtcNow + Ttl - e2 > MinRefresh)
             { t.Expiry = DateTime.UtcNow + Ttl; await db.SaveChangesAsync(ct); }
 
-            return await users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == t.UserId && u.IsActive, ct);
+            return owner;
         }
         return null;
     }

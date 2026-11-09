@@ -55,6 +55,16 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - **Asset actions** on the asset page (`Actions…`): run a command (cmd/PowerShell/bash), run a script from the script list (waits for output) and reboot with confirmation. Output is always rendered as plain text.
 - Not yet in the UI: checks, scheduled tasks, automation policies, scripts, audit log (the API for them already exists).
 
+## Installing agents (Install agent page)
+
+`#/install` → **Install agent** generates what you need to put the unchanged Tactical RMM Go agent on a Windows computer: pick client, site, type (workstation/server), 32/64-bit and how long the token stays valid (1 hour to 30 days). You get the download link (official `amidaware/rmmagent` release matching `Tactical:LatestAgentVer`), a PowerShell one-liner (downloads and installs) and a Command Prompt version, plus the token.
+
+- The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
+- Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
+- Requires the new permission `can_install_agents` (superusers have it). Every generation is written to the audit log.
+- The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
+- Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
+
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.

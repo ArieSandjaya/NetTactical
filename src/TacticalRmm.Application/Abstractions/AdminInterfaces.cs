@@ -83,3 +83,9 @@ public interface IVncService
     /// <summary>Same check, then builds the connection file. Conflict (with the reason) when it cannot connect.</summary>
     Task<Outcome<VncFileDto>> PrepareFileAsync(User caller, string agentId, CancellationToken ct = default);
 }
+
+public interface IInstallerService
+{
+    /// <param name="defaultApi">Used when the request does not name the public API URL (the URL of the current request).</param>
+    Task<Outcome<InstallerDto>> GenerateAsync(User caller, InstallerRequest req, string defaultApi, CancellationToken ct = default);
+}

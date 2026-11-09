@@ -190,3 +190,16 @@ public class VncController(IVncService svc) : ControllerBase
         return base.File(System.Text.Encoding.ASCII.GetBytes(r.Value!.Content), "application/octet-stream", r.Value.FileName);
     }
 }
+
+// ------------------------------------------------------------------------------------------ Agent installer
+[ApiController, Authorize(AuthDefaults.DashboardPolicy)]
+public class InstallerController(IInstallerService svc) : ControllerBase
+{
+    /// <summary>Returns a one-time token and ready-to-run install commands. The response is never cached because it contains the token.</summary>
+    [HttpPost("installer/generate"), RequirePerm(Perm.InstallAgents)]
+    public async Task<IActionResult> Generate(InstallerRequest req, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.GenerateAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
+    }
+}
