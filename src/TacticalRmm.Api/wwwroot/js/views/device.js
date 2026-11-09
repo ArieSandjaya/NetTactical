@@ -1,5 +1,6 @@
 import { h } from '../dom.js';
 import { api, download } from '../api.js';
+import { actionsCard, newActionsState } from '../actions.js';
 import { lineChart } from '../charts.js';
 import {
   ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord, patchWord, patchClass,
@@ -9,7 +10,7 @@ import {
 const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['system', 'Disks & services']];
 
 export function deviceView(root, agentId) {
-  const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null, vnc: { busy: false, ok: null, msg: '' } };
+  const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null, vnc: { busy: false, ok: null, msg: '' }, actions: newActionsState() };
   let alive = true, ctrl = null, timer = null;
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
@@ -87,6 +88,7 @@ export function deviceView(root, agentId) {
           h('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '8px' } },
             h('button', { class: 'btn primary', disabled: st.vnc.busy, onclick: vncConnect }, 'Connect (VNC)'),
             h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
+            actionsCard(st.actions, id, a.plat, () => alive && paint()),
             st.vnc.msg ? h('span', { class: `pill ${st.vnc.ok === null ? 'neutral' : st.vnc.ok ? 'good' : 'crit'}`, role: 'status', style: { fontWeight: '500' } }, st.vnc.msg) : null)),
         h('div', { class: 'stack', style: { flex: '1 1 260px', gap: '12px' } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px' } },
