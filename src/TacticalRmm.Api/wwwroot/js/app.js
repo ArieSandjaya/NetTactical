@@ -6,11 +6,12 @@ import { deviceView } from './views/device.js';
 import { assetsView } from './views/assets.js';
 import { alertsView } from './views/alerts.js';
 import { patchesView } from './views/patches.js';
+import { vncView } from './views/vnc.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches']];
-const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView] };
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['vnc', '#/vnc', 'VNC passwords']];
+const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView] };
 
 function shell(content, current) {
   const mark = s('svg', { width: 28, height: 28, viewBox: '0 0 28 28', 'aria-hidden': 'true' },

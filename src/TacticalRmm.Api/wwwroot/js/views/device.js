@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { api } from '../api.js';
+import { api, download } from '../api.js';
 import { lineChart } from '../charts.js';
 import {
   ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord, patchWord, patchClass,
@@ -9,7 +9,7 @@ import {
 const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['system', 'Disks & services']];
 
 export function deviceView(root, agentId) {
-  const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null };
+  const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null, vnc: { busy: false, ok: null, msg: '' } };
   let alive = true, ctrl = null, timer = null;
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
@@ -37,6 +37,29 @@ export function deviceView(root, agentId) {
     if (alive) paint();
   }
 
+  // Remote control through the TightVNC already installed on the asset. The server picks the working password (default first, then fallbacks).
+  async function vncTest() {
+    st.vnc = { busy: true, ok: null, msg: 'Checking VNC…' }; paint();
+    try {
+      const r = await api(`agents/${id}/vnc/test`, { method: 'POST' });
+      st.vnc = { busy: false, ok: r.status === 'ok', msg: r.message };
+    } catch (e) { st.vnc = { busy: false, ok: false, msg: e.message }; }
+    if (alive) paint();
+  }
+
+  async function vncConnect() {
+    st.vnc = { busy: true, ok: null, msg: 'Connecting…' }; paint();
+    try {
+      const { blob, filename } = await download(`agents/${id}/vnc/file`);
+      const url = URL.createObjectURL(blob);
+      const link = h('a', { href: url, download: filename });
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      st.vnc = { busy: false, ok: true, msg: `${filename} downloaded. Open it with TightVNC Viewer.` };
+    } catch (e) { st.vnc = { busy: false, ok: false, msg: e.message }; }
+    if (alive) paint();
+  }
+
   const back = () => h('a', { class: 'back', href: '#/' }, '← Back to overview');
 
   function paint() {
@@ -60,7 +83,11 @@ export function deviceView(root, agentId) {
             a.maintenance_mode ? h('span', { class: 'pill info' }, 'Maintenance mode') : null,
             a.needs_reboot ? h('span', { class: 'pill warn' }, 'Needs reboot') : null),
           h('div', { class: 'muted' }, `${a.client} · ${a.site} · ${a.os || a.plat}`),
-          h('div', { class: 'facts', style: { marginTop: '4px' } }, facts.map(([k, v]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v))))),
+          h('div', { class: 'facts', style: { marginTop: '4px' } }, facts.map(([k, v]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v)))),
+          h('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginTop: '8px' } },
+            h('button', { class: 'btn primary', disabled: st.vnc.busy, onclick: vncConnect }, 'Connect (VNC)'),
+            h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
+            st.vnc.msg ? h('span', { class: `pill ${st.vnc.ok === null ? 'neutral' : st.vnc.ok ? 'good' : 'crit'}`, role: 'status', style: { fontWeight: '500' } }, st.vnc.msg) : null)),
         h('div', { class: 'stack', style: { flex: '1 1 260px', gap: '12px' } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px' } },
             h('span', { class: `score ${lvl}`, style: { minWidth: '64px', fontSize: '24px', padding: '14px 0', borderRadius: '50%' } }, String(hl.score)),

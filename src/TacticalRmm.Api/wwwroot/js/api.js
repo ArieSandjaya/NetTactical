@@ -37,6 +37,22 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   return data;
 }
 
+/** POST/GET a file response. Returns { blob, filename }. Errors are reported like api(). */
+export async function download(path, { method = 'POST' } = {}) {
+  const headers = {};
+  if (session.token) headers.Authorization = `Token ${session.token}`;
+  let res;
+  try { res = await fetch(path, { method, headers }); } catch { throw new ApiError(0, 'Cannot reach the server.'); }
+  if (res.status === 401) { session.clear(); location.hash = '#/login'; throw new ApiError(401, 'Session expired, please sign in again.'); }
+  if (!res.ok) {
+    const data = await parse(res);
+    throw new ApiError(res.status, (data && (data.detail || data.error)) || (res.status === 403 ? 'You do not have permission for this.' : `Request failed (${res.status}).`));
+  }
+  const cd = res.headers.get('Content-Disposition') || '';
+  const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd);
+  return { blob: await res.blob(), filename: m ? decodeURIComponent(m[1]) : 'connection.vnc' };
+}
+
 export async function login(username, password, twoFactor) {
   const body = { username, password };
   if (twoFactor) body.two_factor = twoFactor;

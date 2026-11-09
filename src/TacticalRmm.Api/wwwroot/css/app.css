@@ -96,6 +96,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .cols-alert { grid-template-columns: 96px minmax(220px, 3fr) minmax(150px, 1.4fr) 110px 100px; }
 .cols-upd { grid-template-columns: 110px minmax(220px, 3fr) 110px 120px 70px; }
 .cols-pdev { grid-template-columns: minmax(200px, 2fr) 80px 70px 130px 90px; }
+.cols-vnc { grid-template-columns: 70px minmax(140px, 2fr) 120px 110px minmax(230px, 2fr); }
 .search { flex: 1 1 220px; max-width: 360px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
 .list-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
 .list-item:last-child { border-bottom: 0; }

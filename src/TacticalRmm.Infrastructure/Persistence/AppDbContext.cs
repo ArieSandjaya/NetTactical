@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<Policy> Policies => Set<Policy>();
+    public DbSet<VncCredential> VncCredentials => Set<VncCredential>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserToken> UserTokens => Set<UserToken>();
@@ -37,9 +38,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.MonitoringType);
             e.Property(x => x.Services).HasColumnType("jsonb");
             e.Property(x => x.Disks).HasColumnType("jsonb");
+            e.Property(x => x.WmiDetail).HasColumnType("jsonb");
             e.HasOne(x => x.Site).WithMany(s => s.Agents).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Policy).WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.SetNull);
         });
+        b.Entity<VncCredential>(e => { e.HasIndex(x => x.Priority); e.Property(x => x.Label).HasMaxLength(100); });
         b.Entity<User>(e =>
         {
             e.HasIndex(x => x.Username).IsUnique();

@@ -14,6 +14,7 @@ public class Agent : AuditableEntity
     public string? PublicIp { get; set; }
     public int? TotalRam { get; set; }
     public string? Disks { get; set; }      // jsonb
+    public string? WmiDetail { get; set; }  // jsonb, written by nats-api (network config / local IPs)
     public double? BootTime { get; set; }
     public string? LoggedInUsername { get; set; }
     public string? LastLoggedInUser { get; set; }

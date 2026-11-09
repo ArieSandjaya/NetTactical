@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\TacticalRmm.Application\TacticalRmm.Application.csproj" />
+    <ProjectReference Include="..\..\src\TacticalRmm.Infrastructure\TacticalRmm.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

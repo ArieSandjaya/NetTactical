@@ -50,11 +50,23 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - **Assets** (`#/assets`): every asset with score, status, main issue, updates and alerts. Search, health filter (at risk / attention / healthy / offline), client chips and sorting are applied in the browser.
 - **Alerts** (`#/alerts`): open/resolved, severity filter, and a Resolve button (needs `can_manage_alerts`; a 403 is shown as a notice).
 - **Patches** (`#/patches`): totals, outstanding updates by KB (filter failed/pending), and a per-asset view.
+- **VNC passwords** (`#/vnc`) and the Connect/Test buttons on the asset page: see "VNC remote control".
 - Not yet in the UI: CRUD screens (the API for it already exists) and action buttons on the device page (reboot, run script).
 
 ## Not covered (deliberately, "core first")
 Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
 email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
+
+## VNC remote control (TightVNC already on the endpoints)
+Instead of MeshAgent, the dashboard can open the TightVNC that is already installed on an asset (useful when the antivirus blocks MeshAgent). Nothing is installed by us.
+- **Passwords with fallback** — `#/vnc` (permission `can_manage_vnc`): the lowest priority number is the default, the others are fallbacks. The server tries them in order only if the asset rejects the default, remembers which one worked per asset (in memory) and tries that first next time. At most `Tactical:Vnc:MaxAttempts` (default 4) attempts per connect, because TightVNC temporarily blocks a client after repeated failures. Passwords are max 8 characters (a VNC limit), stored AES-256-GCM encrypted (key derived from `Tactical:SecretKey`), and never returned by the API.
+- **Connect / Test** — buttons on the asset page (permission `can_use_vnc`, asset scope applies). The API itself performs the RFB authentication handshake (no session is opened) to find a working password, then **Connect** downloads a `.vnc` file for TightVNC Viewer; **Test** only reports the result. Both are written to the audit log.
+  - `POST /agents/{agentId}/vnc/test`, `POST /agents/{agentId}/vnc/file`
+  - `GET/POST /vnc/credentials`, `PUT/DELETE /vnc/credentials/{id}`
+- **Target address** — taken only from the asset's own record (local IPs from the agent's hardware inventory, `wmi_detail`), never from the request. Only private LAN addresses (10/8, 172.16/12, 192.168/16) are contacted unless `Tactical:Vnc:AllowPublicTargets` is set. Port: `Tactical:Vnc:Port` (5900).
+- The API server must be able to reach port 5900 of the assets (same LAN, as here) and the viewer machine as well, since the viewer connects directly. VNC is not encrypted: restrict port 5900 with the Windows firewall to the admin/RMM subnets.
+- Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases created earlier need `ALTER TABLE agents_agent ADD COLUMN wmi_detail jsonb;`.
+- Verified: DES/obfuscation against OpenSSL, the handshake against a fake VNC server (wrong password, protocol 3.3, refusal, unsupported, timeout). Not verified against a real TightVNC server or viewer.
 
 ## Docker Compose
 `docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).

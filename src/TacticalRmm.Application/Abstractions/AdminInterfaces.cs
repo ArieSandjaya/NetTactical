@@ -71,3 +71,15 @@ public interface IPolicyAdminService
     Task<Outcome<PolicyDto>> UpdateAsync(User caller, int id, PolicyUpsert req, CancellationToken ct = default);
     Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
 }
+
+public interface IVncService
+{
+    Task<Outcome<IReadOnlyList<VncCredentialDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<VncCredentialDto>> CreateAsync(User caller, VncCredentialUpsert req, CancellationToken ct = default);
+    Task<Outcome<VncCredentialDto>> UpdateAsync(User caller, int id, VncCredentialUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Checks reachability and which stored password works. Always Ok with a status, unless the asset is missing or out of scope.</summary>
+    Task<Outcome<VncTestDto>> TestAsync(User caller, string agentId, CancellationToken ct = default);
+    /// <summary>Same check, then builds the connection file. Conflict (with the reason) when it cannot connect.</summary>
+    Task<Outcome<VncFileDto>> PrepareFileAsync(User caller, string agentId, CancellationToken ct = default);
+}

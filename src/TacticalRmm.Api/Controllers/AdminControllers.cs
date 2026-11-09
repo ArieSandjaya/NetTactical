@@ -160,3 +160,33 @@ public class PoliciesController(IPolicyAdminService svc) : ControllerBase
     [HttpDelete("{id:int}"), RequirePerm(Perm.ManagePolicies)]
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
+
+// ------------------------------------------------------------------------------------------ VNC
+[ApiController, Authorize(AuthDefaults.DashboardPolicy)]
+public class VncController(IVncService svc) : ControllerBase
+{
+    [HttpGet("vnc/credentials"), RequirePerm(Perm.ManageVnc)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost("vnc/credentials"), RequirePerm(Perm.ManageVnc)]
+    public async Task<IActionResult> Create(VncCredentialUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("vnc/credentials/{id:int}"), RequirePerm(Perm.ManageVnc)]
+    public async Task<IActionResult> Update(int id, VncCredentialUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("vnc/credentials/{id:int}"), RequirePerm(Perm.ManageVnc)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    [HttpPost("agents/{agentId}/vnc/test"), RequirePerm(Perm.UseVnc)]
+    public async Task<IActionResult> Test(string agentId, CancellationToken ct) => this.ToResult(await svc.TestAsync(HttpContext.GetUser(), agentId, ct));
+
+    /// <summary>Returns a .vnc file for TightVNC Viewer. It contains the working password (obfuscated), so it is never cached.</summary>
+    [HttpPost("agents/{agentId}/vnc/file"), RequirePerm(Perm.UseVnc)]
+    public async Task<IActionResult> File(string agentId, CancellationToken ct)
+    {
+        var r = await svc.PrepareFileAsync(HttpContext.GetUser(), agentId, ct);
+        if (r.Status != OutcomeStatus.Ok) return this.ToResult(r);
+        Response.Headers.CacheControl = "no-store";
+        return base.File(System.Text.Encoding.ASCII.GetBytes(r.Value!.Content), "application/octet-stream", r.Value.FileName);
+    }
+}

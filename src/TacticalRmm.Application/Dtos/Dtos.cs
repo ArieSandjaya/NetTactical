@@ -96,6 +96,18 @@ public class TacticalOptions
     /// <summary>Minimum gap between metric points per check (seconds), to keep the table from bloating.</summary>
     public int MetricMinIntervalSeconds { get; set; } = 240;
     public HealthWeights Health { get; set; } = new();
+    public VncOptions Vnc { get; set; } = new();
+}
+
+public class VncOptions
+{
+    public int Port { get; set; } = 5900;
+    /// <summary>Per-attempt connect/handshake timeout.</summary>
+    public int TimeoutMs { get; set; } = 2500;
+    /// <summary>Upper bound on password attempts per connect (VNC servers such as TightVNC temporarily block a client after repeated failures).</summary>
+    public int MaxAttempts { get; set; } = 4;
+    /// <summary>Default false: only private LAN addresses are ever contacted.</summary>
+    public bool AllowPublicTargets { get; set; }
 }
 
 public class CheckRunnerItem
