@@ -57,7 +57,7 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 
 ## Installing agents (Install agent page)
 
-`#/install` → **Install agent** generates what you need to put the unchanged Tactical RMM Go agent on a Windows computer: pick client, site, type (workstation/server), 32/64-bit and how long the token stays valid (1 hour to 30 days). You get the download link (official `amidaware/rmmagent` release matching `Tactical:LatestAgentVer`), a PowerShell one-liner (downloads and installs) and a Command Prompt version, plus the token.
+`#/installer` (**Install agent**) generates what you need to put the unchanged Tactical RMM Go agent on a Windows computer: pick client, site, type (workstation/server), 32/64-bit and how long the token stays valid (1 hour to 30 days). You get the download link (official `amidaware/rmmagent` release matching `Tactical:LatestAgentVer`), a PowerShell one-liner (downloads and installs) and a Command Prompt version, plus the token.
 
 - The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
 - Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
