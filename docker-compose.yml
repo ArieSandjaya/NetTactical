@@ -1,0 +1,65 @@
+# NetTactical: API + PostgreSQL + NATS (with the original nats-api).
+#   cp .env.example .env   # then fill in the three secrets
+#   docker compose up -d --build
+# Dashboard: http://localhost:${API_PORT:-8080}/   Agents connect to NATS on port ${NATS_PORT:-4222}.
+# This stack speaks plain HTTP/NATS: put a TLS reverse proxy in front for anything beyond local testing.
+name: nettactical
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tacticalrmm
+      POSTGRES_USER: tactical
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tactical -d tacticalrmm"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  nats:
+    build: ./docker/nats
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TACTICAL_SECRET: ${TACTICAL_SECRET_KEY:?set TACTICAL_SECRET_KEY in .env (>= 32 characters)}
+      DB_HOST: db
+      DB_NAME: tacticalrmm
+      DB_USER: tactical
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - natsconf:/data/nats
+    ports:
+      - "${NATS_PORT:-4222}:4222"
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    environment:
+      ConnectionStrings__Default: Host=db;Database=tacticalrmm;Username=tactical;Password=${POSTGRES_PASSWORD}
+      Tactical__SecretKey: ${TACTICAL_SECRET_KEY}
+      Tactical__NatsUrl: nats://nats:4222
+      # The API only writes the config; the nats container watches the file and reloads itself, so the local reload command is a no-op.
+      Tactical__NatsServerBin: /bin/true
+      Tactical__BootstrapAdmin__Username: ${ADMIN_USERNAME:-admin}
+      Tactical__BootstrapAdmin__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env (>= 12 characters)}
+      Tactical__CorsOrigins__0: ${PUBLIC_URL:-http://localhost:8080}
+    volumes:
+      - natsconf:/data/nats
+    ports:
+      - "${API_PORT:-8080}:8080"
+
+volumes:
+  pgdata:
+  natsconf:

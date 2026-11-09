@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
+# A local/offline NuGet.config (if present) must not reach the image build, or restore fails.
+NuGet.config
+**/nats-rmm.conf
+**/appsettings.*.json
+tests/
+*.md

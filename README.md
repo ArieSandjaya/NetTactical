@@ -56,6 +56,18 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
 email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
 
+## Docker Compose
+`docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).
+```bash
+cp .env.example .env      # set POSTGRES_PASSWORD, TACTICAL_SECRET_KEY (openssl rand -hex 32) and ADMIN_PASSWORD
+docker compose up -d --build
+docker compose logs api | grep "Installer token"   # shown once on first start
+```
+- The API writes `nats-rmm.conf` to a volume shared with the nats container, which watches the file and reloads nats-server itself (a separate container cannot be signalled from the API).
+- Agents reach NATS on port `4222` (`NATS_PORT`). The stack is plain HTTP/NATS: put a TLS reverse proxy in front for anything beyond local testing, and check what TLS settings the Go agent expects.
+- `.dockerignore` excludes any local `NuGet.config`, `.env`, and build output.
+- Not yet run: the compose file passes `docker compose config` and the entrypoint script was exercised with fake binaries, but no daemon was available here, so the images have never been built or started.
+
 ## Running
 ```bash
 export Tactical__SecretKey="<>=32 random characters>"

@@ -3,3 +3,4 @@ obj/
 *.user
 nats-rmm.conf
 appsettings.*.json
+.env
