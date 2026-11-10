@@ -93,6 +93,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .cols-chk { grid-template-columns: minmax(240px, 3fr) 110px 100px 110px 90px; }
 .cols-tsk { grid-template-columns: minmax(240px, 3fr) 110px 110px 90px minmax(160px, 1.4fr); }
 .cols-audit { grid-template-columns: 150px minmax(90px, 1fr) 130px minmax(260px, 4fr); }
+.cols-notif { grid-template-columns: minmax(240px, 3fr) minmax(150px, 1.2fr) minmax(150px, 1.4fr) minmax(240px, 1.6fr); }
 .cols-site { grid-template-columns: minmax(180px, 2fr) 110px minmax(160px, 1fr); }
 .cols-user { grid-template-columns: minmax(170px, 1.6fr) minmax(110px, 1fr) minmax(150px, 1.4fr) 110px minmax(250px, 2fr); }
 .cols-role { grid-template-columns: minmax(150px, 1.6fr) 140px minmax(130px, 1fr) 150px; }

@@ -210,3 +210,22 @@ public class InstallerController(IInstallerService svc) : ControllerBase
         return this.ToResult(await svc.GenerateAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
     }
 }
+
+// ------------------------------------------------------------------------------------------ Alert notifications
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("notifications/channels"), RequirePerm(Perm.ManageNotifications)]
+public class NotificationsController(INotificationAdminService svc) : ControllerBase
+{
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost]
+    public async Task<IActionResult> Create(NotificationChannelUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, NotificationChannelUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    [HttpPost("{id:int}/test")]
+    public async Task<IActionResult> Test(int id, CancellationToken ct) => this.ToResult(await svc.TestAsync(HttpContext.GetUser(), id, ct));
+}

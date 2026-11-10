@@ -56,6 +56,10 @@ public static class DependencyInjection
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
         s.AddScoped<IVncService, VncService>();
         s.AddScoped<IInstallerService, InstallerService>();
+        s.AddScoped<INotificationAdminService, NotificationAdminService>();
+        s.AddSingleton<Notifications.NotificationQueue>();
+        s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());
+        s.AddHostedService<Notifications.NotificationWorker>();
         s.AddScoped<IFleetService, FleetService>();
         s.AddHostedService<AgentOutagesJob>();
         s.AddHostedService<TaskSyncJob>();
