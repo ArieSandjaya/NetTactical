@@ -15,7 +15,7 @@ const summary = (c) => ({ diskspace: `${c.disk} · alert below ${c.warning_thres
   memory: `warn ${c.warning_threshold || '–'}% · critical ${c.error_threshold || '–'}%`, ping: c.ip, winsvc: c.svc_name, script: `script #${c.script}`, eventlog: `${c.log_name} · ${c.event_type}` }[c.check_type] || '');
 
 export function checksView(root) {
-  const st = { targets: null, rows: null, notice: null, busy: false, adding: false, scripts: [], f: blank() };
+  const st = { targets: null, rows: null, notice: null, busy: false, adding: false, editId: null, scripts: [], f: blank() };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   const ld = loader(body, async (signal) => { const targets = await loadTargets(signal); const has = ensureScope(targets);
@@ -27,12 +27,12 @@ export function checksView(root) {
     try { await fn(); await reload(); after?.(); st.notice = { ok: true, msg: okMsg }; } catch (e) { st.notice = { ok: false, msg: e.message }; }
     st.busy = false; paint();
   }
-  const changeScope = async () => { st.rows = null; st.adding = false; st.notice = null; paint(); try { await reload(); } catch (e) { st.rows = []; st.notice = { ok: false, msg: e.message }; } paint(); };
+  const changeScope = async () => { st.rows = null; st.adding = false; st.editId = null; st.notice = null; paint(); try { await reload(); } catch (e) { st.rows = []; st.notice = { ok: false, msg: e.message }; } paint(); };
   const num = (v) => (v === '' || v == null ? null : Number(v));
 
   function payload() {
     const f = st.f, t = f.check_type;
-    const p = { ...ownerFields(), check_type: t, alert_severity: f.alert_severity, fails_b4_alert: num(f.fails_b4_alert) ?? 1, run_interval: num(f.run_interval) ?? 0,
+    const p = { ...(st.editId ? {} : { ...ownerFields(), check_type: t }), alert_severity: f.alert_severity, fails_b4_alert: num(f.fails_b4_alert) ?? 1, run_interval: num(f.run_interval) ?? 0,
       dashboard_alert: f.dashboard_alert, email_alert: f.email_alert, text_alert: f.text_alert };
     if (t === 'diskspace') Object.assign(p, { disk: f.disk.trim(), error_threshold: num(f.error_threshold) ?? 0, warning_threshold: num(f.warning_threshold) ?? 0 });
     if (t === 'cpuload' || t === 'memory') Object.assign(p, { error_threshold: num(f.error_threshold) ?? 0, warning_threshold: num(f.warning_threshold) ?? 0 });
@@ -42,8 +42,20 @@ export function checksView(root) {
     if (t === 'eventlog') Object.assign(p, { log_name: f.log_name.trim(), event_id: num(f.event_id) ?? 0, event_type: f.event_type, fail_when: f.fail_when, search_last_days: num(f.search_last_days) });
     return p;
   }
+  // Fill the form from an existing check (numbers become strings, lists become one item per line).
+  const fromCheck = (c) => { const f = blank(); const s = (v) => (v == null ? '' : String(v));
+    Object.assign(f, { check_type: c.check_type, alert_severity: c.alert_severity || 'warning', fails_b4_alert: s(c.fails_b4_alert ?? 1), run_interval: s(c.run_interval ?? 0), dashboard_alert: !!c.dashboard_alert, email_alert: !!c.email_alert, text_alert: !!c.text_alert,
+      disk: c.disk || 'C:', error_threshold: s(c.error_threshold ?? 0), warning_threshold: s(c.warning_threshold ?? 0), ip: c.ip || '', svc_name: c.svc_name || '', svc_display_name: c.svc_display_name || '',
+      restart_if_stopped: !!c.restart_if_stopped, pass_if_start_pending: !!c.pass_if_start_pending, script: s(c.script), timeout: s(c.timeout ?? 90), script_args: (c.script_args || []).join('\n'),
+      log_name: c.log_name || 'System', event_id: s(c.event_id ?? 0), event_type: c.event_type || 'ERROR', fail_when: c.fail_when || 'contains', search_last_days: s(c.search_last_days ?? 1) });
+    return f; };
+  async function startEdit(c) {
+    st.adding = true; st.editId = c.id; st.notice = null; st.f = fromCheck(c); paint();
+    try { st.scripts = await api('scripts'); } catch { st.scripts = []; }
+    paint(); document.querySelector('h1')?.scrollIntoView({ block: 'start' });
+  }
   async function startAdd() {
-    st.adding = true; st.notice = null; st.f = blank(); paint();
+    st.adding = true; st.editId = null; st.notice = null; st.f = blank(); paint();
     try { st.scripts = await api('scripts'); if (st.scripts.length) st.f.script = String(st.scripts[0].id); } catch { st.scripts = []; }
     paint();
   }
@@ -67,14 +79,15 @@ export function checksView(root) {
 
   function form() {
     const f = st.f;
-    const typeSel = select(TYPES, f, 'check_type'); typeSel.addEventListener('change', () => paint());
-    return h('section', { class: 'card stack', style: { gap: '14px' } }, h('h2', { style: { fontSize: '16px' } }, 'New check'),
+    const typeSel = select(TYPES, f, 'check_type'); typeSel.addEventListener('change', () => paint()); typeSel.disabled = !!st.editId;
+    return h('section', { class: 'card stack', style: { gap: '14px' } }, h('h2', { style: { fontSize: '16px' } }, st.editId ? 'Edit check' : 'New check'),
       h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, field('Type', typeSel, '1 1 200px'), ...typeFields(f)),
       h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, field('Severity', select(SEV, f, 'alert_severity'), '1 1 140px'),
         field('Failures before alert', input('number', f, 'fails_b4_alert', '1', { min: 1, max: 255 }), '1 1 140px'), field('Run every (seconds, 0 = default)', input('number', f, 'run_interval', '0', { min: 0, max: 86400 }), '1 1 180px')),
       h('div', { style: { display: 'flex', gap: '16px', flexWrap: 'wrap' } }, check('Dashboard alert', f, 'dashboard_alert'), check('Email alert', f, 'email_alert'), check('Text alert', f, 'text_alert')),
-      h('div', { style: { display: 'flex', gap: '8px' } }, btn('Add check', () => run(() => api('checks', { method: 'POST', body: payload() }), 'Check added.', () => { st.adding = false; }), { primary: true, disabled: st.busy }),
-        btn('Cancel', () => { st.adding = false; st.notice = null; paint(); })));
+      h('div', { style: { display: 'flex', gap: '8px' } }, btn(st.editId ? 'Save changes' : 'Add check', () => run(() => (st.editId ? api(`checks/${st.editId}`, { method: 'PUT', body: payload() }) : api('checks', { method: 'POST', body: payload() })),
+          st.editId ? 'Check saved.' : 'Check added.', () => { st.adding = false; st.editId = null; }), { primary: true, disabled: st.busy }),
+        btn('Cancel', () => { st.adding = false; st.editId = null; st.notice = null; paint(); })));
   }
 
   function paint(err) {
@@ -90,7 +103,7 @@ export function checksView(root) {
           c.managed_by_policy ? h('span', { class: 'pill info', style: { alignSelf: 'flex-start' } }, 'From policy') : null),
         h('div', null, h('span', { class: `pill ${statusClass(c.status)}` }, statusWord(c.status))), h('div', null, h('span', { class: `pill ${sevClass(c.alert_severity)}` }, sevWord(c.alert_severity))),
         h('div', { class: 'mono' }, ago(c.last_run)),
-        h('div', { style: { display: 'flex', justifyContent: 'flex-end' } }, c.managed_by_policy ? null : btn('Delete', () => { if (confirm(`Delete check "${c.name || c.check_type}"?`)) run(() => api(`checks/${c.id}`, { method: 'DELETE' }), 'Check deleted.'); }, { disabled: st.busy, danger: true })))),
+        h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '6px' } }, c.managed_by_policy ? null : btn('Edit', () => startEdit(c), { disabled: st.busy }), c.managed_by_policy ? null : btn('Delete', () => { if (confirm(`Delete check "${c.name || c.check_type}"?`)) run(() => api(`checks/${c.id}`, { method: 'DELETE' }), 'Check deleted.'); }, { disabled: st.busy, danger: true })))),
         scope.kind === 'agent' ? 'This agent has no checks.' : 'This policy has no checks.'))].filter(Boolean));
   }
   return ld.stop;

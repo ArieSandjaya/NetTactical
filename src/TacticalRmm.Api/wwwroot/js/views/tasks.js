@@ -16,7 +16,7 @@ const when = (t) => ({ manual: 'Manual', daily: `Daily${t.daily_interval > 1 ? `
   runonce: 'Once', checkfailure: 'On check failure', monthly: 'Monthly', monthlydow: 'Monthly (weekday)' }[t.task_type] || t.task_type) + (t.run_time_date && t.task_type !== 'manual' ? ` · ${fmtDate(t.run_time_date)}` : '');
 
 export function tasksView(root) {
-  const st = { targets: null, rows: null, notice: null, busy: false, adding: false, scripts: [], f: blank() };
+  const st = { targets: null, rows: null, notice: null, busy: false, adding: false, editId: null, extra: 0, scripts: [], f: blank() };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   const ld = loader(body, async (signal) => { const targets = await loadTargets(signal); const has = ensureScope(targets);
@@ -28,10 +28,25 @@ export function tasksView(root) {
     try { await fn(); await reload(); after?.(); st.notice = { ok: true, msg: okMsg }; } catch (e) { st.notice = { ok: false, msg: e.message }; }
     st.busy = false; paint();
   }
-  const changeScope = async () => { st.rows = null; st.adding = false; st.notice = null; paint(); try { await reload(); } catch (e) { st.rows = []; st.notice = { ok: false, msg: e.message }; } paint(); };
+  const changeScope = async () => { st.rows = null; st.adding = false; st.editId = null; st.notice = null; paint(); try { await reload(); } catch (e) { st.rows = []; st.notice = { ok: false, msg: e.message }; } paint(); };
+
+  const localInput = (iso) => { if (!iso) return ''; const d = new Date(iso), z = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`; };
+  const fromTask = (t) => { const f = blank(), s = (v) => (v == null ? '' : String(v)), a = Array.isArray(t.actions) && t.actions.length === 1 ? t.actions[0] : null;
+    Object.assign(f, { name: t.name, task_type: t.task_type, when: localInput(t.run_time_date), daily_interval: s(t.daily_interval ?? 1), weekly_interval: s(t.weekly_interval ?? 1),
+      days: Object.fromEntries(DAYS.map(([d, bit]) => [d, ((t.run_time_bit_weekdays || 0) & bit) !== 0])), alert_severity: t.alert_severity || 'info',
+      dashboard_alert: !!t.dashboard_alert, email_alert: !!t.email_alert, text_alert: !!t.text_alert, enabled: !!t.enabled, continue_on_error: !!t.continue_on_error });
+    if (a?.type === 'script') Object.assign(f, { action: 'script', script: s(a.script), script_args: (a.script_args || []).join('\n'), timeout: s(a.timeout ?? 120) });
+    else if (a?.type === 'cmd') Object.assign(f, { action: 'cmd', shell: a.shell || 'powershell', command: a.command || '', timeout: s(a.timeout ?? 120) });
+    return f; };
+  async function startEdit(t) {
+    st.adding = true; st.editId = t.id; st.notice = null; st.f = fromTask(t);
+    st.extra = Array.isArray(t.actions) && t.actions.length === 1 ? 0 : (t.actions?.length || 0); paint();
+    try { st.scripts = await api('scripts'); } catch { st.scripts = []; }
+    paint(); document.querySelector('h1')?.scrollIntoView({ block: 'start' });
+  }
 
   function payload() {
-    const f = st.f, p = { ...ownerFields(), name: f.name.trim(), task_type: f.task_type, enabled: f.enabled, continue_on_error: f.continue_on_error,
+    const f = st.f, p = { ...(st.editId ? {} : ownerFields()), name: f.name.trim(), task_type: f.task_type, enabled: f.enabled, continue_on_error: f.continue_on_error,
       alert_severity: f.alert_severity, dashboard_alert: f.dashboard_alert, email_alert: f.email_alert, text_alert: f.text_alert };
     if (f.task_type !== 'manual') { if (!f.when) throw new Error('Choose when the task should run.'); p.run_time_date = new Date(f.when).toISOString(); }
     if (f.task_type === 'daily') p.daily_interval = Number(f.daily_interval) || 1;
@@ -41,15 +56,17 @@ export function tasksView(root) {
       if (!p.run_time_bit_weekdays) throw new Error('Choose at least one weekday.');
     }
     const timeout = Number(f.timeout) || 120;
+    if (st.editId && st.extra) return p;   // several actions: leave them untouched
     p.actions = [f.action === 'cmd' ? { type: 'cmd', shell: f.shell, command: f.command.trim(), timeout }
       : { type: 'script', script: Number(f.script), script_args: f.script_args.split('\n').map((x) => x.trim()).filter(Boolean), timeout }];
     if (f.action === 'script' && !f.script) throw new Error('Choose a script.');
     return p;
   }
   const create = () => { let p; try { p = payload(); } catch (e) { st.notice = { ok: false, msg: e.message }; return paint(); }
-    run(() => api('tasks', { method: 'POST', body: p }), 'Task added.', () => { st.adding = false; }); };
+    const edit = st.editId;
+    run(() => (edit ? api(`tasks/${edit}`, { method: 'PUT', body: p }) : api('tasks', { method: 'POST', body: p })), edit ? 'Task saved.' : 'Task added.', () => { st.adding = false; st.editId = null; }); };
   async function startAdd() {
-    st.adding = true; st.notice = null; st.f = blank(); paint();
+    st.adding = true; st.editId = null; st.extra = 0; st.notice = null; st.f = blank(); paint();
     try { st.scripts = await api('scripts'); if (st.scripts.length) st.f.script = String(st.scripts[0].id); } catch { st.scripts = []; }
     paint();
   }
@@ -64,7 +81,7 @@ export function tasksView(root) {
     args.value = f.script_args; args.addEventListener('input', () => { f.script_args = args.value; });
     const dt = h('input', { type: 'datetime-local', class: 'search', style: { maxWidth: 'none', flex: 'none' }, value: f.when }); dt.addEventListener('input', () => { f.when = dt.value; });
     const days = h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, DAYS.map(([d]) => check(d, f.days, d)));
-    return h('section', { class: 'card stack', style: { gap: '14px' } }, h('h2', { style: { fontSize: '16px' } }, 'New task'),
+    return h('section', { class: 'card stack', style: { gap: '14px' } }, h('h2', { style: { fontSize: '16px' } }, st.editId ? 'Edit task' : 'New task'),
       h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, field('Name', input('text', f, 'name', 'e.g. Weekly cleanup'), '2 1 240px'), field('Schedule', typeSel, '1 1 160px'),
         f.task_type !== 'manual' ? field('Start (your local time)', dt, '1 1 220px') : null,
         f.task_type === 'daily' ? field('Every (days)', input('number', f, 'daily_interval', '1', { min: 1, max: 365 }), '1 1 120px') : null,
@@ -73,10 +90,10 @@ export function tasksView(root) {
       h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, field('Action', actSel, '1 1 180px'),
         f.action === 'cmd' ? field('Shell', select(SHELLS, f, 'shell'), '1 1 160px') : (st.scripts.length ? field('Script', select(st.scripts.map((s) => [s.id, s.name]), f, 'script'), '1 1 240px') : h('div', { class: 'banner' }, 'There are no scripts yet. Add one on the Scripts page first.')),
         field('Timeout (seconds)', input('number', f, 'timeout', '120', { min: 1, max: 86400 }), '1 1 140px')),
-      f.action === 'cmd' ? field('Command', cmd) : field('Arguments', args),
+      st.editId && st.extra ? h('div', { class: 'banner' }, `This task has ${st.extra} actions. They are kept as they are; only the schedule and settings can be changed here.`) : (f.action === 'cmd' ? field('Command', cmd) : field('Arguments', args)),
       h('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } }, field('Alert severity', select(SEV, f, 'alert_severity'), '1 1 160px')),
       h('div', { style: { display: 'flex', gap: '16px', flexWrap: 'wrap' } }, check('Enabled', f, 'enabled'), check('Continue if an action fails', f, 'continue_on_error'), check('Dashboard alert', f, 'dashboard_alert'), check('Email alert', f, 'email_alert'), check('Text alert', f, 'text_alert')),
-      h('div', { style: { display: 'flex', gap: '8px' } }, btn('Add task', create, { primary: true, disabled: st.busy }), btn('Cancel', () => { st.adding = false; st.notice = null; paint(); })));
+      h('div', { style: { display: 'flex', gap: '8px' } }, btn(st.editId ? 'Save changes' : 'Add task', create, { primary: true, disabled: st.busy }), btn('Cancel', () => { st.adding = false; st.editId = null; st.notice = null; paint(); })));
   }
 
   function paint(err) {
@@ -93,6 +110,7 @@ export function tasksView(root) {
         h('div', null, h('span', { class: `pill ${statusClass(t.status)}` }, statusWord(t.status))), h('div', { class: 'mono' }, ago(t.last_run)),
         h('div', null, check(t.enabled ? 'On' : 'Off', { v: t.enabled }, 'v', () => run(() => api(`tasks/${t.id}`, { method: 'PUT', body: { enabled: !t.enabled } }), t.enabled ? 'Task disabled.' : 'Task enabled.'), st.busy)),
         h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' } },
+          btn('Edit', () => startEdit(t), { disabled: st.busy }),
           onAgent ? btn('Run now', () => run(() => api(`tasks/${t.id}/run`, { method: 'POST', body: { agent_id: scope.id } }), `"${t.name}" was sent to the agent.`), { disabled: st.busy }) : null,
           btn('Delete', () => { if (confirm(`Delete task "${t.name}"?`)) run(() => api(`tasks/${t.id}`, { method: 'DELETE' }), 'Task deleted.'); }, { disabled: st.busy, danger: true })))),
         onAgent ? 'This agent has no tasks.' : 'This policy has no tasks.'))].filter(Boolean));
