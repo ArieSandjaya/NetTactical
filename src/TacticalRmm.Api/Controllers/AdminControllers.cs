@@ -101,6 +101,13 @@ public class AccountsController(IUserAdminService users, IRoleAdminService roles
     [HttpPost("totp/setup")]
     public async Task<IActionResult> TotpSetup(CancellationToken ct) => this.ToResult(await users.BeginTotpAsync(HttpContext.GetUser(), ct));
 
+    [HttpGet("totp/status")]
+    public IActionResult TotpStatus() => Ok(new TotpStatus(!string.IsNullOrEmpty(HttpContext.GetUser().TotpKey)));
+
+    [HttpPost("totp/disable")]
+    public async Task<IActionResult> TotpDisable(TotpDisableRequest req, CancellationToken ct) =>
+        this.ToResult(await users.DisableTotpAsync(HttpContext.GetUser(), req.Password, req.Code, ct));
+
     [HttpPost("totp/enable")]
     public async Task<IActionResult> TotpEnable(TotpEnableRequest req, CancellationToken ct) =>
         this.ToResult(await users.EnableTotpAsync(HttpContext.GetUser(), req.Secret, req.Code, ct));
@@ -188,5 +195,18 @@ public class VncController(IVncService svc) : ControllerBase
         if (r.Status != OutcomeStatus.Ok) return this.ToResult(r);
         Response.Headers.CacheControl = "no-store";
         return base.File(System.Text.Encoding.ASCII.GetBytes(r.Value!.Content), "application/octet-stream", r.Value.FileName);
+    }
+}
+
+// ------------------------------------------------------------------------------------------ Agent installer
+[ApiController, Authorize(AuthDefaults.DashboardPolicy)]
+public class InstallerController(IInstallerService svc) : ControllerBase
+{
+    /// <summary>Returns a one-time token and ready-to-run install commands. The response is never cached because it contains the token.</summary>
+    [HttpPost("installer/generate"), RequirePerm(Perm.InstallAgents)]
+    public async Task<IActionResult> Generate(InstallerRequest req, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.GenerateAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
     }
 }

@@ -8,14 +8,22 @@ import { alertsView } from './views/alerts.js';
 import { patchesView } from './views/patches.js';
 import { vncView } from './views/vnc.js';
 import { clientsView } from './views/clients.js';
+import { installerView } from './views/installer.js';
 import { usersView } from './views/users.js';
 import { rolesView } from './views/roles.js';
+import { securityView } from './views/security.js';
+import { scriptsView } from './views/scripts.js';
+import { policiesView } from './views/policies.js';
+import { checksView } from './views/checks.js';
+import { tasksView } from './views/tasks.js';
+import { auditView } from './views/audit.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['vnc', '#/vnc', 'VNC passwords']];
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['installer', '#/installer', 'Install agent'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
 const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView],
-  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView] };
+  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/security': ['security', 'Security', securityView],
+  '#/checks': ['checks', 'Checks', checksView], '#/tasks': ['tasks', 'Tasks', tasksView], '#/policies': ['policies', 'Policies', policiesView], '#/scripts': ['scripts', 'Scripts', scriptsView], '#/audit': ['audit', 'Audit log', auditView] };
 
 function shell(content, current) {
   const mark = s('svg', { width: 28, height: 28, viewBox: '0 0 28 28', 'aria-hidden': 'true' },

@@ -45,13 +45,13 @@ public static class Perm
         EditAgent = "can_edit_agent", ListSites = "can_list_sites", ManageSites = "can_manage_sites",
         RunChecks = "can_run_checks", RunTasks = "can_run_autotasks",
         ListPolicies = "can_list_automation_policies", ManagePolicies = "can_manage_automation_policies",
-        UseVnc = "can_use_vnc", ManageVnc = "can_manage_vnc";
+        UseVnc = "can_use_vnc", ManageVnc = "can_manage_vnc", InstallAgents = "can_install_agents";
 
     /// <summary>Complete list of valid permissions; used for Role validation.</summary>
     public static readonly IReadOnlyList<string> All =
     [
         ListClients, ManageClients, ListSites, ManageSites, ListAgents, ManageAgents, EditAgent, UninstallAgents,
         RebootAgents, RunScripts, RunCommands, ListScripts, ManageScripts, ListChecks, ManageChecks, RunChecks,
-        ListTasks, ManageTasks, RunTasks, ListAlerts, ManageAlerts, ListPolicies, ManagePolicies, ViewAuditLog, ManageAccounts, UseVnc, ManageVnc
+        ListTasks, ManageTasks, RunTasks, ListAlerts, ManageAlerts, ListPolicies, ManagePolicies, ViewAuditLog, ManageAccounts, UseVnc, ManageVnc, InstallAgents
     ];
 }

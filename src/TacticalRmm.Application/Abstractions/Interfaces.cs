@@ -18,6 +18,8 @@ public interface ITokenService
     Task<(string RawToken, DateTime Expiry)> CreateUserTokenAsync(int userId, CancellationToken ct = default);
     /// <summary>Token agent (plaintext, no expiry) — also the agent's NATS password.</summary>
     Task<string> CreateAgentTokenAsync(int userId, CancellationToken ct = default);
+    /// <summary>Token for the installer account with a fixed lifetime (never auto-refreshed). The raw token is returned only once.</summary>
+    Task<(string RawToken, DateTime Expiry)> CreateInstallerTokenAsync(int installerUserId, TimeSpan lifetime, CancellationToken ct = default);
     /// <summary>Checks the agent token, then the dashboard token. Returns the full user with Role + scope.</summary>
     Task<User?> ValidateAsync(string rawToken, CancellationToken ct = default);
     Task RevokeAsync(string rawToken, CancellationToken ct = default);

@@ -57,6 +57,7 @@ public static class DependencyInjection
         s.AddScoped<IOrgAdminService, OrgAdminService>();
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
         s.AddScoped<IVncService, VncService>();
+        s.AddScoped<IInstallerService, InstallerService>();
         s.AddScoped<IFleetService, FleetService>();
         s.AddHostedService<AgentOutagesJob>();
         s.AddHostedService<TaskSyncJob>();

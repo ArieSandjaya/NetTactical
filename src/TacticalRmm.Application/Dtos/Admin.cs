@@ -183,5 +183,7 @@ public class AgentUpdate
 public class PolicyUpsert { public string? Name { get; set; } public string? Desc { get; set; } public bool? Active { get; set; } public bool? Enforced { get; set; } }
 public record PolicyDto(int Id, string Name, string? Desc, bool Active, bool Enforced, int AgentCount, int CheckCount, int TaskCount);
 
+public record TotpStatus(bool Enabled);
+public class TotpDisableRequest { public string Password { get; set; } = ""; public string Code { get; set; } = ""; }
 public record TotpSetup(string Secret, string Uri);
 public class TotpEnableRequest { public string Secret { get; set; } = ""; public string Code { get; set; } = ""; }

@@ -155,6 +155,17 @@ public sealed class UserAdminService(AppDbContext db, IPasswordHasher hasher, IA
         return Outcome.Ok(true);
     }
 
+    public async Task<Outcome<bool>> DisableTotpAsync(User caller, string password, string code, CancellationToken ct = default)
+    {
+        var user = await db.Users.FirstAsync(u => u.Id == caller.Id, ct);
+        if (string.IsNullOrEmpty(user.TotpKey)) return Outcome.Invalid<bool>("2FA is not enabled");
+        if (!hasher.Verify(password ?? "", user.PasswordHash) || !Totp.Verify(user.TotpKey, code ?? "")) return Outcome.Invalid<bool>("Wrong password or code");
+        user.TotpKey = null;
+        await db.SaveChangesAsync(ct);
+        await audit.LogAsync(caller.Username, AuditAction.Modify, "user", $"{caller.Username} disabled 2FA", ct: ct);
+        return Outcome.Ok(true);
+    }
+
     private Task<bool> AnotherActiveSuperAsync(int exceptId, CancellationToken ct) =>
         db.Users.AnyAsync(u => u.Id != exceptId && u.IsActive && !u.IsInstallerUser && u.AgentId == null
                                && (u.IsSuperuser || (u.Role != null && u.Role.IsSuperuser)), ct);

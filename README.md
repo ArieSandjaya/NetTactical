@@ -24,7 +24,7 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 ## Dashboard CRUD (new)
 - **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (per-type validation: disk, cpu, memory, ping, winsvc, script, eventlog; the ping host is checked against injection).
 - **Scheduled task** — `GET agents/{agentId}/tasks`, `GET/PUT/DELETE tasks/{id}`, `POST tasks`, `POST tasks/{id}/run`. Changes are pushed to the agent's Task Scheduler (`schedtask`/`delschedtask`) by `TaskSyncJob` (every 2 minutes); a deletion is only final once the agent confirms it.
-- **Accounts** — `accounts/users` (CRUD, password reset, TOTP reset; own 2FA via `accounts/totp/setup|enable`) and `accounts/roles` (CRUD) + `accounts/permissions`. Escalation protection: a non-superuser cannot touch a superuser or grant permissions they do not have; the last active superuser cannot be deleted/deactivated; a password reset/deactivation revokes all tokens.
+- **Accounts** — `accounts/users` (CRUD, password reset, TOTP reset; own 2FA via `accounts/totp/status|setup|enable|disable` and the **Security** page (`#/security`, QR code)) and `accounts/roles` (CRUD) + `accounts/permissions`. Escalation protection: a non-superuser cannot touch a superuser or grant permissions they do not have; the last active superuser cannot be deleted/deactivated; a password reset/deactivation revokes all tokens.
 - **Organisation** — `PUT/DELETE clients/{id}`, `POST clients/sites`, `PUT/DELETE sites/{id}`, `PUT agents/{agentId}` (requires `can_edit_agent` + scope on both the source and destination site).
 - **Policy** — `automation/policies` CRUD (deletion is rejected while the policy still has tasks, so that agents are cleaned up first).
 
@@ -51,9 +51,21 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - **Alerts** (`#/alerts`): open/resolved, severity filter, and a Resolve button (needs `can_manage_alerts`; a 403 is shown as a notice).
 - **Patches** (`#/patches`): totals, outstanding updates by KB (filter failed/pending), and a per-asset view.
 - **VNC passwords** (`#/vnc`) and the Connect/Test buttons on the asset page: see "VNC remote control".
+- **Monitoring** section: **Checks** (`#/checks`) and **Tasks** (`#/tasks`) are managed per agent or per policy (pick it in the selector): list with status, add (all seven check types; manual/daily/weekly/run-once tasks running a command or a script), delete, enable/disable and run-now for tasks. Items inherited from a policy show "From policy" and cannot be deleted on the agent. **Policies** (`#/policies`: create, edit, delete, jump to a policy's checks/tasks), **Scripts** (`#/scripts`: add with body, shell, timeout, platforms; delete) and **Audit log** (`#/audit`: paged, filter by action, search the page). Editing an existing check or task is not in the UI yet (delete and re-add); monthly schedules and check-failure tasks are API-only.
+- **Security** (`#/security`): turn your own 2FA on or off (QR code).
 - **Manage** section: **Clients & Sites** (`#/clients`: add/rename/delete clients and sites, asset counts), **Users** (`#/users`: add, edit, role, superuser/active/dashboard-block flags, reset password, reset 2FA, delete) and **Roles** (`#/roles`: permission checkboxes and optional client/site limits). Each action needs the matching permission; a 403 or a validation error from the API is shown as a message.
 - **Asset actions** on the asset page (`Actions…`): run a command (cmd/PowerShell/bash), run a script from the script list (waits for output) and reboot with confirmation. Output is always rendered as plain text.
 - Not yet in the UI: checks, scheduled tasks, automation policies, scripts, audit log (the API for them already exists).
+
+## Installing agents (Install agent page)
+
+`#/installer` (**Install agent**) generates what you need to put the unchanged Tactical RMM Go agent on a Windows computer: pick client, site, type (workstation/server), 32/64-bit and how long the token stays valid (1 hour to 30 days). You get the download link (official `amidaware/rmmagent` release matching `Tactical:LatestAgentVer`), a PowerShell one-liner (downloads and installs) and a Command Prompt version, plus the token.
+
+- The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
+- Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
+- Requires the new permission `can_install_agents` (superusers have it). Every generation is written to the audit log.
+- The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
+- Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
 
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
