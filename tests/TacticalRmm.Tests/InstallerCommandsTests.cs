@@ -33,6 +33,9 @@ public class InstallerCommandsTests
         Assert.True(a == $"-m install --api \"https://rmm.example.com\" --client-id 3 --site-id 7 --agent-type \"server\" --auth \"{Tok}\"", "base args");
         var b = InstallerCommands.InstallArguments("https://rmm.example.com", 3, 7, "workstation", Tok, true, true, true);
         Assert.True(b.EndsWith("--rdp --ping --power"), "flags");
+        var c = InstallerCommands.InstallArguments("https://rmm.example.com", 3, 7, "workstation", Tok, false, false, false, noMesh: true);
+        Assert.True(c.EndsWith($"--auth \"{Tok}\" --nomesh"), "nomesh");
+        Assert.True(!a.Contains("--nomesh"), "mesh stays on when not asked");
     }
 
     [Fact]

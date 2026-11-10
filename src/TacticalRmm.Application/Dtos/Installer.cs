@@ -13,6 +13,8 @@ public class InstallerRequest
     public bool Rdp { get; set; }
     public bool Ping { get; set; }
     public bool Power { get; set; }
+    /// <summary>Install the MeshCentral agent too. Default false: the agent is installed with --nomesh.</summary>
+    public bool InstallMesh { get; set; }
     /// <summary>Public URL agents use to reach this server. Defaults to the URL of the current request.</summary>
     public string? Api { get; set; }
 }

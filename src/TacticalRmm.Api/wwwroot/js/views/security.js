@@ -21,7 +21,7 @@ export function securityView(root) {
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
-  loader(body, (signal) => api('accounts/totp/status', { signal }), (d, err) => {
+  const ld = loader(body, (signal) => api('accounts/totp/status', { signal }), (d, err) => {
     if (d) st.enabled = d.enabled;
     paint(err);
   }, 0, 'Loading…');
@@ -74,4 +74,5 @@ export function securityView(root) {
     }
     body.replaceChildren(head, card);
   }
+  return ld.stop;
 }
