@@ -36,3 +36,20 @@ export function loader(body, fetcher, paint, intervalMs = 0, loadingText = 'Load
   if (intervalMs) timer = setInterval(() => load(true), intervalMs);
   return { reload: () => load(true), stop: () => { alive = false; clearInterval(timer); ctrl?.abort(); } };
 }
+
+// Grid table with a header row, horizontal scroll on narrow screens and an empty message.
+export function gridTable(cols, heads, rows, emptyText) {
+  return h('div', { class: 'scroll-x' }, h('div', { class: 'grid-table' },
+    h('div', { class: `tr th ${cols}` }, heads.map((t) => h('div', null, t))),
+    rows.length ? rows : h('div', { class: 'empty' }, emptyText)));
+}
+
+export const pageHead = (title, sub, ...actions) => h('div', { class: 'page-head' },
+  h('div', { class: 'stack' }, h('h1', null, title), sub ? h('div', { class: 'muted' }, sub) : null), actions.length ? h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, actions) : null);
+
+// Repaint a whole page from a search box without losing the caret: run paint(), then focus the new search input.
+export function repaintKeepingSearch(paint) {
+  paint();
+  const el = document.querySelector('input[type="search"]');
+  if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); }
+}
