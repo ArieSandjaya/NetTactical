@@ -43,6 +43,8 @@ public interface IUserAdminService
     /// <summary>Creates a new TOTP secret for the user themselves (not saved until the code is verified).</summary>
     Task<Outcome<TotpSetup>> BeginTotpAsync(User caller, CancellationToken ct = default);
     Task<Outcome<bool>> EnableTotpAsync(User caller, string secret, string code, CancellationToken ct = default);
+    /// <summary>Turns off the caller's own 2FA; requires the current password and a valid current code.</summary>
+    Task<Outcome<bool>> DisableTotpAsync(User caller, string password, string code, CancellationToken ct = default);
 }
 
 public interface IRoleAdminService

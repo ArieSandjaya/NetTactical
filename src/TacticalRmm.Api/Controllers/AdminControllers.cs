@@ -101,6 +101,13 @@ public class AccountsController(IUserAdminService users, IRoleAdminService roles
     [HttpPost("totp/setup")]
     public async Task<IActionResult> TotpSetup(CancellationToken ct) => this.ToResult(await users.BeginTotpAsync(HttpContext.GetUser(), ct));
 
+    [HttpGet("totp/status")]
+    public IActionResult TotpStatus() => Ok(new TotpStatus(!string.IsNullOrEmpty(HttpContext.GetUser().TotpKey)));
+
+    [HttpPost("totp/disable")]
+    public async Task<IActionResult> TotpDisable(TotpDisableRequest req, CancellationToken ct) =>
+        this.ToResult(await users.DisableTotpAsync(HttpContext.GetUser(), req.Password, req.Code, ct));
+
     [HttpPost("totp/enable")]
     public async Task<IActionResult> TotpEnable(TotpEnableRequest req, CancellationToken ct) =>
         this.ToResult(await users.EnableTotpAsync(HttpContext.GetUser(), req.Secret, req.Code, ct));
