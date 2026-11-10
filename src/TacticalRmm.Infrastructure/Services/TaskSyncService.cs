@@ -120,7 +120,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
                            join a in db.Agents on t.PolicyId equals a.PolicyId
                            where p.Active && !t.PendingDeletion && !a.BlockPolicyInheritance
                                  && !db.TaskResults.Any(r => r.TaskId == t.Id && r.AgentId == a.Id)
-                           select new { TaskId = t.Id, AgentId = a.Id }).Take(500).ToListAsync(ct);
+                           select new { TaskId = t.Id, AgentId = a.Id }).OrderBy(x => x.TaskId).ThenBy(x => x.AgentId).Take(500).ToListAsync(ct);
         if (pairs.Count == 0) return;
         foreach (var x in pairs) db.TaskResults.Add(new TaskResult { TaskId = x.TaskId, AgentId = x.AgentId, SyncStatus = TaskSyncStatus.NotSynced });
         await db.SaveChangesAsync(ct);

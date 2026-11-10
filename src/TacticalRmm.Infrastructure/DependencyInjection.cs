@@ -20,7 +20,7 @@ public static class DependencyInjection
             .Validate(o => o.SecretKey.Length >= 32, "Tactical:SecretKey is required and must be at least 32 characters")
             .ValidateOnStart();
 
-        s.AddDbContext<AppDbContext>(o => o.UseNpgsql(cfg.GetConnectionString("Default")));
+        s.AddDbContext<AppDbContext>(o => o.UseNpgsql(cfg.GetConnectionString("Default"), n => n.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
         s.AddSingleton<INatsConnection>(sp =>
         {

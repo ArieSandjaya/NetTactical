@@ -88,6 +88,16 @@ Instead of MeshAgent, the dashboard can open the TightVNC that is already instal
 - Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases created earlier need `ALTER TABLE agents_agent ADD COLUMN wmi_detail jsonb;`.
 - Verified: DES/obfuscation against OpenSSL, the handshake against a fake VNC server (wrong password, protocol 3.3, refusal, unsupported, timeout). Not verified against a real TightVNC server or viewer.
 
+## Agents need NATS (read this if agents stay offline)
+
+Agents connect to a **NATS server** (port 4222) and the API sends commands through it. Running only the API (for example from Visual Studio) is not enough: the log shows `can not connect uris: nats://127.0.0.1:4222`, agents cannot connect, and every command to an agent fails.
+
+- Easiest: install Docker Desktop and run the whole stack: `docker compose up -d --build` (see Docker Compose below). It starts PostgreSQL, NATS (with the original `nats-api`) and the API. Dashboard: `http://localhost:8080`.
+- Check NATS from PowerShell: `Test-NetConnection 127.0.0.1 -Port 4222` must say `TcpTestSucceeded : True`.
+- Endpoints must reach this computer on the API port and on 4222 (open both in Windows Firewall). Generate the installer with the server's LAN address (for example `http://192.168.1.10:8080`), not `localhost`.
+- When NATS is down the API now answers a command within about 3 seconds with "NATS down" instead of waiting up to a minute (which made the dashboard look frozen).
+- Running the API alone on Windows also prints `nats-server reload failed`; that is harmless and is now a single informational line.
+
 ## Docker Compose
 `docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).
 ```bash
