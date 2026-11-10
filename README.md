@@ -64,6 +64,7 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
 - Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
 - Requires the new permission `can_install_agents` (superusers have it). Every generation is written to the audit log.
+- The agent is installed **without** the MeshCentral agent by default (`--nomesh`, per the Tactical RMM docs; "Take Control" then does not work, use VNC instead). Tick *Install MeshCentral agent* on the page only if you run MeshCentral. Agents that already have the Mesh agent keep it until you remove the "Mesh Agent" service/program on that computer.
 - The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
 - Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
 
