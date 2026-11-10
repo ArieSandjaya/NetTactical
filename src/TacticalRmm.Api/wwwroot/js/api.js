@@ -1,4 +1,5 @@
 const KEY = 'nt.token';
+const TIMEOUT_MS = 30000;
 
 export const session = {
   get token() { try { return sessionStorage.getItem(KEY); } catch { return null; } },
@@ -20,11 +21,20 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   const headers = { Accept: 'application/json' };
   if (session.token) headers.Authorization = `Token ${session.token}`;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  let res;
-  try { res = await fetch(path, { method, headers, signal, body: body === undefined ? undefined : JSON.stringify(body) }); }
-  catch (e) { if (e.name === 'AbortError') throw e; throw new ApiError(0, 'Cannot reach the server.'); }
+  // Every request has a deadline so a stuck server call can never hold the browser's few connections per site (which freezes the whole UI).
+  const ac = new AbortController(); let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ac.abort(); }, TIMEOUT_MS);
+  if (signal) { if (signal.aborted) ac.abort(); else signal.addEventListener('abort', () => ac.abort(), { once: true }); }
+  let res, data;
+  try {
+    res = await fetch(path, { method, headers, signal: ac.signal, body: body === undefined ? undefined : JSON.stringify(body) });
+    data = await parse(res);
+  } catch (e) {
+    if (timedOut) throw new ApiError(0, 'The server took too long to respond. Please try again.');
+    if (e.name === 'AbortError') throw e;
+    throw new ApiError(0, 'Cannot reach the server.');
+  } finally { clearTimeout(timer); }
 
-  const data = await parse(res);
   if (res.status === 401 && path !== 'v2/login') {
     session.clear();
     location.hash = '#/login';

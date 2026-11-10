@@ -12,7 +12,7 @@ export function installerView(root) {
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
-  loader(body, (signal) => api('clients', { signal }), (d, err) => {
+  const ld = loader(body, (signal) => api('clients', { signal }), (d, err) => {
     if (d) { st.clients = d; if (!st.form.client && d.length) { st.form.client = String(d[0].id); st.form.site = String(d[0].sites[0]?.id ?? ''); } }
     paint(err);
   }, 0, 'Loading clients…');
@@ -83,4 +83,5 @@ export function installerView(root) {
           btn(st.busy ? 'Generating…' : 'Generate installer', generate, { primary: true, disabled: st.busy || !f.site }), notice(st.notice))),
       st.result ? resultCard(st.result) : null);
   }
+  return ld.stop;
 }
