@@ -6,3 +6,4 @@ appsettings.*.json
 .env
 .vs/
 backups/
+.dev/

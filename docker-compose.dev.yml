@@ -1,0 +1,13 @@
+# Development mode: PostgreSQL and NATS (with nats-api) run in Docker, the API runs from Visual Studio.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db nats
+# Needs the same .env as the normal stack. Stop with: docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+# See README "Developing from Visual Studio" for the matching appsettings.Development.json.
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"      # only this computer can reach the database
+  nats:
+    volumes:
+      # Replaces the named volume of the normal stack: the API (running on Windows) writes nats-rmm.conf into this folder
+      # and the container reloads nats-server when the file changes.
+      - ./.dev/nats:/data/nats

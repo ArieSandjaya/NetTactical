@@ -119,6 +119,34 @@ Notes
 - These scripts were written without access to a Windows machine and have not been run; if one fails, send the message.
 - A fully native route (API, PostgreSQL and NATS installed directly on Windows, no Docker) is not provided: the upstream `nats-api` is published only as a Linux binary.
 
+## Developing from Visual Studio
+
+Running only the API from Visual Studio leaves NATS and `nats-api` missing, so agents cannot connect. Run PostgreSQL and NATS in Docker and the API from Visual Studio:
+
+1. Create `.env` (Windows: `scripts\windows\nettactical.cmd setup`, otherwise copy `.env.example`). Keep the values: the API settings below must match them.
+2. Start the two containers:
+   ```
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db nats
+   ```
+   This publishes PostgreSQL on `127.0.0.1:5432` (set `DB_PORT` in `.env` if that port is taken) and NATS on `4222`, and shares the folder `.dev\nats` with the container.
+3. Add `src\TacticalRmm.Api\appsettings.Development.json` (not committed with real values; use your own `.env` values):
+   ```json
+   {
+     "ConnectionStrings": { "Default": "Host=127.0.0.1;Port=5432;Database=tacticalrmm;Username=tactical;Password=<POSTGRES_PASSWORD from .env>" },
+     "Tactical": {
+       "SecretKey": "<TACTICAL_SECRET_KEY from .env>",
+       "NatsUrl": "nats://127.0.0.1:4222",
+       "NatsConfPath": "C:\\path\\to\\NetTactical\\.dev\\nats\\nats-rmm.conf",
+       "NatsServerBin": ""
+     }
+   }
+   ```
+   `NatsServerBin` stays empty because the container reloads nats-server itself. The password and secret key must be exactly those in `.env`, or `nats-api` and the API cannot talk to the database and NATS.
+4. Start the API from Visual Studio. Check that `Test-NetConnection 127.0.0.1 -Port 4222` succeeds.
+5. For agents on other computers the API must listen on the network: use `http://0.0.0.0:<port>` as `applicationUrl` in `launchSettings.json`, open that port and 4222 in Windows Firewall, and put the LAN address (not `localhost`) in the installer's Server URL.
+
+This mode was prepared without a Windows machine and has not been run.
+
 ## Docker Compose
 `docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).
 ```bash
