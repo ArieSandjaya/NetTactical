@@ -72,6 +72,7 @@ static class Bootstrap
         var db = sp.GetRequiredService<AppDbContext>();
         // Production: replace with `dotnet ef migrations add Initial` then db.Database.MigrateAsync().
         await db.Database.EnsureCreatedAsync();
+        await SchemaUpgrade.RunAsync(db, sp.GetRequiredService<ILogger<Program>>());   // databases created by an earlier version get the newer tables/columns
 
         if (await db.Users.AnyAsync()) return;
         var hasher = sp.GetRequiredService<IPasswordHasher>();
