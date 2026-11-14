@@ -19,7 +19,7 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 
 **All of the agent's `/api/v3` endpoints now exist** (apart from those listed below): `checkin`, `config`, `checkrunner`, `runchecks`, `checkinterval`,
 `taskrunner`, `newagent`, `syncmesh`, `choco`, `software`, `winupdates` (PUT/PATCH/POST), `superseded`, `histresult`, `installer` (GET/POST),
-`meshexe`, `meshreinstall`. The MeshCentral integration (AES-GCM token, device group listing via WebSocket, installer download) is configured through `Tactical:Mesh`.
+`meshexe`, `meshreinstall`. `meshexe` and `meshreinstall` only answer 400 "MeshCentral is not used"; `syncmesh` just stores the node id.
 
 ## Dashboard CRUD (new)
 - **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (per-type validation: disk, cpu, memory, ping, winsvc, script, eventlog; the ping host is checked against injection).
@@ -64,7 +64,7 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
 - Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
 - Requires the new permission `can_install_agents` (superusers have it). Every generation is written to the audit log.
-- The agent is installed **without** the MeshCentral agent by default (`--nomesh`, per the Tactical RMM docs; "Take Control" then does not work, use VNC instead). Tick *Install MeshCentral agent* on the page only if you run MeshCentral. Agents that already have the Mesh agent keep it until you remove the "Mesh Agent" service/program on that computer.
+- Agents are always installed **without** the MeshCentral agent (`--nomesh`, per the Tactical RMM docs; "Take Control" does not exist here, use VNC instead). MeshCentral is not used by this project at all. An agent that already has the Mesh agent keeps it until you remove the "Mesh Agent" program on that computer.
 - The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
 - Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
 
@@ -74,8 +74,8 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
 ## Not covered (deliberately, "core first")
-Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
-email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
+Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
+email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence).
 
 ## VNC remote control (TightVNC already on the endpoints)
 Instead of MeshAgent, the dashboard can open the TightVNC that is already installed on an asset (useful when the antivirus blocks MeshAgent). Nothing is installed by us.
@@ -172,7 +172,7 @@ The installer token is shown once in the log on first run.
 ## Verification status (honest)
 - `Domain` + `Application` were built and tested: **59 + 123 logic assertions pass, plus 12 tests for the health score, metric rules, and agent data parser** (check evaluation, permissions, Mesh AES-GCM token, Mesh URLs, installer version, superseded updates, reboot decisions; Check/Task validators, Task Scheduler payload, account rules). The new CRUD services & controllers were only compiled against stubs — they have not been run against Postgres.
 - The whole solution **compiled successfully** against temporary stubs for EF Core / NATS / MessagePack (the ASP.NET parts were compiled with the real SDK). This only proves the code is self-consistent, **not** that the calls into those packages' APIs are correct.
-- `dotnet build` has never been run with the real NuGet packages, and nothing has been tested against a real Go agent, NATS, MeshCentral, or Postgres.
+- `dotnet build` has never been run with the real NuGet packages, and nothing has been tested against a real Go agent, NATS, or Postgres.
 - There is no `NuGet.config` in this zip; the build uses nuget.org as usual.
 
 ## Licence & origin

@@ -47,8 +47,6 @@ public static class DependencyInjection
         s.AddScoped<IAlertService, AlertService>();
         s.AddScoped<IWinUpdateService, WinUpdateService>();
         s.AddScoped<IAgentTelemetryService, AgentTelemetryService>();
-        s.AddHttpClient("mesh");
-        s.AddScoped<IMeshService, MeshService>();
         s.AddScoped<ICheckAdminService, CheckAdminService>();
         s.AddScoped<ITaskSyncService, TaskSyncService>();
         s.AddScoped<ITaskAdminService, TaskAdminService>();

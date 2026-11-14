@@ -108,11 +108,3 @@ public interface IAgentTelemetryService
     /// <summary>PATCH histresult. false if the history entry does not belong to this agent.</summary>
     Task<bool> SaveHistoryResultAsync(Agent agent, long historyId, string scriptResultsJson, string? stdout, int userId, CancellationToken ct = default);
 }
-
-public class MeshUnavailableException(string message, Exception? inner = null) : Exception(message, inner);
-
-public interface IMeshService
-{
-    /// <summary>Downloads the MeshAgent installer from the Mesh server for the device group. Throws MeshUnavailableException.</summary>
-    Task<byte[]> DownloadAgentAsync(int ident, string plat, CancellationToken ct = default);
-}

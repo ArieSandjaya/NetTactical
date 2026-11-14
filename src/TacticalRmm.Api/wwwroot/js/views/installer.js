@@ -8,7 +8,7 @@ const HOURS = [[1, '1 hour'], [8, '8 hours'], [24, '24 hours'], [72, '3 days'], 
 
 export function installerView(root) {
   const st = { clients: null, notice: null, busy: false, result: null, copied: null,
-    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, mesh: false, api: '' } };
+    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, api: '' } };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
@@ -23,7 +23,7 @@ export function installerView(root) {
     const f = st.form;
     st.busy = true; st.notice = null; st.result = null; paint();
     try {
-      const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, expires_hours: Number(f.expires_hours), rdp: f.rdp, ping: f.ping, power: f.power, install_mesh: f.mesh };
+      const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, expires_hours: Number(f.expires_hours), rdp: f.rdp, ping: f.ping, power: f.power };
       if (f.api.trim()) payload.api = f.api.trim();
       st.result = await api('installer/generate', { method: 'POST', body: payload });
     } catch (e) { st.notice = { ok: false, msg: e.message }; }
@@ -76,7 +76,7 @@ export function installerView(root) {
           field('Architecture', select([['amd64', '64-bit'], ['386', '32-bit']], f, 'arch'), '1 1 120px'),
           field('Token valid for', select(HOURS, f, 'expires_hours'), '1 1 140px')),
         h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '16px' } },
-          check('Enable RDP', f, 'rdp'), check('Enable ping rule', f, 'ping'), check('Disable sleep / hibernate', f, 'power'), check('Install MeshCentral agent (needed for Take Control)', f, 'mesh')),
+          check('Enable RDP', f, 'rdp'), check('Enable ping rule', f, 'ping'), check('Disable sleep / hibernate', f, 'power')),
         h('label', { class: 'stack', style: { gap: '4px' } }, h('span', { class: 'eyebrow' }, 'Server URL agents will use (optional, defaults to this page\'s address)'),
           (() => { const el = h('input', { type: 'text', class: 'search', style: { maxWidth: 'none', flex: 'none' }, placeholder: 'https://rmm.example.com', autocomplete: 'off', value: f.api }); el.addEventListener('input', () => { f.api = el.value; }); return el; })()),
         h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
