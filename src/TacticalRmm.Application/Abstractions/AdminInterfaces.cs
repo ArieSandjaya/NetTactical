@@ -105,3 +105,17 @@ public interface IInstallerService
     /// <param name="defaultApi">Used when the request does not name the public API URL (the URL of the current request).</param>
     Task<Outcome<InstallerDto>> GenerateAsync(User caller, InstallerRequest req, string defaultApi, CancellationToken ct = default);
 }
+
+/// <summary>Runs a PowerShell script on a remote Windows computer over WinRM with explicit credentials.</summary>
+public interface IRemoteExecutor
+{
+    Task<RemoteRunResult> RunAsync(RemoteRunRequest request, CancellationToken ct = default);
+}
+
+public interface IPushInstallService
+{
+    /// <summary>Validates, then starts a background push and returns at once; poll <see cref="GetAsync"/>.</summary>
+    Task<Outcome<PushJobDto>> StartAsync(User caller, PushInstallRequest req, string defaultApi, CancellationToken ct = default);
+    Task<Outcome<PushJobDto>> GetAsync(User caller, string id, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<PushJobDto>>> ListAsync(User caller, CancellationToken ct = default);
+}

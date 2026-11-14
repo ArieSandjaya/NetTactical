@@ -96,6 +96,18 @@ public class TacticalOptions
     public int MetricMinIntervalSeconds { get; set; } = 240;
     public HealthWeights Health { get; set; } = new();
     public VncOptions Vnc { get; set; } = new();
+    public PushOptions Push { get; set; } = new();
+}
+
+public class PushOptions
+{
+    /// <summary>PowerShell executable used for WinRM. Empty = auto (powershell.exe on Windows, pwsh elsewhere).</summary>
+    public string PowerShellPath { get; set; } = "";
+    /// <summary>Use HTTPS WinRM (5986) instead of HTTP (5985).</summary>
+    public bool UseSsl { get; set; }
+    public int MaxParallel { get; set; } = 4;
+    /// <summary>Upper bound per target, in seconds.</summary>
+    public int TargetTimeoutSeconds { get; set; } = 600;
 }
 
 public class VncOptions

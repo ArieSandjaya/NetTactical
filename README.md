@@ -75,6 +75,16 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - Each channel has a Test button. Sending is queued in the background and never blocks agent check-in.
 - Verified with unit tests and a mock API; not yet against a real SMTP server or webhook receiver.
 
+## Push install (domain administrator)
+The **Install agent** page (`#/installer`) has a second card, *Push install with a domain administrator*: the server installs the agent on up to 20 computers at once over PowerShell remoting (WinRM), using the client/site/options chosen at the top. Needs the permission `can_push_install` (superusers have it); every push is audited (who, which computers, which account; never the password).
+- **Credential**: `DOMAIN\user` or `user@domain.tld`, typed for each push. It is sent to the server over your HTTPS session, handed to PowerShell on standard input, and never stored, logged or returned. Use a dedicated deployment account and always put the server behind HTTPS.
+- **Safety**: if any computer rejects the credential the rest of the job is skipped, so a wrong password cannot lock the domain account. Targets must be hostnames or private IPv4 addresses (loopback, link-local and multicast are refused). Each computer gets its own 1-hour installer token.
+- **Force reinstall** runs the existing uninstaller first, then installs again. Without it an already installed computer is reported as *Already installed*.
+- **Requirements on the target**: WinRM enabled (`winrm quickconfig` or the GPO *Allow remote server management through WinRM*), firewall open on 5985 (or 5986 with `Tactical:Push:UseSsl`), the account is a local administrator (Domain Admins normally is), and the computer can download the agent from GitHub.
+- **Requirements on the server**: PowerShell. Windows: the built-in `powershell.exe`. When using hostnames the domain account authenticates with Kerberos; for IP addresses add them to the WinRM client's TrustedHosts (`Set-Item WSMan:\localhost\Client\TrustedHosts -Value 10.0.0.*`). Docker/Linux: build with `docker compose build --build-arg WITH_POWERSHELL=true` (installs PowerShell 7 and `gss-ntlmssp`); NTLM then works for domain accounts, Kerberos does not.
+- Settings: `Tactical:Push:PowerShellPath`, `UseSsl`, `MaxParallel` (4), `TargetTimeoutSeconds` (600). Jobs are kept in memory for 6 hours and lost when the server restarts.
+- Verified: validation, script generation, error classification and secret scrubbing (unit tests), and the page against a mock API. **Not verified**: the PowerShell/WinRM execution itself has never run against a real Windows computer or domain, and the Docker PowerShell option has not been built.
+
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
