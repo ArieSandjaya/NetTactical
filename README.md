@@ -98,6 +98,27 @@ Agents connect to a **NATS server** (port 4222) and the API sends commands throu
 - When NATS is down the API now answers a command within about 3 seconds with "NATS down" instead of waiting up to a minute (which made the dashboard look frozen).
 - Running the API alone on Windows also prints `nats-server reload failed`; that is harmless and is now a single informational line.
 
+## Windows (Docker Desktop)
+
+Everything runs in Docker, so Windows works the same as a Linux server. Requirements: Windows 10/11 (64-bit) with Docker Desktop (WSL2 backend) installed and running.
+
+```
+git clone https://github.com/ArieSandjaya/NetTactical.git
+cd NetTactical
+scripts\windows\nettactical.cmd setup      # creates .env with generated secrets and prints the first admin login
+scripts\windows\nettactical.cmd up         # builds and starts PostgreSQL + NATS + API
+scripts\windows\nettactical.cmd firewall   # as Administrator: opens the API and NATS ports (Private/Domain networks only)
+scripts\windows\nettactical.cmd status     # containers and port checks
+```
+
+Other commands: `logs [api|nats|db]`, `down`, `update` (git pull + rebuild), `backup` (database dump into `backups\`). `setup` picks this computer's LAN address for `PUBLIC_URL` (agents use it); change it in `.env` if endpoints reach it under another name or behind HTTPS, then run `up` again.
+
+Notes
+- Use the **Docker** route for agents: the Visual Studio profile starts only the API, so NATS is missing and agents stay offline (see "Agents need NATS").
+- `.gitattributes` forces LF endings for files used inside the Linux containers; without it Git for Windows can turn `entrypoint.sh` into CRLF and the NATS container fails to start.
+- These scripts were written without access to a Windows machine and have not been run; if one fails, send the message.
+- A fully native route (API, PostgreSQL and NATS installed directly on Windows, no Docker) is not provided: the upstream `nats-api` is published only as a Linux binary.
+
 ## Docker Compose
 `docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).
 ```bash

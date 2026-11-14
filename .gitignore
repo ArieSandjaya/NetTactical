@@ -5,3 +5,4 @@ nats-rmm.conf
 appsettings.*.json
 .env
 .vs/
+backups/
