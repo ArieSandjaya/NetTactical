@@ -3,9 +3,10 @@ import { api } from '../api.js';
 import { loader, gridTable, pageHead } from '../ui.js';
 import { field, input, check, notice, btn } from '../forms.js';
 import { scope } from '../scope.js';
+import { patchPolicyEditor } from './patchpolicy.js';
 
 export function policiesView(root) {
-  const st = { rows: null, notice: null, busy: false, edit: null };   // edit: null | {id|null, name, desc, active, enforced}
+  const st = { rows: null, notice: null, busy: false, edit: null, patch: null };   // patch: { id, name, node }   // edit: null | {id|null, name, desc, active, enforced}
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   const ld = loader(body, (signal) => api('automation/policies', { signal }), (d, err) => { if (d) st.rows = d; paint(err); }, 0, 'Loading policies…');
@@ -36,12 +37,14 @@ export function policiesView(root) {
       pageHead('Policies', `${st.rows.length} policies`, btn('New policy', () => { st.edit = { id: null, name: '', desc: '', active: true, enforced: false }; st.notice = null; paint(); }, { primary: true, disabled: !!st.edit })),
       err ? h('div', { class: 'banner', role: 'alert' }, `Refresh failed: ${err}`) : null, notice(st.notice),
       st.edit ? form() : null,
+      st.patch ? h('div', { class: 'stack', style: { gap: '8px' } }, st.patch.node, btn('Close', () => { st.patch = null; paint(); })) : null,
       h('section', { class: 'card' }, gridTable('cols-policy', ['Policy', 'Status', 'Agents', 'Checks', 'Tasks', ''], st.rows.map((p) => h('div', { class: 'tr cols-policy' },
         h('div', { class: 'stack', style: { gap: '2px' } }, h('span', { style: { fontWeight: '600' } }, p.name), p.desc ? h('span', { class: 'muted' }, p.desc) : null),
         h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } }, h('span', { class: `pill ${p.active ? 'good' : 'neutral'}` }, p.active ? 'Active' : 'Inactive'), p.enforced ? h('span', { class: 'pill info' }, 'Enforced') : null),
         h('div', { class: 'mono' }, String(p.agent_count)), h('div', { class: 'mono' }, String(p.check_count)), h('div', { class: 'mono' }, String(p.task_count)),
         h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' } },
           btn('Checks', () => open('checks', p)), btn('Tasks', () => open('tasks', p)),
+          btn('Updates', () => { st.patch = { id: p.id, node: patchPolicyEditor({ url: `automation/policies/${p.id}/winupdates`, title: `Windows updates for policy "${p.name}"`, intro: 'Applies to every agent that uses this policy, unless the agent or its own settings say otherwise.' }) }; paint(); window.scrollTo({ top: 0 }); }),
           btn('Edit', () => { st.edit = { id: p.id, name: p.name, desc: p.desc || '', active: p.active, enforced: p.enforced }; st.notice = null; paint(); }, { disabled: st.busy }),
           btn('Delete', () => { if (confirm(`Delete policy "${p.name}" with its ${p.check_count} checks and ${p.task_count} tasks?`)) run(() => api(`automation/policies/${p.id}`, { method: 'DELETE' }), 'Policy deleted.'); }, { disabled: st.busy, danger: true })))),
         'No policies yet.'),

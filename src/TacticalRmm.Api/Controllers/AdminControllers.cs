@@ -228,6 +228,39 @@ public class PushInstallController(IPushInstallService svc) : ControllerBase
     [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ Windows Update
+[ApiController, Authorize(AuthDefaults.DashboardPolicy)]
+public class WinUpdateAdminController(IWinUpdateAdminService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> Allowed(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet("agents/{agentId}/winupdates"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> List(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.ListAsync(agentId, ct));
+
+    [HttpPut("agents/{agentId}/winupdates/action"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> SetAction(string agentId, WinUpdateActionRequest req, CancellationToken ct) =>
+        !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.SetActionAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpPost("agents/{agentId}/winupdates/scan"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> Scan(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.ScanAsync(HttpContext.GetUser(), agentId, ct));
+
+    [HttpPost("agents/{agentId}/winupdates/install"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> Install(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.InstallNowAsync(HttpContext.GetUser(), agentId, ct));
+
+    [HttpGet("agents/{agentId}/winupdates/policy"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> GetAgentPolicy(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.GetAgentPolicyAsync(agentId, ct));
+
+    [HttpPut("agents/{agentId}/winupdates/policy"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> SaveAgentPolicy(string agentId, WinUpdatePolicyDto req, CancellationToken ct) =>
+        !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.SaveAgentPolicyAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpGet("automation/policies/{id:int}/winupdates"), RequirePerm(Perm.ListPolicies)]
+    public async Task<IActionResult> GetPolicy(int id, CancellationToken ct) => this.ToResult(await svc.GetPolicyAsync(id, ct));
+
+    [HttpPut("automation/policies/{id:int}/winupdates"), RequirePerm(Perm.ManagePolicies)]
+    public async Task<IActionResult> SavePolicy(int id, WinUpdatePolicyDto req, CancellationToken ct) => this.ToResult(await svc.SavePolicyAsync(HttpContext.GetUser(), id, req, ct));
+}
+
 // ------------------------------------------------------------------------------------------ Alert notifications
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("notifications/channels"), RequirePerm(Perm.ManageNotifications)]
 public class NotificationsController(INotificationAdminService svc) : ControllerBase

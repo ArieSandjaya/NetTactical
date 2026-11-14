@@ -56,6 +56,8 @@ public static class DependencyInjection
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
         s.AddScoped<IVncService, VncService>();
         s.AddScoped<IInstallerService, InstallerService>();
+        s.AddScoped<IWinUpdateAdminService, WinUpdateAdminService>();
+        s.AddHostedService<WinUpdateScheduler>();
         s.AddSingleton<IRemoteExecutor, Push.PowerShellRemoteExecutor>();
         s.AddSingleton<IPushInstallService, Push.PushInstallService>();
         s.AddScoped<INotificationAdminService, NotificationAdminService>();

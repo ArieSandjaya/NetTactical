@@ -52,7 +52,18 @@ public static class SchemaUpgrade
             created_by text NULL)
         """,
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_notification_channels_name ON notification_channels (name)",
-    ];
+            // v5: Windows Update approval and schedule (columns of the patch policy)
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS critical text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS important text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS moderate text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS low text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS other text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_frequency text NOT NULL DEFAULT 'inherit'",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_hour integer NOT NULL DEFAULT 3",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_weekdays integer NOT NULL DEFAULT 0",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_day integer NOT NULL DEFAULT 1",
+        "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS last_run_at timestamp with time zone NULL",
+];
 
     public static async Task RunAsync(AppDbContext db, ILogger log, CancellationToken ct = default)
     {
