@@ -68,6 +68,13 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
 - Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
 
+## Notifications (email / webhook)
+`#/notifications` (permission `can_manage_notifications`, superusers have it) manages channels. When an alert opens or resolves (check, task or offline agent whose email-alert flag is on), every enabled matching channel gets a message.
+- **Email**: SMTP with STARTTLS (implicit TLS/465 is not supported). **Webhook**: JSON or Slack format; JSON bodies carry an HMAC-SHA256 `X-NetTactical-Signature`.
+- Secrets (SMTP password, webhook secret) are stored AES-GCM encrypted and never returned by the API. Webhook URLs to loopback/link-local/private-metadata addresses are refused, redirects are not followed.
+- Each channel has a Test button. Sending is queued in the background and never blocks agent check-in.
+- Verified with unit tests and a mock API; not yet against a real SMTP server or webhook receiver.
+
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
@@ -75,7 +82,7 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 
 ## Not covered (deliberately, "core first")
 Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
-email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence).
+SMS notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence).
 
 ## VNC remote control (TightVNC already on the endpoints)
 Instead of MeshAgent, the dashboard can open the TightVNC that is already installed on an asset (useful when the antivirus blocks MeshAgent). Nothing is installed by us.
@@ -85,7 +92,7 @@ Instead of MeshAgent, the dashboard can open the TightVNC that is already instal
   - `GET/POST /vnc/credentials`, `PUT/DELETE /vnc/credentials/{id}`
 - **Target address** — taken only from the asset's own record (local IPs from the agent's hardware inventory, `wmi_detail`), never from the request. Only private LAN addresses (10/8, 172.16/12, 192.168/16) are contacted unless `Tactical:Vnc:AllowPublicTargets` is set. Port: `Tactical:Vnc:Port` (5900).
 - The API server must be able to reach port 5900 of the assets (same LAN, as here) and the viewer machine as well, since the viewer connects directly. VNC is not encrypted: restrict port 5900 with the Windows firewall to the admin/RMM subnets.
-- Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases created earlier need `ALTER TABLE agents_agent ADD COLUMN wmi_detail jsonb;`.
+- Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases are upgraded automatically at startup (`SchemaUpgrade`, idempotent SQL), so no manual `ALTER TABLE` is needed.
 - Verified: DES/obfuscation against OpenSSL, the handshake against a fake VNC server (wrong password, protocol 3.3, refusal, unsupported, timeout). Not verified against a real TightVNC server or viewer.
 
 ## Agents need NATS (read this if agents stay offline)

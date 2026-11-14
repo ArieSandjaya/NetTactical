@@ -1,4 +1,5 @@
 using TacticalRmm.Application.Dtos;
+using TacticalRmm.Application.Logic;
 using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Abstractions;
@@ -85,6 +86,19 @@ public interface IVncService
     /// <summary>Same check, then builds the connection file. Conflict (with the reason) when it cannot connect.</summary>
     Task<Outcome<VncFileDto>> PrepareFileAsync(User caller, string agentId, CancellationToken ct = default);
 }
+
+public interface INotificationAdminService
+{
+    Task<Outcome<IReadOnlyList<NotificationChannelDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<NotificationChannelDto>> CreateAsync(User caller, NotificationChannelUpsert req, CancellationToken ct = default);
+    Task<Outcome<NotificationChannelDto>> UpdateAsync(User caller, int id, NotificationChannelUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Sends a sample alert to one channel now and reports the result.</summary>
+    Task<Outcome<NotificationTestResult>> TestAsync(User caller, int id, CancellationToken ct = default);
+}
+
+/// <summary>Hands alert events to the background sender; never blocks and never throws.</summary>
+public interface INotificationQueue { void Enqueue(AlertEvent e); }
 
 public interface IInstallerService
 {
