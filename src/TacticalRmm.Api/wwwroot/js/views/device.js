@@ -2,8 +2,9 @@ import { h } from '../dom.js';
 import { api, download } from '../api.js';
 import { actionsCard, newActionsState } from '../actions.js';
 import { lineChart } from '../charts.js';
+import { patchPanel } from './patchpanel.js';
 import {
-  ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord, patchWord, patchClass,
+  ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord,
   checkType, KIND_LABELS, HINTS, METRIC_NAMES,
 } from '../format.js';
 
@@ -115,7 +116,7 @@ export function deviceView(root, agentId) {
           h('button', { role: 'tab', 'aria-selected': String(st.tab === k), onclick: () => { st.tab = k; paint(); } }, label,
             h('span', { class: `count${k === 'issues' && counts[k] ? ' bad' : ''}` }, String(counts[k]))))),
         st.tab === 'issues' ? issuesTab(d) : st.tab === 'checks' ? checksTab(d) : st.tab === 'tasks' ? tasksTab(d)
-          : st.tab === 'patches' ? patchesTab(d) : systemTab(d)));
+          : st.tab === 'patches' ? patchesTab() : systemTab(d)));
   }
 
   function seg(items, current, fn, label) {
@@ -168,9 +169,7 @@ export function deviceView(root, agentId) {
         h('span', { class: 'muted', style: { fontSize: '12px' } }, `${t.type}${t.enabled ? '' : ' · disabled'}${t.managed_by_policy ? ' · from policy' : ''}`)),
       h('div', null, h('span', { class: `pill ${statusClass(t.status)}` }, statusWord(t.status))),
       h('div', { class: 'mono' }, ago(t.last_run)), h('div', null, syncWord(t.sync_status)))), 'No tasks yet.');
-  const patchesTab = (d) => table('cols-patch', ['KB', 'Update', 'Severity', 'Status'],
-    d.patches.map((p) => h('div', { class: 'tr cols-patch' }, h('div', { class: 'mono' }, p.kb || '—'), h('div', null, p.title || '—'),
-      h('div', null, p.severity || '—'), h('div', null, h('span', { class: `pill ${patchClass(p.status)}` }, patchWord(p.status))))), 'No pending or failed updates.');
+  const patchesTab = () => (st.patchPanel ??= patchPanel(id));
 
   function systemTab(d) {
     return h('div', { class: 'pad row' },

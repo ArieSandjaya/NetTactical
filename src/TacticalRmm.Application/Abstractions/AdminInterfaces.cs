@@ -119,3 +119,17 @@ public interface IPushInstallService
     Task<Outcome<PushJobDto>> GetAsync(User caller, string id, CancellationToken ct = default);
     Task<Outcome<IReadOnlyList<PushJobDto>>> ListAsync(User caller, CancellationToken ct = default);
 }
+
+public interface IWinUpdateAdminService
+{
+    Task<Outcome<IReadOnlyList<WinUpdateDto>>> ListAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<int>> SetActionAsync(User caller, string agentId, WinUpdateActionRequest req, CancellationToken ct = default);
+    /// <summary>Asks the agent to scan Windows Update now; the result arrives through the normal agent callback.</summary>
+    Task<Outcome<bool>> ScanAsync(User caller, string agentId, CancellationToken ct = default);
+    /// <summary>Installs the approved, not yet installed updates now.</summary>
+    Task<Outcome<WinUpdateInstallResult>> InstallNowAsync(User caller, string agentId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> GetAgentPolicyAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> SaveAgentPolicyAsync(User caller, string agentId, WinUpdatePolicyDto req, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> GetPolicyAsync(int policyId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> SavePolicyAsync(User caller, int policyId, WinUpdatePolicyDto req, CancellationToken ct = default);
+}

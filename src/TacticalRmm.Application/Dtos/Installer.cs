@@ -53,3 +53,35 @@ public sealed class RemoteRunRequest(string host, string username, string passwo
     public override string ToString() => $"RemoteRun({Host}, {Username}, ***)";   // never print the password
 }
 public record RemoteRunResult(string Status, string? Message, string Category);
+
+// ----------------------------------------------------------------------------- Windows Update approval and schedule
+public record WinUpdateDto(string Guid, string? Kb, string? Title, string? Severity, string Action, string Result, bool Installed, bool Downloaded, DateTime? DateInstalled);
+
+public class WinUpdateActionRequest
+{
+    public List<string> Guids { get; set; } = new();
+    /// <summary>approve | ignore | nothing</summary>
+    public string Action { get; set; } = "";
+}
+
+/// <summary>Patch settings of one agent or one automation policy. Every field accepts "inherit" (agent -> policy).</summary>
+public class WinUpdatePolicyDto
+{
+    public string Critical { get; set; } = "inherit";
+    public string Important { get; set; } = "inherit";
+    public string Moderate { get; set; } = "inherit";
+    public string Low { get; set; } = "inherit";
+    public string Other { get; set; } = "inherit";
+    /// <summary>inherit | never | daily | weekly | monthly</summary>
+    public string RunTimeFrequency { get; set; } = "inherit";
+    public int RunTimeHour { get; set; } = 3;
+    public int RunTimeWeekdays { get; set; }
+    public int RunTimeDay { get; set; } = 1;
+    /// <summary>inherit | never | required | always</summary>
+    public string RebootAfterInstall { get; set; } = "inherit";
+    public DateTime? LastRunAt { get; set; }
+}
+
+public record WinUpdatePolicyView(WinUpdatePolicyDto Own, WinUpdatePolicyDto? Inherited, EffectivePatchDto Effective);
+public record EffectivePatchDto(string Critical, string Important, string Moderate, string Low, string Other, string Frequency, int Hour, int Weekdays, int Day, string Reboot);
+public record WinUpdateInstallResult(int Requested, bool AgentOnline);

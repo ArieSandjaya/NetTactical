@@ -30,6 +30,20 @@ public class WinUpdatePolicy : AuditableEntity
     public int? AgentId { get; set; }
     public int? PolicyId { get; set; }
     public string RebootAfterInstall { get; set; } = "inherit";
+    // Auto-approval by severity: inherit | approve | ignore. "Other" covers updates without a known severity.
+    public string Critical { get; set; } = "inherit";
+    public string Important { get; set; } = "inherit";
+    public string Moderate { get; set; } = "inherit";
+    public string Low { get; set; } = "inherit";
+    public string Other { get; set; } = "inherit";
+    // Install schedule: inherit | never | daily | weekly | monthly, at RunTimeHour (agent's local time).
+    public string RunTimeFrequency { get; set; } = "inherit";
+    public int RunTimeHour { get; set; } = 3;
+    /// <summary>Weekly: bit mask, Monday = 1 ... Sunday = 64.</summary>
+    public int RunTimeWeekdays { get; set; }
+    /// <summary>Monthly: day of month (1-31; a day past the end of the month runs on the last day).</summary>
+    public int RunTimeDay { get; set; } = 1;
+    public DateTime? LastRunAt { get; set; }
 }
 
 public class InstalledSoftware

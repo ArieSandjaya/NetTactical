@@ -85,13 +85,21 @@ The **Install agent** page (`#/installer`) has a second card, *Push install with
 - Settings: `Tactical:Push:PowerShellPath`, `UseSsl`, `MaxParallel` (4), `TargetTimeoutSeconds` (600). Jobs are kept in memory for 6 hours and lost when the server restarts.
 - Verified: validation, script generation, error classification and secret scrubbing (unit tests), and the page against a mock API. **Not verified**: the PowerShell/WinRM execution itself has never run against a real Windows computer or domain, and the Docker PowerShell option has not been built.
 
+## Windows Update approval and schedule
+- **Per computer**: device page, tab **Patch**. Select updates and *Approve* / *Ignore* / *Reset*; *Scan now* asks the agent to rescan; *Install approved now* installs the approved ones immediately (the agent must answer a ping). *Settings* edits that computer's own rules.
+- **Per automation policy**: **Policies** page, button **Updates**. Applies to every agent using the policy (unless inheritance is blocked or the agent overrides a field).
+- **Rules** (agent over policy, field by field, `inherit` falls through): approve/ignore by severity (critical, important, moderate, low, other); install schedule `never / daily / weekly (weekdays) / monthly (day)` at an hour in the **agent's time zone**; reboot after install (`never / only if required / always`). New updates reported by the agent get the automatic decision at once; saving settings applies them to updates that nobody decided on yet. A manual Approve/Ignore is never overwritten. With no rule set, updates wait for a manual decision.
+- **Scheduler**: a background job checks once a minute, and during the scheduled hour sends the approved updates to every agent that answers a ping (an offline agent is retried each minute until the hour ends, then waits for the next run). Needs permission `can_manage_winupdates` to change anything (superusers have it); changes are audited.
+- Existing databases get the new columns automatically at start-up (`SchemaUpgrade`).
+- Verified: rule logic (unit tests) and the pages against a mock API. **Not verified**: the NATS commands `getwinupdates` and `installwinupdates` (with `guids`) are taken from the upstream agent protocol but have not been run against a real agent; if the agent's time zone name cannot be resolved on the server the schedule falls back to UTC.
+
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
 ## Not covered (deliberately, "core first")
-Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
+Full policy inheritance (client/site level), chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
 SMS notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence).
 
 ## VNC remote control (TightVNC already on the endpoints)
