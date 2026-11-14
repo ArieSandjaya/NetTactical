@@ -15,6 +15,16 @@ RUN dotnet publish src/TacticalRmm.Api/TacticalRmm.Api.csproj -c Release -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
+# Optional: PowerShell 7 for "Push install" (WinRM). docker compose build --build-arg WITH_POWERSHELL=true
+ARG WITH_POWERSHELL=false
+ARG PWSH_VERSION=7.4.6
+USER root
+RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
+      apt-get update && apt-get install -y --no-install-recommends curl ca-certificates libicu72 gss-ntlmssp \
+      && curl -fsSL -o /tmp/pwsh.tgz "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-x64.tar.gz" \
+      && mkdir -p /opt/microsoft/powershell/7 && tar -xzf /tmp/pwsh.tgz -C /opt/microsoft/powershell/7 && chmod +x /opt/microsoft/powershell/7/pwsh \
+      && ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh && rm -f /tmp/pwsh.tgz && rm -rf /var/lib/apt/lists/*; \
+    fi
 # Shared with the NATS container: the API writes nats-rmm.conf here. A new named volume copies this ownership.
 RUN mkdir -p /data/nats && chown app:app /data/nats
 USER app

@@ -211,6 +211,23 @@ public class InstallerController(IInstallerService svc) : ControllerBase
     }
 }
 
+/// <summary>Push install: the server installs the agent on remote Windows computers with a domain administrator account (WinRM).</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("installer/push"), RequirePerm(Perm.PushInstall)]
+public class PushInstallController(IPushInstallService svc) : ControllerBase
+{
+    /// <summary>The body carries the domain credential, so nothing is cached. Returns a job immediately; poll GET {id}.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Start(PushInstallRequest req, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.StartAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
+    }
+
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(HttpContext.GetUser(), ct));
+
+    [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
+}
+
 // ------------------------------------------------------------------------------------------ Alert notifications
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("notifications/channels"), RequirePerm(Perm.ManageNotifications)]
 public class NotificationsController(INotificationAdminService svc) : ControllerBase
