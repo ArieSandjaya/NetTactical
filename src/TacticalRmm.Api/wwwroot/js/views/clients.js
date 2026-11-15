@@ -35,7 +35,7 @@ export function clientsView(root) {
   // Policy for a whole client or site. Hidden when the user may not list policies.
   function policyPicker(kind, id, current) {
     if (!st.policies) return null;
-    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none' }, 'aria-label': 'Policy', disabled: st.busy },
+    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none', width: '100%', minWidth: '0' }, 'aria-label': 'Policy', disabled: st.busy },
       [h('option', { value: '', selected: current == null }, 'No policy'),
         ...st.policies.map((p) => h('option', { value: String(p.id), selected: p.id === current }, p.active ? p.name : `${p.name} (inactive)`))]);
     el.addEventListener('change', () => {
@@ -48,7 +48,7 @@ export function clientsView(root) {
   // Alert template for a whole client or site. Hidden when the user may not list alert templates.
   function templatePicker(kind, id, current) {
     if (!st.templates) return null;
-    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none' }, 'aria-label': 'Alert template', disabled: st.busy },
+    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none', width: '100%', minWidth: '0' }, 'aria-label': 'Alert template', disabled: st.busy },
       [h('option', { value: '', selected: current == null }, 'No template'),
         ...st.templates.map((t) => h('option', { value: String(t.id), selected: t.id === current }, t.enabled ? t.name : `${t.name} (disabled)`))]);
     el.addEventListener('change', () => {
@@ -80,14 +80,15 @@ export function clientsView(root) {
     st.newSite[c.id] ??= { name: '' };
     return h('section', { class: 'card' },
       h('div', { class: 'page-head', style: { alignItems: 'center', padding: '4px 0 12px' } },
-        h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`),
-          st.policies ? h('div', { class: 'stack', style: { gap: '2px', marginTop: '6px' } }, h('span', { class: 'eyebrow' }, 'Policy for all sites'), policyPicker('client', c.id, c.policy_id),
-            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null,
-          st.templates ? h('div', { class: 'stack', style: { gap: '2px', marginTop: '6px' } }, h('span', { class: 'eyebrow' }, 'Alert template for all sites'), templatePicker('client', c.id, c.alert_template_id),
-            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site template overrides this one.')) : null),
+        h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`)),
         h('div', { style: { display: 'flex', gap: '6px' } },
           btn('Rename', () => { st.edit = { kind: 'client', id: c.id, name: c.name }; paint(); }, { disabled: st.busy }),
           btn('Delete', () => { if (confirm(`Delete client "${c.name}" and all its sites? Clients that still have assets cannot be deleted.`)) run(() => api(`clients/${c.id}`, { method: 'DELETE' }), 'Client deleted.'); }, { disabled: st.busy }))),
+      (st.policies || st.templates) ? h('div', { style: { display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '0 0 16px' } },
+        st.policies ? h('div', { class: 'stack', style: { gap: '4px', flex: '1 1 240px', maxWidth: '340px' } }, h('span', { class: 'eyebrow' }, 'Policy for all sites'), policyPicker('client', c.id, c.policy_id),
+          h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null,
+        st.templates ? h('div', { class: 'stack', style: { gap: '4px', flex: '1 1 240px', maxWidth: '340px' } }, h('span', { class: 'eyebrow' }, 'Alert template for all sites'), templatePicker('client', c.id, c.alert_template_id),
+          h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site template overrides this one.')) : null) : null,
       h('div', { class: 'scroll-x' }, h('div', { class: 'grid-table' }, siteRows, c.sites.length === 0 ? h('div', { class: 'empty' }, 'No sites.') : null)),
       h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', marginTop: '12px' } },
         field('Add site', input('text', st.newSite[c.id], 'name', 'Site name'), '1 1 220px'),
