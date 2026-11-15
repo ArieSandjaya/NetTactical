@@ -22,16 +22,17 @@ Dashboard/assets/clients/sites/users/roles; scripts, checks (with edit), tasks (
 3. **Windows Update approval and schedule**: per-severity auto-approve, per-update Approve/Ignore, Scan now, Install approved now, schedule never/daily/weekly/monthly at an hour in the agent's time zone, reboot policy, agent- and policy-level settings with inheritance (agent over policy, per field). Background `WinUpdateScheduler` ticks each minute. Perm `can_manage_winupdates`. UI: device page Patch tab (`patchpanel.js`) and Policies page "Updates" button (`patchpolicy.js`). Pure rules in `Logic/WinUpdateRules.cs`.
 
 ## 4. Remaining work (task list)
-- **#35 (next)**: policy inheritance across **client and site** (currently only agent and policy exist for patch settings; checks/tasks policy chain should be reviewed) and **AlertTemplate** basics.
+- **#35 policy inheritance: done for client and site** (agent > site > client, one resolver `PolicyChain` + `EffectivePolicy`, UI pickers on the Clients & Sites page). Still open in #35: **AlertTemplate** basics, and the policy list does not yet show how many clients/sites use a policy.
+- Behaviour to know: a policy that is switched off is skipped (the next level up can still apply); "block policy inheritance" on an agent switches off every level. Assigning a policy to a client/site needs `can_manage_automation_policies`.
 - Awaiting evidence from the user: (a) app "hangs" after a few clicks: likely NATS down plus the browser's ~6 connection limit; client hardened but unconfirmed on the real server. Ask for DevTools Network pending requests and `docker compose logs api`. (b) Agent "asks for mesh agent": not diagnosed; ask for exact error and `agent.log`.
 - Not built (README "Not covered"): SMS notifications, reprocess-failed-updates counter, email-if-fail for patching, custom fields, reporting, etc. See README sections "Covered so far" and "Not covered".
 - Optional: `.vs/` was removed from the git index but may remain in history (purge needs force-push; ask first). `appsettings.json` contains real-looking secrets, so rotate/replace them.
 
 ## 5. Verification status (be honest about it)
-- The backend has **never been built against real NuGet packages** (NuGet is blocked in the sandbox). Infrastructure/Api were compiled only against hand-written stubs.
-- Docker setup, Windows scripts, VS dev mode, PowerShell/WinRM push, the NATS commands `getwinupdates` / `installwinupdates` (`guids`), SMTP/webhook delivery, and agent + Postgres + NATS together have **never been run for real**. VNC only against a fake RFB server. UI only against a mock API.
-- Verified: 54 pure-logic unit facts and Playwright UI tests against a mock server.
-- First thing a new session with real tooling should do: `dotnet build`, `dotnet test`, then `docker compose up` and connect one real agent.
+- **CI exists** (`.github/workflows/ci.yml`): GitHub Actions runs `dotnet build`, `dotnet test` and a syntax check of every UI module on each push. The backend has now been built with real NuGet packages (0 errors) and 86 unit tests pass. Check the Actions tab; the sandbox itself still cannot reach NuGet, so CI is the only place the build runs.
+- Still **never run for real**: Docker setup, Windows scripts, VS dev mode, PowerShell/WinRM push, the NATS commands `getwinupdates` / `installwinupdates` (`guids`), SMTP/webhook delivery, the EF queries and `SchemaUpgrade` against a real PostgreSQL, and agent + Postgres + NATS together. VNC only against a fake RFB server. UI only checked for syntax in CI, and earlier against a mock API.
+- Unit tests cover pure logic only; the services that talk to the database (including the new `EffectivePolicy`) have no tests.
+- First thing to do with a real server: `docker compose up` and connect one real agent.
 
 ## 6. Sandbox test rig (only exists in the original session's scratchpad, not in the repo)
 - Stub build `scratchpad/full` (`dotnet build`), xunit shim `scratchpad/tcheck` (no Theory/InlineData), mock API `scratchpad/mock/server.js` (port 5099) with Playwright tests `test5..12.js`. Recreate if needed; with real NuGet access use `dotnet test` instead.
