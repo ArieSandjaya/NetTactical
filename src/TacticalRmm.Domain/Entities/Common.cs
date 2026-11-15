@@ -13,6 +13,9 @@ public class Client : AuditableEntity
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public List<Site> Sites { get; set; } = new();
+    /// <summary>Policy applied to every agent of this client (unless the site or the agent has its own).</summary>
+    public int? PolicyId { get; set; }
+    public Policy? Policy { get; set; }
 }
 
 public class Site : AuditableEntity
@@ -22,6 +25,9 @@ public class Site : AuditableEntity
     public int ClientId { get; set; }
     public Client Client { get; set; } = null!;
     public List<Agent> Agents { get; set; } = new();
+    /// <summary>Policy applied to every agent of this site (unless the agent has its own).</summary>
+    public int? PolicyId { get; set; }
+    public Policy? Policy { get; set; }
 }
 
 public class Policy : AuditableEntity

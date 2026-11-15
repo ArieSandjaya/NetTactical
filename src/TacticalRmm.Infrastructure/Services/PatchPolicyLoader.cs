@@ -5,15 +5,15 @@ using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
 
-/// <summary>Loads the agent-level and policy-level patch settings and resolves them (agent over active policy, unless inheritance is blocked).</summary>
+/// <summary>Loads the agent-level and policy-level patch settings and resolves them (agent over the effective policy: agent, then site, then client; none when inheritance is blocked).</summary>
 public static class PatchPolicyLoader
 {
     public static async Task<(WinUpdatePolicy? Own, WinUpdatePolicy? Parent)> LoadAsync(AppDbContext db, Agent agent, CancellationToken ct)
     {
         var own = await db.WinUpdatePolicies.AsNoTracking().FirstOrDefaultAsync(p => p.AgentId == agent.Id, ct);
         WinUpdatePolicy? parent = null;
-        if (agent.PolicyId is not null && !agent.BlockPolicyInheritance && await db.Policies.AsNoTracking().AnyAsync(p => p.Id == agent.PolicyId && p.Active, ct))
-            parent = await db.WinUpdatePolicies.AsNoTracking().FirstOrDefaultAsync(p => p.PolicyId == agent.PolicyId, ct);
+        if (await EffectivePolicy.IdForAsync(db, agent, ct) is { } policyId)
+            parent = await db.WinUpdatePolicies.AsNoTracking().FirstOrDefaultAsync(p => p.PolicyId == policyId, ct);
         return (own, parent);
     }
 

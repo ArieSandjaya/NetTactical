@@ -21,8 +21,7 @@ public sealed class TaskService(AppDbContext db, IAgentCommandBus bus, IAlertSer
         if (task is null || task.PendingDeletion) return null;
 
         var allowed = task.AgentId == agent.Id
-            || (task.PolicyId is not null && task.PolicyId == agent.PolicyId && !agent.BlockPolicyInheritance
-                && await db.Policies.AnyAsync(p => p.Id == task.PolicyId && p.Active, ct));
+            || (task.PolicyId is not null && task.PolicyId == await EffectivePolicy.IdForAsync(db, agent, ct));
         if (!allowed) return null;
 
         var actions = new List<TaskActionDto>();

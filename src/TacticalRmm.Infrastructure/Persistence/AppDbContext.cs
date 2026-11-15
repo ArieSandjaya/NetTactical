@@ -43,6 +43,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(x => x.Site).WithMany(s => s.Agents).HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Policy).WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.SetNull);
         });
+        b.Entity<Client>(e => e.HasOne(x => x.Policy).WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.SetNull));
+        b.Entity<Site>(e => e.HasOne(x => x.Policy).WithMany().HasForeignKey(x => x.PolicyId).OnDelete(DeleteBehavior.SetNull));
         b.Entity<NotificationChannel>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); e.Property(x => x.Kind).HasMaxLength(20); e.Property(x => x.LastError).HasMaxLength(400); });
         b.Entity<VncCredential>(e => { e.HasIndex(x => x.Priority); e.Property(x => x.Label).HasMaxLength(100); });
         b.Entity<User>(e =>

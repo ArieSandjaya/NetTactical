@@ -17,9 +17,7 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
     public async Task<IReadOnlyList<Check>> GetChecksForAgentAsync(Agent agent, CancellationToken ct = default)
     {
         var own = await db.Checks.AsNoTracking().Include(c => c.Script).Where(c => c.AgentId == agent.Id).ToListAsync(ct);
-        if (agent.BlockPolicyInheritance || agent.PolicyId is null) return own;
-
-        var policy = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == agent.PolicyId && p.Active, ct);
+        var policy = await EffectivePolicy.ForAsync(db, agent, ct);
         if (policy is null) return own;
 
         var fromPolicy = await db.Checks.AsNoTracking().Include(c => c.Script).Where(c => c.PolicyId == policy.Id).ToListAsync(ct);

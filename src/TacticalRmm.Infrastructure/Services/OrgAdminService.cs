@@ -17,13 +17,34 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         var c = await db.Clients.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return Outcome.NotFound<bool>();
         if (!ScopeGuard.CanSeeClient(caller, id)) return Outcome.Forbidden<bool>();
-        var err = CheckName(req.Name);
-        if (err is not null) return Outcome.Invalid<bool>(err);
-        var name = req.Name!.Trim();
-        if (await db.Clients.AnyAsync(x => x.Name == name && x.Id != id, ct)) return Outcome.Conflict<bool>("A client with this name already exists");
-        var old = c.Name; c.Name = name;
+        var policyChange = req.ClearPolicy == true || req.Policy is not null;
+        if (req.Name is null && !policyChange) return Outcome.Invalid<bool>("name or policy is required");
+
+        string? oldName = null;
+        if (req.Name is not null)
+        {
+            var err = CheckName(req.Name);
+            if (err is not null) return Outcome.Invalid<bool>(err);
+            var name = req.Name.Trim();
+            if (await db.Clients.AnyAsync(x => x.Name == name && x.Id != id, ct)) return Outcome.Conflict<bool>("A client with this name already exists");
+            oldName = c.Name; c.Name = name;
+        }
+        string? policyNote = null;
+        if (policyChange)
+        {
+            // A policy runs scripts and tasks on every agent below, so it needs the policy permission, not just the client one.
+            if (!PermissionEvaluator.Has(caller, Perm.ManagePolicies)) return Outcome.Forbidden<bool>("Assigning a policy needs the policy permission");
+            if (req.ClearPolicy == true) { c.PolicyId = null; policyNote = "removed its policy"; }
+            else
+            {
+                var pol = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.Policy, ct);
+                if (pol is null) return Outcome.NotFound<bool>("Policy not found");
+                c.PolicyId = pol.Id; policyNote = $"set its policy to '{pol.Name}'";
+            }
+        }
         await db.SaveChangesAsync(ct);
-        await audit.LogAsync(caller.Username, AuditAction.Modify, "client", $"{caller.Username} renamed client '{old}' to '{name}'", ct: ct);
+        var what = new[] { oldName is null ? null : $"renamed it from '{oldName}'", policyNote }.Where(x => x is not null);
+        await audit.LogAsync(caller.Username, AuditAction.Modify, "client", $"{caller.Username} modified client '{c.Name}': {string.Join(", ", what)}", ct: ct);
         return Outcome.Ok(true);
     }
 
@@ -76,9 +97,22 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         if (err is not null) return Outcome.Invalid<SiteDto>(err);
         if (await db.Sites.AnyAsync(s => s.ClientId == newClient && s.Name == name && s.Id != id, ct)) return Outcome.Conflict<SiteDto>("This client already has a site with that name");
 
+        string? policyNote = null;
+        if (req.ClearPolicy == true || req.Policy is not null)
+        {
+            // A policy runs scripts and tasks on every agent below, so it needs the policy permission, not just the site one.
+            if (!PermissionEvaluator.Has(caller, Perm.ManagePolicies)) return Outcome.Forbidden<SiteDto>("Assigning a policy needs the policy permission");
+            if (req.ClearPolicy == true) { site.PolicyId = null; policyNote = "; removed its policy"; }
+            else
+            {
+                var pol = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.Policy, ct);
+                if (pol is null) return Outcome.NotFound<SiteDto>("Policy not found");
+                site.PolicyId = pol.Id; policyNote = $"; set its policy to '{pol.Name}'";
+            }
+        }
         site.Name = name; site.ClientId = newClient;
         await db.SaveChangesAsync(ct);
-        await audit.LogAsync(caller.Username, AuditAction.Modify, "site", $"{caller.Username} modified site '{name}'", ct: ct);
+        await audit.LogAsync(caller.Username, AuditAction.Modify, "site", $"{caller.Username} modified site '{name}'{policyNote}", ct: ct);
         return Outcome.Ok(new SiteDto(site.Id, site.Name, site.ClientId));
     }
 

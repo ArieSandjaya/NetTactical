@@ -4,16 +4,18 @@ import { loader } from '../ui.js';
 import { field, input, notice, btn } from '../forms.js';
 
 export function clientsView(root) {
-  const st = { clients: null, counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
+  const st = { clients: null, policies: null, counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
   async function fetchAll(signal) {
-    const [clients, fleet] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null)]);
-    return { clients, fleet };
+    const [clients, fleet, policies] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null),
+      api('automation/policies', { signal }).catch(() => null)]);
+    return { clients, fleet, policies };
   }
-  function apply({ clients, fleet }) {
+  function apply({ clients, fleet, policies }) {
     st.clients = clients;
+    st.policies = policies;
     st.counts = new Map();
     for (const a of fleet?.assets || []) { const k = `${a.client}|${a.site}`; st.counts.set(k, (st.counts.get(k) || 0) + 1); }
   }
@@ -29,6 +31,19 @@ export function clientsView(root) {
   const assetsOf = (c) => c.sites.reduce((n, s) => n + (st.counts.get(`${c.name}|${s.name}`) || 0), 0);
   const unit = (n) => `${n} asset${n === 1 ? '' : 's'}`;
 
+  // Policy for a whole client or site. Hidden when the user may not list policies.
+  function policyPicker(kind, id, current) {
+    if (!st.policies) return null;
+    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none' }, 'aria-label': 'Policy', disabled: st.busy },
+      [h('option', { value: '', selected: current == null }, 'No policy'),
+        ...st.policies.map((p) => h('option', { value: String(p.id), selected: p.id === current }, p.active ? p.name : `${p.name} (inactive)`))]);
+    el.addEventListener('change', () => {
+      const body = el.value === '' ? { clear_policy: true } : { policy: Number(el.value) };
+      run(() => api(kind === 'client' ? `clients/${id}` : `sites/${id}`, { method: 'PUT', body }), 'Policy updated.');
+    });
+    return el;
+  }
+
   function nameCell(kind, id, name) {
     if (st.edit && st.edit.kind === kind && st.edit.id === id) {
       return h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } }, input('text', st.edit, 'name', 'Name'),
@@ -43,13 +58,16 @@ export function clientsView(root) {
     const siteRows = c.sites.map((s) => h('div', { class: 'tr cols-site' },
       nameCell('site', s.id, s.name),
       h('div', { class: 'muted' }, unit(st.counts.get(`${c.name}|${s.name}`) || 0)),
+      policyPicker('site', s.id, s.policy_id) || h('div'),
       h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end' } },
         btn('Rename', () => { st.edit = { kind: 'site', id: s.id, name: s.name }; paint(); }, { disabled: st.busy }),
         btn('Delete', () => { if (confirm(`Delete site "${s.name}"? Sites that still have assets cannot be deleted.`)) run(() => api(`sites/${s.id}`, { method: 'DELETE' }), 'Site deleted.'); }, { disabled: st.busy }))));
     st.newSite[c.id] ??= { name: '' };
     return h('section', { class: 'card' },
       h('div', { class: 'page-head', style: { alignItems: 'center', padding: '4px 0 12px' } },
-        h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`)),
+        h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`),
+          st.policies ? h('div', { class: 'stack', style: { gap: '2px', marginTop: '6px' } }, h('span', { class: 'eyebrow' }, 'Policy for all sites'), policyPicker('client', c.id, c.policy_id),
+            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null),
         h('div', { style: { display: 'flex', gap: '6px' } },
           btn('Rename', () => { st.edit = { kind: 'client', id: c.id, name: c.name }; paint(); }, { disabled: st.busy }),
           btn('Delete', () => { if (confirm(`Delete client "${c.name}" and all its sites? Clients that still have assets cannot be deleted.`)) run(() => api(`clients/${c.id}`, { method: 'DELETE' }), 'Client deleted.'); }, { disabled: st.busy }))),
