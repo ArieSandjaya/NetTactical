@@ -18,7 +18,8 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         if (c is null) return Outcome.NotFound<bool>();
         if (!ScopeGuard.CanSeeClient(caller, id)) return Outcome.Forbidden<bool>();
         var policyChange = req.ClearPolicy == true || req.Policy is not null;
-        if (req.Name is null && !policyChange) return Outcome.Invalid<bool>("name or policy is required");
+        var templateChange = req.ClearAlertTemplate == true || req.AlertTemplate is not null;
+        if (req.Name is null && !policyChange && !templateChange) return Outcome.Invalid<bool>("name, policy or alert template is required");
 
         string? oldName = null;
         if (req.Name is not null)
@@ -42,8 +43,20 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
                 c.PolicyId = pol.Id; policyNote = $"set its policy to '{pol.Name}'";
             }
         }
+        string? templateNote = null;
+        if (templateChange)
+        {
+            if (!PermissionEvaluator.Has(caller, Perm.ManageAlerts)) return Outcome.Forbidden<bool>("Assigning an alert template needs the alerts permission");
+            if (req.ClearAlertTemplate == true) { c.AlertTemplateId = null; templateNote = "removed its alert template"; }
+            else
+            {
+                var tpl = await db.AlertTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.AlertTemplate, ct);
+                if (tpl is null) return Outcome.NotFound<bool>("Alert template not found");
+                c.AlertTemplateId = tpl.Id; templateNote = $"set its alert template to '{tpl.Name}'";
+            }
+        }
         await db.SaveChangesAsync(ct);
-        var what = new[] { oldName is null ? null : $"renamed it from '{oldName}'", policyNote }.Where(x => x is not null);
+        var what = new[] { oldName is null ? null : $"renamed it from '{oldName}'", policyNote, templateNote }.Where(x => x is not null);
         await audit.LogAsync(caller.Username, AuditAction.Modify, "client", $"{caller.Username} modified client '{c.Name}': {string.Join(", ", what)}", ct: ct);
         return Outcome.Ok(true);
     }
@@ -108,6 +121,17 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
                 var pol = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.Policy, ct);
                 if (pol is null) return Outcome.NotFound<SiteDto>("Policy not found");
                 site.PolicyId = pol.Id; policyNote = $"; set its policy to '{pol.Name}'";
+            }
+        }
+        if (req.ClearAlertTemplate == true || req.AlertTemplate is not null)
+        {
+            if (!PermissionEvaluator.Has(caller, Perm.ManageAlerts)) return Outcome.Forbidden<SiteDto>("Assigning an alert template needs the alerts permission");
+            if (req.ClearAlertTemplate == true) { site.AlertTemplateId = null; policyNote += "; removed its alert template"; }
+            else
+            {
+                var tpl = await db.AlertTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.AlertTemplate, ct);
+                if (tpl is null) return Outcome.NotFound<SiteDto>("Alert template not found");
+                site.AlertTemplateId = tpl.Id; policyNote += $"; set its alert template to '{tpl.Name}'";
             }
         }
         site.Name = name; site.ClientId = newClient;

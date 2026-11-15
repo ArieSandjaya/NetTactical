@@ -38,6 +38,8 @@ public sealed class AlertService(AppDbContext db, INotificationQueue notificatio
     {
         try
         {
+            // An alert template can flag this kind of alert for every agent of a client or site; it never removes the item's own flag.
+            emailFlag = AlertTemplateRules.Flag(alert.AlertType, emailFlag, await AlertTemplateResolver.FlagsAsync(db, agent, ct));
             var where = await db.Sites.AsNoTracking().Where(s => s.Id == agent.SiteId).Select(s => new { Site = s.Name, Client = s.Client.Name }).FirstOrDefaultAsync(ct);
             notifications.Enqueue(new AlertEvent(alert.Id, kind, alert.AlertType, alert.Severity, alert.Message ?? "", agent.Hostname, where?.Client ?? "", where?.Site ?? "",
                 agent.AgentId, kind == NotificationRules.Resolved ? alert.ResolvedOn ?? DateTime.UtcNow : alert.AlertTime, emailFlag));

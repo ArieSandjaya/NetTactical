@@ -160,8 +160,8 @@ public class RoleUpsert
 }
 
 // ----------------------------------------------------------------------------- org & policy
-public class ClientUpdate { public string? Name { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } }
-public class SiteUpsert { public string? Name { get; set; } public int? Client { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } }
+public class ClientUpdate { public string? Name { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } public int? AlertTemplate { get; set; } public bool? ClearAlertTemplate { get; set; } }
+public class SiteUpsert { public string? Name { get; set; } public int? Client { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } public int? AlertTemplate { get; set; } public bool? ClearAlertTemplate { get; set; } }
 public record SiteDto(int Id, string Name, int ClientId);
 public class AgentUpdate
 {

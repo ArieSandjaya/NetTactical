@@ -4,18 +4,19 @@ import { loader } from '../ui.js';
 import { field, input, notice, btn } from '../forms.js';
 
 export function clientsView(root) {
-  const st = { clients: null, policies: null, counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
+  const st = { clients: null, policies: null, templates: null, counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
   async function fetchAll(signal) {
-    const [clients, fleet, policies] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null),
-      api('automation/policies', { signal }).catch(() => null)]);
-    return { clients, fleet, policies };
+    const [clients, fleet, policies, templates] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null),
+      api('automation/policies', { signal }).catch(() => null), api('alert-templates', { signal }).catch(() => null)]);
+    return { clients, fleet, policies, templates };
   }
-  function apply({ clients, fleet, policies }) {
+  function apply({ clients, fleet, policies, templates }) {
     st.clients = clients;
     st.policies = policies;
+    st.templates = templates;
     st.counts = new Map();
     for (const a of fleet?.assets || []) { const k = `${a.client}|${a.site}`; st.counts.set(k, (st.counts.get(k) || 0) + 1); }
   }
@@ -44,6 +45,19 @@ export function clientsView(root) {
     return el;
   }
 
+  // Alert template for a whole client or site. Hidden when the user may not list alert templates.
+  function templatePicker(kind, id, current) {
+    if (!st.templates) return null;
+    const el = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none' }, 'aria-label': 'Alert template', disabled: st.busy },
+      [h('option', { value: '', selected: current == null }, 'No template'),
+        ...st.templates.map((t) => h('option', { value: String(t.id), selected: t.id === current }, t.enabled ? t.name : `${t.name} (disabled)`))]);
+    el.addEventListener('change', () => {
+      const body = el.value === '' ? { clear_alert_template: true } : { alert_template: Number(el.value) };
+      run(() => api(kind === 'client' ? `clients/${id}` : `sites/${id}`, { method: 'PUT', body }), 'Alert template updated.');
+    });
+    return el;
+  }
+
   function nameCell(kind, id, name) {
     if (st.edit && st.edit.kind === kind && st.edit.id === id) {
       return h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } }, input('text', st.edit, 'name', 'Name'),
@@ -59,6 +73,7 @@ export function clientsView(root) {
       nameCell('site', s.id, s.name),
       h('div', { class: 'muted' }, unit(st.counts.get(`${c.name}|${s.name}`) || 0)),
       policyPicker('site', s.id, s.policy_id) || h('div'),
+      templatePicker('site', s.id, s.alert_template_id) || h('div'),
       h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end' } },
         btn('Rename', () => { st.edit = { kind: 'site', id: s.id, name: s.name }; paint(); }, { disabled: st.busy }),
         btn('Delete', () => { if (confirm(`Delete site "${s.name}"? Sites that still have assets cannot be deleted.`)) run(() => api(`sites/${s.id}`, { method: 'DELETE' }), 'Site deleted.'); }, { disabled: st.busy }))));
@@ -67,7 +82,9 @@ export function clientsView(root) {
       h('div', { class: 'page-head', style: { alignItems: 'center', padding: '4px 0 12px' } },
         h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`),
           st.policies ? h('div', { class: 'stack', style: { gap: '2px', marginTop: '6px' } }, h('span', { class: 'eyebrow' }, 'Policy for all sites'), policyPicker('client', c.id, c.policy_id),
-            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null),
+            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null,
+          st.templates ? h('div', { class: 'stack', style: { gap: '2px', marginTop: '6px' } }, h('span', { class: 'eyebrow' }, 'Alert template for all sites'), templatePicker('client', c.id, c.alert_template_id),
+            h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site template overrides this one.')) : null),
         h('div', { style: { display: 'flex', gap: '6px' } },
           btn('Rename', () => { st.edit = { kind: 'client', id: c.id, name: c.name }; paint(); }, { disabled: st.busy }),
           btn('Delete', () => { if (confirm(`Delete client "${c.name}" and all its sites? Clients that still have assets cannot be deleted.`)) run(() => api(`clients/${c.id}`, { method: 'DELETE' }), 'Client deleted.'); }, { disabled: st.busy }))),
