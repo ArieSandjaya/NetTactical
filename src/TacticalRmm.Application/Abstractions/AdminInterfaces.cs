@@ -75,6 +75,14 @@ public interface IPolicyAdminService
     Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
 }
 
+public interface IAlertTemplateAdminService
+{
+    Task<Outcome<IReadOnlyList<AlertTemplateDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<AlertTemplateDto>> CreateAsync(User caller, AlertTemplateUpsert req, CancellationToken ct = default);
+    Task<Outcome<AlertTemplateDto>> UpdateAsync(User caller, int id, AlertTemplateUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+}
+
 public interface IVncService
 {
     Task<Outcome<IReadOnlyList<VncCredentialDto>>> ListAsync(CancellationToken ct = default);

@@ -168,6 +168,23 @@ public class PoliciesController(IPolicyAdminService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ alert templates
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("alert-templates")]
+public class AlertTemplatesController(IAlertTemplateAdminService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListAlerts)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost, RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Create(AlertTemplateUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Update(int id, AlertTemplateUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
 // ------------------------------------------------------------------------------------------ VNC
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class VncController(IVncService svc) : ControllerBase

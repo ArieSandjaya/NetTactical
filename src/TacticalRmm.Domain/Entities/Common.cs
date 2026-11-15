@@ -16,6 +16,9 @@ public class Client : AuditableEntity
     /// <summary>Policy applied to every agent of this client (unless the site or the agent has its own).</summary>
     public int? PolicyId { get; set; }
     public Policy? Policy { get; set; }
+    /// <summary>Alert template for every agent of this client (unless the site has its own).</summary>
+    public int? AlertTemplateId { get; set; }
+    public AlertTemplate? AlertTemplate { get; set; }
 }
 
 public class Site : AuditableEntity
@@ -28,6 +31,8 @@ public class Site : AuditableEntity
     /// <summary>Policy applied to every agent of this site (unless the agent has its own).</summary>
     public int? PolicyId { get; set; }
     public Policy? Policy { get; set; }
+    public int? AlertTemplateId { get; set; }
+    public AlertTemplate? AlertTemplate { get; set; }
 }
 
 public class Policy : AuditableEntity

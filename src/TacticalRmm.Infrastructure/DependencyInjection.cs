@@ -54,6 +54,7 @@ public static class DependencyInjection
         s.AddScoped<IRoleAdminService, RoleAdminService>();
         s.AddScoped<IOrgAdminService, OrgAdminService>();
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
+        s.AddScoped<IAlertTemplateAdminService, AlertTemplateAdminService>();
         s.AddScoped<IVncService, VncService>();
         s.AddScoped<IInstallerService, InstallerService>();
         s.AddScoped<IWinUpdateAdminService, WinUpdateAdminService>();
