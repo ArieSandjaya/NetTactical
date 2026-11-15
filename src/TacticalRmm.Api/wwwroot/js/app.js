@@ -46,10 +46,31 @@ const ICONS = {
   installer: ['M22 12H2', 'M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z', 'M6 16h.01', 'M10 16h.01'],
   security: ['M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
   vnc: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+  menu: ['M3 6h18', 'M3 12h18', 'M3 18h18'],
+  close: ['M18 6L6 18', 'M6 6l12 12'],
   sun: ['M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z', 'M12 1v2', 'M12 21v2', 'M4.2 4.2l1.4 1.4', 'M18.4 18.4l1.4 1.4', 'M1 12h2', 'M21 12h2', 'M4.2 19.8l1.4-1.4', 'M18.4 5.6l1.4-1.4'],
   moon: ['M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'],
 };
 const icon = (name) => s('svg', { class: 'ico', viewBox: '0 0 24 24', 'aria-hidden': 'true' }, (ICONS[name] || []).map((d) => s('path', { d })));
+
+// Sidebar visibility. Wide screens: the sidebar can be hidden for good (remembered). Narrow screens: it is a drawer that opens over the page and
+// closes on its own after a choice. State lives on <html> (data-nav / data-drawer) because the shell is rebuilt on every page change.
+const root = document.documentElement;
+const narrow = () => window.matchMedia('(max-width: 720px)').matches;
+const menuOpen = () => (narrow() ? root.getAttribute('data-drawer') === 'open' : root.getAttribute('data-nav') !== 'closed');
+function syncMenu() {
+  const btn = document.querySelector('.menu-btn');
+  if (btn) { btn.setAttribute('aria-expanded', String(menuOpen())); }
+}
+function setMenu(open, { focus = false } = {}) {
+  if (narrow()) { if (open) root.setAttribute('data-drawer', 'open'); else root.removeAttribute('data-drawer'); }
+  else { root.setAttribute('data-nav', open ? 'open' : 'closed'); try { localStorage.setItem('nt.nav', open ? 'open' : 'closed'); } catch { /* not remembered */ } }
+  syncMenu();
+  if (focus) { const t = open ? document.querySelector('.side nav a') : document.querySelector('.menu-btn'); if (t) t.focus(); }
+}
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && narrow() && menuOpen()) setMenu(false, { focus: true }); });
+window.matchMedia('(max-width: 720px)').addEventListener('change', () => { root.removeAttribute('data-drawer'); syncMenu(); });
+const menuButton = () => h('button', { type: 'button', class: 'menu-btn', 'aria-label': 'Show or hide the menu', 'aria-controls': 'side', 'aria-expanded': String(menuOpen()), onclick: () => setMenu(!menuOpen(), { focus: narrow() }) }, icon('menu'));
 
 // Colour theme switch (the choice is remembered in this browser; storage may be blocked, so every access is guarded).
 function themeToggle() {
@@ -72,16 +93,19 @@ function shell(content, current) {
     s('rect', { x: 2, y: 2, width: 24, height: 24, rx: 8, fill: 'url(#nt-logo)' }),
     s('path', { d: 'M8 19L12 13L16 16L20 8', fill: 'none', stroke: '#fff', 'stroke-width': 2.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   return h('div', { class: 'shell' },
-    h('aside', { class: 'side' },
-      h('div', { class: 'brand' }, mark, h('span', { class: 'brand-name' }, 'NetTactical')),
+    h('div', { class: 'scrim', onclick: () => setMenu(false) }),
+    h('aside', { class: 'side', id: 'side' },
+      h('div', { class: 'brand' }, mark, h('span', { class: 'brand-name' }, 'NetTactical'),
+        h('button', { type: 'button', class: 'side-close', 'aria-label': 'Close the menu', onclick: () => setMenu(false, { focus: true }) }, icon('close'))),
       h('nav', { 'aria-label': 'Main navigation' }, NAV.map(([key, href, label]) => (key === 'section' ? h('div', { class: 'nav-section' }, label) : h('a', { href, 'aria-current': current === key ? 'page' : null }, icon(key), label)))),
       h('div', { class: 'who' }, themeToggle(), h('button', { onclick: async () => { await logout(); session.clear(); location.hash = '#/login'; } }, 'Sign out'),
         h('a', { class: 'credit', href: 'https://templatemo.com/tm-607-glass-admin', target: '_blank', rel: 'noopener nofollow' }, 'Design: TemplateMo'))),
-    h('main', { class: 'main', id: 'view' }, content));
+    h('main', { class: 'main', id: 'view' }, h('div', { class: 'topbar' }, menuButton(), h('span', { class: 'topbar-brand' }, 'NetTactical')), content));
 }
 
 function route() {
   cleanup(); cleanup = () => {};
+  root.removeAttribute('data-drawer');
   const hash = location.hash || '#/';
   if (hash === '#/login') { cleanup = loginView(app); document.title = 'Sign in · NetTactical'; return; }
   if (!session.token) { location.hash = '#/login'; return; }
