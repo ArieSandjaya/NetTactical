@@ -63,6 +63,11 @@ public static class SchemaUpgrade
         "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_weekdays integer NOT NULL DEFAULT 0",
         "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS run_time_day integer NOT NULL DEFAULT 1",
         "ALTER TABLE win_update_policies ADD COLUMN IF NOT EXISTS last_run_at timestamp with time zone NULL",
+        // v6: policy assigned to a client or a site (agent > site > client)
+        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS policy_id integer NULL REFERENCES policies (id) ON DELETE SET NULL",
+        "ALTER TABLE sites ADD COLUMN IF NOT EXISTS policy_id integer NULL REFERENCES policies (id) ON DELETE SET NULL",
+        "CREATE INDEX IF NOT EXISTS ix_clients_policy_id ON clients (policy_id)",
+        "CREATE INDEX IF NOT EXISTS ix_sites_policy_id ON sites (policy_id)",
 ];
 
     public static async Task RunAsync(AppDbContext db, ILogger log, CancellationToken ct = default)

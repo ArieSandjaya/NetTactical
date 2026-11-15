@@ -115,12 +115,21 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
     /// <summary>An active policy task must have a TaskResult row for every agent that inherits it (new agent / policy change).</summary>
     private async Task EnsurePolicyResultsAsync(CancellationToken ct)
     {
-        var pairs = await (from t in db.AutomatedTasks
-                           join p in db.Policies on t.PolicyId equals (int?)p.Id
-                           join a in db.Agents on t.PolicyId equals a.PolicyId
-                           where p.Active && !t.PendingDeletion && !a.BlockPolicyInheritance
-                                 && !db.TaskResults.Any(r => r.TaskId == t.Id && r.AgentId == a.Id)
-                           select new { TaskId = t.Id, AgentId = a.Id }).OrderBy(x => x.TaskId).ThenBy(x => x.AgentId).Take(500).ToListAsync(ct);
+        var map = await EffectivePolicy.MapAsync(db, ct);
+        if (map.Count == 0) return;
+        var policyIds = map.Values.Distinct().ToList();
+        var policyTasks = await db.AutomatedTasks.AsNoTracking()
+            .Where(t => t.PolicyId != null && policyIds.Contains(t.PolicyId.Value) && !t.PendingDeletion)
+            .Select(t => new { t.Id, PolicyId = t.PolicyId!.Value }).ToListAsync(ct);
+        if (policyTasks.Count == 0) return;
+        var taskIds = policyTasks.Select(t => t.Id).ToList();
+        var have = (await db.TaskResults.AsNoTracking().Where(r => taskIds.Contains(r.TaskId)).Select(r => new { r.TaskId, r.AgentId }).ToListAsync(ct))
+            .Select(r => (r.TaskId, r.AgentId)).ToHashSet();
+        var pairs = (from t in policyTasks
+                     from kv in map
+                     where kv.Value == t.PolicyId && !have.Contains((t.Id, kv.Key))
+                     select new { TaskId = t.Id, AgentId = kv.Key })
+                    .OrderBy(x => x.TaskId).ThenBy(x => x.AgentId).Take(500).ToList();
         if (pairs.Count == 0) return;
         foreach (var x in pairs) db.TaskResults.Add(new TaskResult { TaskId = x.TaskId, AgentId = x.AgentId, SyncStatus = TaskSyncStatus.NotSynced });
         await db.SaveChangesAsync(ct);

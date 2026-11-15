@@ -236,9 +236,9 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var checkIds = applicable.Select(c => c.Id).ToList();
         var checkResults = await db.CheckResults.AsNoTracking().Where(r => r.AgentId == agent.Id && checkIds.Contains(r.CheckId)).ToDictionaryAsync(r => r.CheckId, ct);
 
-        var policyActive = agent.PolicyId is not null && !agent.BlockPolicyInheritance && await db.Policies.AnyAsync(p => p.Id == agent.PolicyId && p.Active, ct);
+        var effectivePolicyId = await EffectivePolicy.IdForAsync(db, agent, ct);
         var tasks = await db.AutomatedTasks.AsNoTracking()
-            .Where(t => !t.PendingDeletion && (t.AgentId == agent.Id || (policyActive && t.PolicyId == agent.PolicyId))).OrderBy(t => t.Name).ToListAsync(ct);
+            .Where(t => !t.PendingDeletion && (t.AgentId == agent.Id || (effectivePolicyId != null && t.PolicyId == effectivePolicyId))).OrderBy(t => t.Name).ToListAsync(ct);
         var taskIds = tasks.Select(t => t.Id).ToList();
         var taskResults = await db.TaskResults.AsNoTracking().Where(r => r.AgentId == agent.Id && taskIds.Contains(r.TaskId)).ToDictionaryAsync(r => r.TaskId, ct);
 

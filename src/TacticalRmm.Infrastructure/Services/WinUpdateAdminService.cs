@@ -120,7 +120,7 @@ public sealed class WinUpdateAdminService(AppDbContext db, IAgentCommandBus bus,
         if (row is null) { row = new WinUpdatePolicy { PolicyId = policyId }; db.WinUpdatePolicies.Add(row); }
         Apply(row, req);
         await db.SaveChangesAsync(ct);
-        var ids = await db.Agents.AsNoTracking().Where(a => a.PolicyId == policyId && !a.BlockPolicyInheritance).Select(a => a.Id).ToListAsync(ct);
+        var ids = await EffectivePolicy.AgentIdsAsync(db, policyId, ct);
         await ReapplyApprovalsAsync(ids, ct);
         await audit.LogAsync(caller.Username, AuditAction.Modify, "policy", $"{caller.Username} changed the Windows Update settings of policy {pol.Name}", pol.Name, ct: ct);
         return await GetPolicyAsync(policyId, ct);

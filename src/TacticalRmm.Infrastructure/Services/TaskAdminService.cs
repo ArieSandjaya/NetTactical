@@ -17,10 +17,9 @@ public sealed class TaskAdminService(AppDbContext db, ITaskService tasks, ITaskS
         if (agent is null) return Outcome.NotFound<IReadOnlyList<TaskDto>>("Agent not found");
         if (!ScopeGuard.CanSeeAgent(caller, agent)) return Outcome.Forbidden<IReadOnlyList<TaskDto>>();
 
-        var policyActive = agent.PolicyId is not null && !agent.BlockPolicyInheritance
-            && await db.Policies.AnyAsync(p => p.Id == agent.PolicyId && p.Active, ct);
+        var effectivePolicyId = await EffectivePolicy.IdForAsync(db, agent, ct);
         var list = await db.AutomatedTasks.AsNoTracking()
-            .Where(t => !t.PendingDeletion && (t.AgentId == agent.Id || (policyActive && t.PolicyId == agent.PolicyId)))
+            .Where(t => !t.PendingDeletion && (t.AgentId == agent.Id || (effectivePolicyId != null && t.PolicyId == effectivePolicyId)))
             .OrderBy(t => t.Name).ToListAsync(ct);
         var ids = list.Select(t => t.Id).ToList();
         var results = await db.TaskResults.AsNoTracking().Where(r => r.AgentId == agent.Id && ids.Contains(r.TaskId))
@@ -124,7 +123,7 @@ public sealed class TaskAdminService(AppDbContext db, ITaskService tasks, ITaskS
         if (agent is null) return Outcome.NotFound<bool>("Agent not found");
         if (!ScopeGuard.CanSeeAgent(caller, agent)) return Outcome.Forbidden<bool>();
         if (task.AgentId is not null && task.AgentId != agent.Id) return Outcome.Invalid<bool>("Task does not belong to this agent");
-        if (task.PolicyId is not null && (agent.PolicyId != task.PolicyId || agent.BlockPolicyInheritance))
+        if (task.PolicyId is not null && task.PolicyId != await EffectivePolicy.IdForAsync(db, agent, ct))
             return Outcome.Invalid<bool>("Task is not applied to this agent");
         if (agent.Plat != AgentPlat.Windows) return Outcome.Invalid<bool>("Scheduled tasks run on Windows agents only");
 
@@ -137,9 +136,9 @@ public sealed class TaskAdminService(AppDbContext db, ITaskService tasks, ITaskS
     // ------------------------------------------------------------------------------------------------ helpers
     private async Task MarkForSyncAsync(AutomatedTask task, CancellationToken ct)
     {
-        var agentIds = task.AgentId is { } a
-            ? [a]
-            : await db.Agents.Where(x => x.PolicyId == task.PolicyId && !x.BlockPolicyInheritance).Select(x => x.Id).ToListAsync(ct);
+        List<int> agentIds = task.AgentId is { } a
+            ? new List<int> { a }
+            : task.PolicyId is { } pid ? await EffectivePolicy.AgentIdsAsync(db, pid, ct) : new List<int>();
         var existing = await db.TaskResults.Where(r => r.TaskId == task.Id).ToListAsync(ct);
         foreach (var aid in agentIds)
         {
