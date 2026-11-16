@@ -70,6 +70,8 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         var agents = await db.Agents.CountAsync(a => siteIds.Contains(a.SiteId), ct);
         if (agents > 0) return Outcome.Conflict<bool>($"Client still has {agents} agent(s); move or uninstall them first");
 
+        // Custom field values point to their client/site by id only, so they are removed here.
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => (v.Field.Model == "client" && v.TargetId == id) || (v.Field.Model == "site" && siteIds.Contains(v.TargetId))));
         db.Sites.RemoveRange(c.Sites);
         db.Clients.Remove(c);
         await db.SaveChangesAsync(ct);
@@ -149,6 +151,7 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         if (agents > 0) return Outcome.Conflict<bool>($"Site still has {agents} agent(s); move or uninstall them first");
         if (await db.Sites.CountAsync(s => s.ClientId == site.ClientId, ct) <= 1) return Outcome.Conflict<bool>("A client must keep at least one site");
 
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => v.Field.Model == "site" && v.TargetId == id));
         db.Sites.Remove(site);
         await db.SaveChangesAsync(ct);
         await audit.LogAsync(caller.Username, AuditAction.Delete, "site", $"{caller.Username} deleted site '{site.Name}'", ct: ct);

@@ -88,6 +88,7 @@ public sealed class AgentService(
             db.AgentTokens.RemoveRange(db.AgentTokens.Where(t => t.UserId == user.Id));
             db.Users.Remove(user);
         }
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => v.Field.Model == "agent" && v.TargetId == agent.Id));
         db.Agents.Remove(agent);
         await db.SaveChangesAsync(ct);
         await audit.LogAsync(username, AuditAction.Delete, "agent", $"{username} deleted agent {agent.Hostname}", agent.Hostname, null, null, ct);

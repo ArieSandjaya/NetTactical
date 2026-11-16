@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<VncCredential> VncCredentials => Set<VncCredential>();
     public DbSet<NotificationChannel> NotificationChannels => Set<NotificationChannel>();
     public DbSet<AlertTemplate> AlertTemplates => Set<AlertTemplate>();
+    public DbSet<CustomField> CustomFields => Set<CustomField>();
+    public DbSet<CustomFieldValue> CustomFieldValues => Set<CustomFieldValue>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserToken> UserTokens => Set<UserToken>();
@@ -49,6 +51,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<AlertTemplate>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); });
         b.Entity<Client>().HasOne(x => x.AlertTemplate).WithMany().HasForeignKey(x => x.AlertTemplateId).OnDelete(DeleteBehavior.SetNull);
         b.Entity<Site>().HasOne(x => x.AlertTemplate).WithMany().HasForeignKey(x => x.AlertTemplateId).OnDelete(DeleteBehavior.SetNull);
+        b.Entity<CustomField>(e => { e.HasIndex(x => new { x.Model, x.Name }).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); e.Property(x => x.Model).HasMaxLength(10); e.Property(x => x.Type).HasMaxLength(20); });
+        b.Entity<CustomFieldValue>(e => { e.HasIndex(x => new { x.FieldId, x.TargetId }).IsUnique(); e.HasOne(x => x.Field).WithMany().HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<NotificationChannel>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); e.Property(x => x.Kind).HasMaxLength(20); e.Property(x => x.LastError).HasMaxLength(400); });
         b.Entity<VncCredential>(e => { e.HasIndex(x => x.Priority); e.Property(x => x.Label).HasMaxLength(100); });
         b.Entity<User>(e =>

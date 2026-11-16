@@ -83,6 +83,17 @@ public interface IAlertTemplateAdminService
     Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
 }
 
+public interface ICustomFieldService
+{
+    Task<Outcome<IReadOnlyList<CustomFieldDto>>> ListAsync(string? model, CancellationToken ct = default);
+    Task<Outcome<CustomFieldDto>> CreateAsync(User caller, CustomFieldUpsert req, CancellationToken ct = default);
+    Task<Outcome<CustomFieldDto>> UpdateAsync(User caller, int id, CustomFieldUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Every field of the model with this target's value. Target is the client or site id, or the agent_id string.</summary>
+    Task<Outcome<IReadOnlyList<CustomFieldValueDto>>> ValuesAsync(User caller, string model, string target, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<CustomFieldValueDto>>> SetValuesAsync(User caller, string model, string target, CustomFieldValuesSet req, CancellationToken ct = default);
+}
+
 public interface IVncService
 {
     Task<Outcome<IReadOnlyList<VncCredentialDto>>> ListAsync(CancellationToken ct = default);
