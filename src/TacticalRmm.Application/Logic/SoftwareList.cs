@@ -40,7 +40,7 @@ public static class SoftwareList
     /// <summary>The decoded NATS reply (a list of maps), or null when it is not a list.</summary>
     public static List<SoftwareItem>? FromReply(object? reply)
     {
-        if (reply is not IEnumerable seq || reply is string) return null;
+        if (reply is not IEnumerable seq || reply is string || reply is IDictionary) return null;   // a single map is not a list
         var rows = new List<Func<string, object?>>();
         foreach (var entry in seq)
         {
