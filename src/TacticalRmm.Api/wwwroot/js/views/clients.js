@@ -2,19 +2,21 @@ import { h } from '../dom.js';
 import { api } from '../api.js';
 import { loader } from '../ui.js';
 import { field, input, notice, btn } from '../forms.js';
+import { customFieldsPanel } from '../customfields.js';
 
 export function clientsView(root) {
-  const st = { clients: null, policies: null, templates: null, counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
+  const st = { clients: null, policies: null, templates: null, defs: [], open: new Set(), panels: new Map(), counts: new Map(), notice: null, busy: false, edit: null, newClient: { name: '', site: '' }, newSite: {} };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
   async function fetchAll(signal) {
-    const [clients, fleet, policies, templates] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null),
-      api('automation/policies', { signal }).catch(() => null), api('alert-templates', { signal }).catch(() => null)]);
-    return { clients, fleet, policies, templates };
+    const [clients, fleet, policies, templates, defs] = await Promise.all([api('clients', { signal }), api('fleet/assets', { signal }).catch(() => null),
+      api('automation/policies', { signal }).catch(() => null), api('alert-templates', { signal }).catch(() => null), api('custom-fields', { signal }).catch(() => [])]);
+    return { clients, fleet, policies, templates, defs };
   }
-  function apply({ clients, fleet, policies, templates }) {
+  function apply({ clients, fleet, policies, templates, defs }) {
     st.clients = clients;
+    st.defs = defs || [];
     st.policies = policies;
     st.templates = templates;
     st.counts = new Map();
@@ -58,6 +60,19 @@ export function clientsView(root) {
     return el;
   }
 
+  // Custom field values of a client or site: a toggle button, and the panel under the card. Panels are kept so typed text survives a repaint.
+  function fieldsToggle(kind, id) {
+    if (!st.defs.some((f) => f.model === kind)) return null;
+    const k = `${kind}:${id}`;
+    return btn(st.open.has(k) ? 'Fields ▴' : 'Fields ▾', () => { if (st.open.has(k)) st.open.delete(k); else st.open.add(k); paint(); }, { disabled: st.busy });
+  }
+  function fieldsPanel(kind, id, title) {
+    const k = `${kind}:${id}`;
+    if (!st.open.has(k)) return null;
+    if (!st.panels.has(k)) st.panels.set(k, customFieldsPanel(kind, String(id), { title }));
+    return st.panels.get(k).el;
+  }
+
   function nameCell(kind, id, name) {
     if (st.edit && st.edit.kind === kind && st.edit.id === id) {
       return h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' } }, input('text', st.edit, 'name', 'Name'),
@@ -74,7 +89,8 @@ export function clientsView(root) {
       h('div', { class: 'muted' }, unit(st.counts.get(`${c.name}|${s.name}`) || 0)),
       policyPicker('site', s.id, s.policy_id) || h('div'),
       templatePicker('site', s.id, s.alert_template_id) || h('div'),
-      h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end' } },
+      h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' } },
+        fieldsToggle('site', s.id),
         btn('Rename', () => { st.edit = { kind: 'site', id: s.id, name: s.name }; paint(); }, { disabled: st.busy }),
         btn('Delete', () => { if (confirm(`Delete site "${s.name}"? Sites that still have assets cannot be deleted.`)) run(() => api(`sites/${s.id}`, { method: 'DELETE' }), 'Site deleted.'); }, { disabled: st.busy }))));
     st.newSite[c.id] ??= { name: '' };
@@ -82,6 +98,7 @@ export function clientsView(root) {
       h('div', { class: 'page-head', style: { alignItems: 'center', padding: '4px 0 12px' } },
         h('div', { class: 'stack', style: { gap: '2px' } }, nameCell('client', c.id, c.name), h('span', { class: 'muted' }, `${c.sites.length} site${c.sites.length === 1 ? '' : 's'} · ${unit(n)}`)),
         h('div', { style: { display: 'flex', gap: '6px' } },
+          fieldsToggle('client', c.id),
           btn('Rename', () => { st.edit = { kind: 'client', id: c.id, name: c.name }; paint(); }, { disabled: st.busy }),
           btn('Delete', () => { if (confirm(`Delete client "${c.name}" and all its sites? Clients that still have assets cannot be deleted.`)) run(() => api(`clients/${c.id}`, { method: 'DELETE' }), 'Client deleted.'); }, { disabled: st.busy }))),
       (st.policies || st.templates) ? h('div', { style: { display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '0 0 16px' } },
@@ -89,7 +106,9 @@ export function clientsView(root) {
           h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site or agent policy overrides this one.')) : null,
         st.templates ? h('div', { class: 'stack', style: { gap: '4px', flex: '1 1 240px', maxWidth: '340px' } }, h('span', { class: 'eyebrow' }, 'Alert template for all sites'), templatePicker('client', c.id, c.alert_template_id),
           h('span', { class: 'muted', style: { fontSize: '12px' } }, 'A site template overrides this one.')) : null) : null,
+      fieldsPanel('client', c.id, `Custom fields: ${c.name}`),
       h('div', { class: 'scroll-x' }, h('div', { class: 'grid-table' }, siteRows, c.sites.length === 0 ? h('div', { class: 'empty' }, 'No sites.') : null)),
+      c.sites.map((s) => fieldsPanel('site', s.id, `Custom fields: ${s.name}`)),
       h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'flex-end', marginTop: '12px' } },
         field('Add site', input('text', st.newSite[c.id], 'name', 'Site name'), '1 1 220px'),
         btn('Add site', () => run(() => api('clients/sites', { method: 'POST', body: { name: st.newSite[c.id].name, client: c.id } }), 'Site added.'), { primary: true, disabled: st.busy })));
