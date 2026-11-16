@@ -229,6 +229,26 @@ public class ScriptSnippetsController(ISnippetService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ installed software
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}/software")]
+public class SoftwareController(ISoftwareService svc, IPermissionService perms) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> Get(string agentId, CancellationToken ct)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
+        return this.ToResult(await svc.GetAsync(agentId, ct));
+    }
+
+    /// <summary>Asks the agent for its list now (the agent must be online).</summary>
+    [HttpPost("refresh"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> Refresh(string agentId, CancellationToken ct)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
+        return this.ToResult(await svc.RefreshAsync(agentId, HttpContext.GetUser().Username, ct));
+    }
+}
+
 // ------------------------------------------------------------------------------------------ reports
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("reports")]
 public class ReportsController(IReportService svc) : ControllerBase
@@ -239,14 +259,14 @@ public class ReportsController(IReportService svc) : ControllerBase
 
     [HttpGet("{name}")]
     public async Task<IActionResult> Run(string name, [FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId,
-        [FromQuery] string? from, [FromQuery] string? to, CancellationToken ct) =>
-        this.ToResult(await svc.BuildAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, ct));
+        [FromQuery] string? from, [FromQuery] string? to, [FromQuery] string? q, CancellationToken ct) =>
+        this.ToResult(await svc.BuildAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, q, maxRows: 200, ct: ct));
 
     [HttpGet("{name}/csv")]
     public async Task<IActionResult> Csv(string name, [FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId,
-        [FromQuery] string? from, [FromQuery] string? to, CancellationToken ct)
+        [FromQuery] string? from, [FromQuery] string? to, [FromQuery] string? q, CancellationToken ct)
     {
-        var r = await svc.CsvAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, ct);
+        var r = await svc.CsvAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, q, ct);
         return r.IsOk ? File(r.Value!.Content, "text/csv; charset=utf-8", r.Value.FileName) : this.ToResult(r);
     }
 }

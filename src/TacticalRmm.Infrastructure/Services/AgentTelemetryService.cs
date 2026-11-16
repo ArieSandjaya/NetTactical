@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TacticalRmm.Application.Logic;
 using TacticalRmm.Application.Abstractions;
 using TacticalRmm.Domain.Entities;
 using TacticalRmm.Infrastructure.Persistence;
@@ -18,9 +19,11 @@ public sealed class AgentTelemetryService(AppDbContext db) : IAgentTelemetryServ
 
     public async Task SaveSoftwareAsync(Agent agent, string softwareJson, CancellationToken ct = default)
     {
+        // Keep only the fields the dashboard uses and bound the size: this comes from an endpoint.
+        var json = SoftwareList.ToJson(SoftwareList.ParseJson(softwareJson));
         var row = await db.InstalledSoftware.FirstOrDefaultAsync(x => x.AgentId == agent.Id, ct);
-        if (row is null) db.InstalledSoftware.Add(new InstalledSoftware { AgentId = agent.Id, Software = softwareJson });
-        else row.Software = softwareJson;
+        if (row is null) db.InstalledSoftware.Add(new InstalledSoftware { AgentId = agent.Id, Software = json, UpdatedAt = DateTime.UtcNow });
+        else { row.Software = json; row.UpdatedAt = DateTime.UtcNow; }
         await db.SaveChangesAsync(ct);
     }
 

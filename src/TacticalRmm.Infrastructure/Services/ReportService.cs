@@ -16,17 +16,18 @@ namespace TacticalRmm.Infrastructure.Services;
 /// </summary>
 public sealed class ReportService(AppDbContext db, IFleetService fleet) : IReportService
 {
-    private const int MaxAlertRows = 5000;
+    private const int MaxAlertRows = 5000, MaxSoftwareRows = 200_000;
     private static readonly ReportInfo[] All =
     [
         new("assets", "Asset inventory", "Every asset with its client, site, operating system, agent version, last check-in, health score, pending updates and open alerts.", false),
         new("patches", "Outstanding patches", "Assets that have pending or failed Windows updates, or that need a reboot.", false),
         new("alerts", "Alert history", "Alerts raised in the chosen period, open and resolved (up to 5000).", true),
+        new("software", "Installed software", "Every application each asset reported, one row per asset and application. Type a name, publisher or version to find who has it. Assets that never sent a list are not included.", false, true),
     ];
 
     private static bool Allowed(User u, string name) => name switch
     {
-        "assets" or "patches" => PermissionEvaluator.Has(u, Perm.ListAgents),
+        "assets" or "patches" or "software" => PermissionEvaluator.Has(u, Perm.ListAgents),
         "alerts" => PermissionEvaluator.Has(u, Perm.ListAlerts),
         _ => false,
     };
@@ -36,7 +37,14 @@ public sealed class ReportService(AppDbContext db, IFleetService fleet) : IRepor
     private static string Time(DateTime? t) => t is null ? "" : DateTime.SpecifyKind(t.Value, DateTimeKind.Utc).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
     private static string YesNo(bool b) => b ? "Yes" : "No";
 
-    public async Task<Outcome<ReportTable>> BuildAsync(User caller, string name, int? clientId, int? siteId, string? from, string? to, CancellationToken ct = default)
+    public async Task<Outcome<ReportTable>> BuildAsync(User caller, string name, int? clientId, int? siteId, string? from, string? to, string? q = null, int? maxRows = null, CancellationToken ct = default)
+    {
+        var r = await BuildFullAsync(caller, name, clientId, siteId, from, to, q, ct);
+        if (!r.IsOk || maxRows is null || r.Value!.Rows.Count <= maxRows) return r;
+        return Outcome.Ok(r.Value with { Rows = r.Value.Rows.Take(maxRows.Value).ToList() });
+    }
+
+    private async Task<Outcome<ReportTable>> BuildFullAsync(User caller, string name, int? clientId, int? siteId, string? from, string? to, string? q, CancellationToken ct)
     {
         var info = All.FirstOrDefault(r => r.Name == name);
         if (info is null) return Outcome.NotFound<ReportTable>("Unknown report");
@@ -51,7 +59,7 @@ public sealed class ReportService(AppDbContext db, IFleetService fleet) : IRepor
                 var rows = r.Value!.Assets.OrderBy(a => a.Client).ThenBy(a => a.Site).ThenBy(a => a.Hostname).Select(a => (IReadOnlyList<string>)
                     [a.Client, a.Site, a.Hostname, a.Os, a.Version ?? "", a.Online ? "Online" : "Offline", Time(a.LastSeen), a.Score.ToString(CultureInfo.InvariantCulture),
                      a.PendingUpdates.ToString(CultureInfo.InvariantCulture), a.OpenAlerts.ToString(CultureInfo.InvariantCulture), YesNo(a.NeedsReboot), a.UptimeDays?.ToString(CultureInfo.InvariantCulture) ?? ""]).ToList();
-                return Outcome.Ok(new ReportTable(name, info.Title, cols, rows, false, r.Value.Scope.Name));
+                return Outcome.Ok(new ReportTable(name, info.Title, cols, rows, false, r.Value.Scope.Name, rows.Count));
             }
             case "patches":
             {
@@ -60,11 +68,39 @@ public sealed class ReportService(AppDbContext db, IFleetService fleet) : IRepor
                 string[] cols = ["Client", "Hostname", "Status", "Pending updates", "Failed updates", "Needs reboot"];
                 var rows = r.Value!.Devices.OrderBy(d => d.Client).ThenBy(d => d.Hostname).Select(d => (IReadOnlyList<string>)
                     [d.Client, d.Hostname, d.Online ? "Online" : "Offline", d.Pending.ToString(CultureInfo.InvariantCulture), d.Failed.ToString(CultureInfo.InvariantCulture), YesNo(d.NeedsReboot)]).ToList();
-                return Outcome.Ok(new ReportTable(name, info.Title, cols, rows, false, r.Value.Scope.Name));
+                return Outcome.Ok(new ReportTable(name, info.Title, cols, rows, false, r.Value.Scope.Name, rows.Count));
             }
+            case "software":
+                return await SoftwareAsync(caller, info, clientId, siteId, q, ct);
             default:
                 return await AlertsAsync(caller, info, clientId, siteId, from, to, ct);
         }
+    }
+
+    /// <summary>One row per asset and application. The assets come from the same scoped list as the asset inventory.</summary>
+    private async Task<Outcome<ReportTable>> SoftwareAsync(User caller, ReportInfo info, int? clientId, int? siteId, string? q, CancellationToken ct)
+    {
+        var assets = await fleet.GetAssetsAsync(caller, clientId, siteId, ct);
+        if (!assets.IsOk) return Outcome.Fail<ReportTable>(assets.Status, assets.Error);
+        var byAgentId = assets.Value!.Assets.ToDictionary(a => a.AgentId);
+        var ids = byAgentId.Keys.ToList();
+        var stored = await db.InstalledSoftware.AsNoTracking()
+            .Join(db.Agents.Where(a => ids.Contains(a.AgentId)), s => s.AgentId, a => a.Id, (s, a) => new { a.AgentId, s.Software, s.UpdatedAt }).ToListAsync(ct);
+        string[] cols = ["Client", "Site", "Hostname", "Software", "Version", "Publisher", "Install date", "List received (UTC)"];
+        var rows = new List<IReadOnlyList<string>>();
+        var truncated = false;
+        foreach (var s in stored.OrderBy(x => byAgentId[x.AgentId].Client).ThenBy(x => byAgentId[x.AgentId].Site).ThenBy(x => byAgentId[x.AgentId].Hostname))
+        {
+            var a = byAgentId[s.AgentId];
+            foreach (var i in SoftwareList.Filter(SoftwareList.ParseJson(s.Software), q))
+            {
+                if (rows.Count >= MaxSoftwareRows) { truncated = true; break; }
+                rows.Add([a.Client, a.Site, a.Hostname, i.Name, i.Version ?? "", i.Publisher ?? "", i.InstallDate ?? "", Time(s.UpdatedAt)]);
+            }
+            if (truncated) break;
+        }
+        var scope = string.IsNullOrWhiteSpace(q) ? assets.Value.Scope.Name : $"{assets.Value.Scope.Name}, matching \"{q.Trim()}\"";
+        return Outcome.Ok(new ReportTable(info.Name, info.Title, cols, rows, truncated, scope, rows.Count));
     }
 
     private async Task<Outcome<ReportTable>> AlertsAsync(User caller, ReportInfo info, int? clientId, int? siteId, string? from, string? to, CancellationToken ct)
@@ -82,12 +118,12 @@ public sealed class ReportService(AppDbContext db, IFleetService fleet) : IRepor
         var table = seen.Select(a => (IReadOnlyList<string>)
             [Time(a.AlertTime), a.Severity, a.AlertType, a.Agent?.Site.Client.Name ?? "", a.Agent?.Site.Name ?? "", a.Agent?.Hostname ?? "", a.Message ?? "", a.Resolved ? "Resolved" : "Open", Time(a.ResolvedOn)]).ToList();
         var scope = $"{f:yyyy-MM-dd} to {t.AddDays(-1):yyyy-MM-dd}";
-        return Outcome.Ok(new ReportTable(info.Name, info.Title, cols, table, truncated, scope));
+        return Outcome.Ok(new ReportTable(info.Name, info.Title, cols, table, truncated, scope, table.Count));
     }
 
-    public async Task<Outcome<ReportFile>> CsvAsync(User caller, string name, int? clientId, int? siteId, string? from, string? to, CancellationToken ct = default)
+    public async Task<Outcome<ReportFile>> CsvAsync(User caller, string name, int? clientId, int? siteId, string? from, string? to, string? q = null, CancellationToken ct = default)
     {
-        var r = await BuildAsync(caller, name, clientId, siteId, from, to, ct);
+        var r = await BuildFullAsync(caller, name, clientId, siteId, from, to, q, ct);
         if (!r.IsOk) return Outcome.Fail<ReportFile>(r.Status, r.Error);
         var text = ReportRules.Csv(r.Value!.Columns, r.Value.Rows);
         // A byte order mark makes Excel read the file as UTF-8 (host and client names may have any characters).
