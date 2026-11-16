@@ -98,6 +98,13 @@ The **Install agent** page (`#/installer`) has a second card, *Push install with
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
+## Script snippets
+Reusable pieces of script (`#/snippets`; listing needs `can_list_scripts`, changes need `can_manage_scripts`). Write `{{name}}` in a script and the snippet's code is put there each time the script runs on an agent: a script run from the dashboard, a script action of an automated task, and a script check.
+- Names are letters, digits, `-` and `_`. Editing a snippet changes every script that uses it. A snippet cannot be renamed, and cannot be deleted while a script still uses it (the page shows how many do).
+- Insertion happens once: a snippet that contains `{{other}}` does not pull in another snippet (so nothing can loop). Unknown names are left as written. The result is limited to 1,000,000 characters.
+- API: `GET/POST /script-snippets`, `GET/PUT/DELETE /script-snippets/{id}`.
+- Not included: snippets inside script arguments or environment variables, and `{{client.Field}}` custom-field placeholders.
+
 ## Custom fields
 Fields an administrator defines once for **clients, sites or assets** (`#/custom-fields`, permission `can_manage_custom_fields`). Types: text, number, yes/no, date and time, pick one (with a list of choices). A field can have a default value that shows wherever no value is set.
 - Values are edited on the Clients & Sites page (button **Fields** on a client or site; needs `can_manage_clients` / `can_manage_sites`) and on each asset's page (needs `can_edit_agent`). Reading needs the matching list permission, and the role's client/site scope applies.
@@ -107,7 +114,7 @@ Fields an administrator defines once for **clients, sites or assets** (`#/custom
 
 ## Not covered (deliberately, "core first")
 Chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
-SMS notifications, alert templates beyond the simple "always notify" flags (no custom messages, no per-template email recipients), script snippets, placeholders such as `{{client.Field}}` in scripts, custom-field results from checks, reporting & SSO (`ee/`, separate sponsor licence).
+SMS notifications, alert templates beyond the simple "always notify" flags (no custom messages, no per-template email recipients), placeholders such as `{{client.Field}}` in scripts, custom-field results from checks, reporting & SSO (`ee/`, separate sponsor licence).
 
 ## VNC remote control (TightVNC already on the endpoints)
 Instead of MeshAgent, the dashboard can open the TightVNC that is already installed on an asset (useful when the antivirus blocks MeshAgent). Nothing is installed by us.

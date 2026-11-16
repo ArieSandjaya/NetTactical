@@ -32,7 +32,7 @@ export function scriptsView(root) {
 
   function form() {
     const f = st.f;
-    const ta = h('textarea', { class: 'search mono', rows: 12, spellcheck: 'false', style: { maxWidth: 'none', flex: 'none', width: '100%', resize: 'vertical' }, placeholder: 'Script body' });
+    const ta = h('textarea', { class: 'search mono', rows: 12, spellcheck: 'false', style: { maxWidth: 'none', flex: 'none', width: '100%', resize: 'vertical' }, placeholder: 'Script body. Use {{snippet_name}} to insert a snippet.' });
     ta.value = f.script_body; ta.addEventListener('input', () => { f.script_body = ta.value; });
     const args = h('textarea', { class: 'search mono', rows: 2, spellcheck: 'false', style: { maxWidth: 'none', flex: 'none', width: '100%' }, placeholder: 'One default argument per line (optional)' });
     args.value = f.args; args.addEventListener('input', () => { f.args = args.value; });
