@@ -98,6 +98,15 @@ The **Install agent** page (`#/installer`) has a second card, *Push install with
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
+## Reports
+`#/reports`: look at a report on screen (first 200 rows) or download it as a CSV file that opens in Excel. Narrow it to a client or site; the role's client/site scope always applies.
+- **Asset inventory** (`can_list_agents`): client, site, hostname, OS, agent version, online status, last seen, health score, pending updates, open alerts, reboot needed, uptime.
+- **Outstanding patches** (`can_list_agents`): assets with pending or failed Windows updates, or that need a reboot.
+- **Alert history** (`can_list_alerts`): alerts of a period (dates inclusive, default last 30 days, at most one year, times in UTC), open and resolved, up to 5000.
+- API: `GET /reports`, `GET /reports/{name}` (JSON table), `GET /reports/{name}/csv`; filters `client_id`, `site_id`, `from`, `to` (`yyyy-MM-dd`).
+- CSV safety: text that starts with `=`, `+`, `-` or `@` gets a leading apostrophe, so a hostname or alert message sent by an agent cannot run as a spreadsheet formula. The file is UTF-8 with a byte order mark.
+- Not included: scheduled or emailed reports, PDF, and a report of check or task results.
+
 ## Script snippets
 Reusable pieces of script (`#/snippets`; listing needs `can_list_scripts`, changes need `can_manage_scripts`). Write `{{name}}` in a script and the snippet's code is put there each time the script runs on an agent: a script run from the dashboard, a script action of an automated task, and a script check.
 - Names are letters, digits, `-` and `_`. Editing a snippet changes every script that uses it. A snippet cannot be renamed, and cannot be deleted while a script still uses it (the page shows how many do).

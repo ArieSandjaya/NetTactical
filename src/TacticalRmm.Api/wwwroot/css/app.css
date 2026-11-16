@@ -240,3 +240,10 @@ pre.out { border: 1px solid var(--line); margin: 0; padding: 14px; border-radius
 .side-close { display: none; margin-left: auto; width: 38px; height: 38px; place-items: center; padding: 0; border-radius: 12px; border: 1px solid var(--line); background: var(--btn-bg); color: var(--ink); }
 .side-close .ico { width: 18px; height: 18px; opacity: 1; }
 @media (max-width: 720px) { .topbar-brand { display: inline; } .side-close { display: grid; } }
+
+/* Reports: a plain table with sticky header inside a scroll box */
+.report-table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+.report-table th, .report-table td { text-align: left; padding: 8px 12px; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--line-soft); }
+.report-table th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.report-table tbody tr:hover td { background: var(--accent-soft); }
+.report-table caption { padding: 16px; text-align: left; }
