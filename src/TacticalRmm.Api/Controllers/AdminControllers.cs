@@ -209,6 +209,26 @@ public class CustomFieldsController(ICustomFieldService svc) : ControllerBase
     public async Task<IActionResult> SetValues(string model, string target, CustomFieldValuesSet req, CancellationToken ct) => this.ToResult(await svc.SetValuesAsync(HttpContext.GetUser(), model, target, req, ct));
 }
 
+// ------------------------------------------------------------------------------------------ script snippets
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("script-snippets")]
+public class ScriptSnippetsController(ISnippetService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListScripts)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpGet("{id:int}"), RequirePerm(Perm.ListScripts)]
+    public async Task<IActionResult> Get(int id, CancellationToken ct) => this.ToResult(await svc.GetAsync(id, ct));
+
+    [HttpPost, RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Create(SnippetUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Update(int id, SnippetUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
 // ------------------------------------------------------------------------------------------ VNC
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class VncController(IVncService svc) : ControllerBase

@@ -47,7 +47,7 @@ public sealed class TaskService(AppDbContext db, IAgentCommandBus bus, IAlertSer
                     ? arr.EnumerateArray().Select(x => x.GetString() ?? "").ToList() : new();
                 actions.Add(new TaskActionDto
                 {
-                    Type = "script", ScriptName = script.Name, Code = script.ScriptBody, Shell = script.Shell, Timeout = timeout,
+                    Type = "script", ScriptName = script.Name, Code = await SnippetExpander.ExpandAsync(db, script.ScriptBody, ct), Shell = script.Shell, Timeout = timeout,
                     ScriptArgs = ScriptArgParser.Parse(agent, script.Shell, Strs("script_args")),
                     RunAsUser = script.RunAsUser, EnvVars = ScriptArgParser.Parse(agent, script.Shell, Strs("env_vars")),
                     NushellEnableConfig = opt.Value.Agent.NushellEnableConfig,

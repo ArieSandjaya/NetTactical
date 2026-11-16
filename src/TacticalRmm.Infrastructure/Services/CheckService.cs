@@ -36,17 +36,19 @@ public sealed class CheckService(AppDbContext db, IAlertService alerts, ITaskSer
         var now = DateTime.UtcNow;
         var list = checks
             .Where(c => !dueOnly || CheckEvaluator.IsDue(c, results.GetValueOrDefault(c.Id), agent.CheckInterval, now))
-            .Select(c => Map(c, agent)).ToList();
+            .ToList();
+        var snippets = await SnippetExpander.LoadAsync(db, list.Select(c => c.Script?.ScriptBody), ct);
+        var items = list.Select(c => Map(c, agent, snippets)).ToList();
 
         var intervals = checks.Where(c => c.RunInterval > 0).Select(c => c.RunInterval).Append(agent.CheckInterval);
-        return new CheckRunnerResponse(agent.Id, intervals.Min(), list);
+        return new CheckRunnerResponse(agent.Id, intervals.Min(), items);
     }
 
-    private static CheckRunnerItem Map(Check c, Agent agent) => new()
+    private static CheckRunnerItem Map(Check c, Agent agent, IReadOnlyDictionary<string, string> snippets) => new()
     {
         Id = c.Id, Agent = c.AgentId, CheckType = c.CheckType, RunInterval = c.RunInterval, AlertSeverity = c.AlertSeverity,
         ErrorThreshold = c.ErrorThreshold, WarningThreshold = c.WarningThreshold, Disk = c.Disk, Ip = c.Ip,
-        Script = c.Script is null ? null : new ScriptCheckDto(c.Script.ScriptBody, c.Script.Shell, c.Script.RunAsUser),
+        Script = c.Script is null ? null : new ScriptCheckDto(SnippetRules.Expand(c.Script.ScriptBody, snippets).Body, c.Script.Shell, c.Script.RunAsUser),
         ScriptArgs = c.CheckType == CheckType.Script ? ScriptArgParser.Parse(agent, c.Script?.Shell ?? "", c.ScriptArgs) : new(),
         EnvVars = c.CheckType == CheckType.Script ? ScriptArgParser.Parse(agent, c.Script?.Shell ?? "", c.EnvVars) : new(),
         Timeout = c.Timeout, SvcName = c.SvcName, PassIfStartPending = c.PassIfStartPending,
