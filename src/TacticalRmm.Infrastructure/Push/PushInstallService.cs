@@ -45,6 +45,7 @@ public sealed class PushInstallService(IServiceScopeFactory scopes, IRemoteExecu
     {
         if (!InstallerCommands.AgentTypes.Contains(req.AgentType)) return Outcome.Invalid<PushJobDto>("agent_type must be workstation or server");
         if (!InstallerCommands.Architectures.Contains(req.Arch)) return Outcome.Invalid<PushJobDto>("arch must be amd64 or 386");
+        if (InstallerCommands.NatsPortError(req.NatsPort) is { } npe) return Outcome.Invalid<PushJobDto>(npe);
         if (PushInstall.ValidateUsername(req.Username) is { } ue) return Outcome.Invalid<PushJobDto>(ue);
         if (PushInstall.ValidatePassword(req.Password) is { } pe) return Outcome.Invalid<PushJobDto>(pe);
         var (hosts, terr) = PushInstall.ParseTargets(req.Targets);
@@ -83,12 +84,12 @@ public sealed class PushInstallService(IServiceScopeFactory scopes, IRemoteExecu
             $"{caller.Username} started a push install of the agent to {hosts.Count} computer(s) for {site.Client.Name} / {site.Name} as {job.Username}{(req.Force ? " (force)" : "")}: {string.Join(", ", hosts)}", ct: ct);
 
         var password = req.Password;
-        var run = new RunArgs(job, site.ClientId, site.Id, req.AgentType, req.Rdp, req.Ping, req.Power, api, url, InstallerCommands.FileName(version, req.Arch), password);
+        var run = new RunArgs(job, site.ClientId, site.Id, req.AgentType, req.Rdp, req.Ping, req.Power, req.NatsPort, api, url, InstallerCommands.FileName(version, req.Arch), password);
         _ = Task.Run(() => RunJobAsync(run));      // not tied to the HTTP request: the request returns immediately
         return Outcome.Ok(ToDto(job));
     }
 
-    private sealed record RunArgs(Job Job, int ClientId, int SiteId, string AgentType, bool Rdp, bool Ping, bool Power, string Api, string Url, string File, string Password);
+    private sealed record RunArgs(Job Job, int ClientId, int SiteId, string AgentType, bool Rdp, bool Ping, bool Power, int? NatsPort, string Api, string Url, string File, string Password);
 
     private async Task RunJobAsync(RunArgs a)
     {
@@ -132,7 +133,7 @@ public sealed class PushInstallService(IServiceScopeFactory scopes, IRemoteExecu
         var installer = await db.Users.AsNoTracking().Where(u => u.IsInstallerUser && u.IsActive).OrderBy(u => u.Id).FirstOrDefaultAsync()
             ?? throw new InvalidOperationException("no installer account");
         var (token, _) = await scope.ServiceProvider.GetRequiredService<ITokenService>().CreateInstallerTokenAsync(installer.Id, TimeSpan.FromHours(1));
-        var args = InstallerCommands.InstallArguments(a.Api, a.ClientId, a.SiteId, a.AgentType, token, a.Rdp, a.Ping, a.Power);
+        var args = InstallerCommands.InstallArguments(a.Api, a.ClientId, a.SiteId, a.AgentType, token, a.Rdp, a.Ping, a.Power, a.NatsPort);
         return PushInstall.RemoteScript(a.Url, a.File, args, a.Job.Force);
     }
 

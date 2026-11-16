@@ -13,6 +13,8 @@ public class InstallerRequest
     public bool Rdp { get; set; }
     public bool Ping { get; set; }
     public bool Power { get; set; }
+    /// <summary>NATS port the agent connects to directly (for example 4222). Empty: the agent's default, WebSocket on port 443 through a reverse proxy.</summary>
+    public int? NatsPort { get; set; }
     /// <summary>Public URL agents use to reach this server. Defaults to the URL of the current request.</summary>
     public string? Api { get; set; }
 }
@@ -29,6 +31,7 @@ public class PushInstallRequest
     public bool Rdp { get; set; }
     public bool Ping { get; set; }
     public bool Power { get; set; }
+    public int? NatsPort { get; set; }
     public string? Api { get; set; }
     /// <summary>Hostnames or IPv4 addresses, one per line (or comma separated).</summary>
     public string Targets { get; set; } = "";
