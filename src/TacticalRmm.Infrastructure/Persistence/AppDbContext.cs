@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<AgentHistory> AgentHistory => Set<AgentHistory>();
     public DbSet<Script> Scripts => Set<Script>();
+    public DbSet<ScriptSnippet> ScriptSnippets => Set<ScriptSnippet>();
     public DbSet<Check> Checks => Set<Check>();
     public DbSet<CheckResult> CheckResults => Set<CheckResult>();
     public DbSet<AutomatedTask> AutomatedTasks => Set<AutomatedTask>();
@@ -51,6 +52,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<AlertTemplate>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); });
         b.Entity<Client>().HasOne(x => x.AlertTemplate).WithMany().HasForeignKey(x => x.AlertTemplateId).OnDelete(DeleteBehavior.SetNull);
         b.Entity<Site>().HasOne(x => x.AlertTemplate).WithMany().HasForeignKey(x => x.AlertTemplateId).OnDelete(DeleteBehavior.SetNull);
+        b.Entity<ScriptSnippet>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(64); });
         b.Entity<CustomField>(e => { e.HasIndex(x => new { x.Model, x.Name }).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); e.Property(x => x.Model).HasMaxLength(10); e.Property(x => x.Type).HasMaxLength(20); });
         b.Entity<CustomFieldValue>(e => { e.HasIndex(x => new { x.FieldId, x.TargetId }).IsUnique(); e.HasOne(x => x.Field).WithMany().HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<NotificationChannel>(e => { e.HasIndex(x => x.Name).IsUnique(); e.Property(x => x.Name).HasMaxLength(100); e.Property(x => x.Kind).HasMaxLength(20); e.Property(x => x.LastError).HasMaxLength(400); });

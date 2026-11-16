@@ -94,6 +94,15 @@ public interface ICustomFieldService
     Task<Outcome<IReadOnlyList<CustomFieldValueDto>>> SetValuesAsync(User caller, string model, string target, CustomFieldValuesSet req, CancellationToken ct = default);
 }
 
+public interface ISnippetService
+{
+    Task<Outcome<IReadOnlyList<SnippetDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> GetAsync(int id, CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> CreateAsync(User caller, SnippetUpsert req, CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> UpdateAsync(User caller, int id, SnippetUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+}
+
 public interface IVncService
 {
     Task<Outcome<IReadOnlyList<VncCredentialDto>>> ListAsync(CancellationToken ct = default);
