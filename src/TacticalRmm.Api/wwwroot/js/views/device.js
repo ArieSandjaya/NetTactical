@@ -1,3 +1,4 @@
+import { customFieldsPanel } from '../customfields.js';
 import { h } from '../dom.js';
 import { api, download } from '../api.js';
 import { actionsCard, newActionsState } from '../actions.js';
@@ -16,6 +17,7 @@ export function deviceView(root, agentId) {
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   const id = encodeURIComponent(agentId);
+  const fields = customFieldsPanel('agent', agentId);   // created once: a refresh of the page must not lose what is being typed
 
   async function load(silent) {
     if (!silent) body.replaceChildren(h('div', { class: 'loading' }, 'Loading device details…'));
@@ -99,6 +101,8 @@ export function deviceView(root, agentId) {
           hl.factors.length
             ? h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } }, hl.factors.map((f) => h('span', { class: 'chipx', title: `−${f.penalty} points` }, `${f.detail} (−${f.penalty})`)))
             : h('span', { class: 'muted' }, 'No factors are lowering the score.'))),
+
+      fields.el,
 
       h('section', { class: 'row' },
         metricTile('CPU', d.metrics.cpu), metricTile('Memory', d.metrics.memory), metricTile('Fullest disk', d.metrics.disk_worst)),

@@ -185,6 +185,30 @@ public class AlertTemplatesController(IAlertTemplateAdminService svc) : Controll
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ custom fields
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("custom-fields")]
+public class CustomFieldsController(ICustomFieldService svc) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] string? model, CancellationToken ct) => this.ToResult(await svc.ListAsync(model, ct));
+
+    [HttpPost, RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Create(CustomFieldUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Update(int id, CustomFieldUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    // Reading and editing values is checked inside the service: the permission depends on the model, and the caller's client/site scope applies.
+    [HttpGet("values/{model}/{target}")]
+    public async Task<IActionResult> Values(string model, string target, CancellationToken ct) => this.ToResult(await svc.ValuesAsync(HttpContext.GetUser(), model, target, ct));
+
+    [HttpPut("values/{model}/{target}")]
+    public async Task<IActionResult> SetValues(string model, string target, CustomFieldValuesSet req, CancellationToken ct) => this.ToResult(await svc.SetValuesAsync(HttpContext.GetUser(), model, target, req, ct));
+}
+
 // ------------------------------------------------------------------------------------------ VNC
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class VncController(IVncService svc) : ControllerBase

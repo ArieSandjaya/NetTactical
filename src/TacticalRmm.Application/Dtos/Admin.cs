@@ -17,6 +17,8 @@ public static class Outcome
     public static Outcome<T> Forbidden<T>(string? msg = null) => new(OutcomeStatus.Forbidden, default, msg ?? "Forbidden");
     public static Outcome<T> Invalid<T>(string msg) => new(OutcomeStatus.Invalid, default, msg);
     public static Outcome<T> Conflict<T>(string msg) => new(OutcomeStatus.Conflict, default, msg);
+    /// <summary>The same failure with another value type (status and message are kept).</summary>
+    public static Outcome<T> Fail<T>(Outcome<int> failed) => new(failed.Status, default, failed.Error);
 }
 
 // ----------------------------------------------------------------------------- checks
