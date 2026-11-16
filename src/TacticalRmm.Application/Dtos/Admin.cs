@@ -19,6 +19,7 @@ public static class Outcome
     public static Outcome<T> Conflict<T>(string msg) => new(OutcomeStatus.Conflict, default, msg);
     /// <summary>The same failure with another value type (status and message are kept).</summary>
     public static Outcome<T> Fail<T>(Outcome<int> failed) => new(failed.Status, default, failed.Error);
+    public static Outcome<T> Fail<T>(OutcomeStatus status, string? error) => new(status, default, error);
 }
 
 // ----------------------------------------------------------------------------- checks

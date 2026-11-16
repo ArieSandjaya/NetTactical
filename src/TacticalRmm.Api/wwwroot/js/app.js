@@ -21,13 +21,14 @@ import { notificationsView } from './views/notifications.js';
 import { alertTemplatesView } from './views/alerttemplates.js';
 import { customFieldsView } from './views/customfields.js';
 import { snippetsView } from './views/snippets.js';
+import { reportsView } from './views/reports.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['reports', '#/reports', 'Reports'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
 const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView],
   '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/security': ['security', 'Security', securityView],
-  '#/checks': ['checks', 'Checks', checksView], '#/tasks': ['tasks', 'Tasks', tasksView], '#/policies': ['policies', 'Policies', policiesView], '#/scripts': ['scripts', 'Scripts', scriptsView], '#/audit': ['audit', 'Audit log', auditView], '#/notifications': ['notifications', 'Notifications', notificationsView], '#/alert-templates': ['alerttemplates', 'Alert templates', alertTemplatesView], '#/custom-fields': ['customfields', 'Custom fields', customFieldsView], '#/snippets': ['snippets', 'Snippets', snippetsView] };
+  '#/checks': ['checks', 'Checks', checksView], '#/tasks': ['tasks', 'Tasks', tasksView], '#/policies': ['policies', 'Policies', policiesView], '#/scripts': ['scripts', 'Scripts', scriptsView], '#/audit': ['audit', 'Audit log', auditView], '#/notifications': ['notifications', 'Notifications', notificationsView], '#/alert-templates': ['alerttemplates', 'Alert templates', alertTemplatesView], '#/custom-fields': ['customfields', 'Custom fields', customFieldsView], '#/snippets': ['snippets', 'Snippets', snippetsView], '#/reports': ['reports', 'Reports', reportsView] };
 
 // Line icons for the sidebar (24x24 grid, drawn with the current text colour).
 const ICONS = {
@@ -44,6 +45,7 @@ const ICONS = {
   users: ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', 'M23 21v-2a4 4 0 0 0-3-3.9', 'M16 3.1a4 4 0 0 1 0 7.8'],
   roles: ['M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z', 'M9 12l2 2 4-4'],
   notifications: ['M22 2L11 13', 'M22 2l-7 20-4-9-9-4z'],
+  reports: ['M5 20V10', 'M12 20V4', 'M19 20v-7'],
   snippets: ['M8 6l-5 6 5 6', 'M16 6l5 6-5 6', 'M14 4l-4 16'],
   customfields: ['M4 5h16', 'M4 12h16', 'M4 19h10', 'M18 17v4', 'M16 19h4'],
   alerttemplates: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
