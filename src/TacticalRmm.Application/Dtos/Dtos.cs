@@ -89,7 +89,6 @@ public class TacticalOptions
     public int UserTokenTtlHours { get; set; } = 5;
     public string LatestAgentVer { get; set; } = "2.12.0";
     public int MaxRequestSizeBytes { get; set; } = 10 * 1024 * 1024; // = TRMM_MAX_REQUEST_SIZE
-    public MeshOptions Mesh { get; set; } = new();
     public AgentRuntimeOptions Agent { get; set; } = new();
     /// <summary>How many days historical metrics are kept before the retention job deletes them.</summary>
     public int MetricRetentionDays { get; set; } = 90;
@@ -97,6 +96,18 @@ public class TacticalOptions
     public int MetricMinIntervalSeconds { get; set; } = 240;
     public HealthWeights Health { get; set; } = new();
     public VncOptions Vnc { get; set; } = new();
+    public PushOptions Push { get; set; } = new();
+}
+
+public class PushOptions
+{
+    /// <summary>PowerShell executable used for WinRM. Empty = auto (powershell.exe on Windows, pwsh elsewhere).</summary>
+    public string PowerShellPath { get; set; } = "";
+    /// <summary>Use HTTPS WinRM (5986) instead of HTTP (5985).</summary>
+    public bool UseSsl { get; set; }
+    public int MaxParallel { get; set; } = 4;
+    /// <summary>Upper bound per target, in seconds.</summary>
+    public int TargetTimeoutSeconds { get; set; } = 600;
 }
 
 public class VncOptions
@@ -189,16 +200,6 @@ public class TaskResultPayload
     [JsonPropertyName("stderr")] public string? Stderr { get; set; }
     [JsonPropertyName("runtime")] public double? Runtime { get; set; }
     [JsonPropertyName("execution_time")] public string? ExecutionTime { get; set; }
-}
-
-public class MeshOptions
-{
-    public string Site { get; set; } = "";            // e.g. https://mesh.example.com
-    public string Username { get; set; } = "";        // Mesh superuser account for the API
-    public string TokenKey { get; set; } = "";        // MESH_TOKEN_KEY (hex)
-    public string DeviceGroup { get; set; } = "TacticalRMM";
-    public bool UseExternal { get; set; }
-    public int LocalPort { get; set; } = 4430;
 }
 
 public class WinUpdateItem

@@ -168,6 +168,67 @@ public class PoliciesController(IPolicyAdminService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ alert templates
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("alert-templates")]
+public class AlertTemplatesController(IAlertTemplateAdminService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListAlerts)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost, RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Create(AlertTemplateUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Update(int id, AlertTemplateUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageAlerts)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
+// ------------------------------------------------------------------------------------------ custom fields
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("custom-fields")]
+public class CustomFieldsController(ICustomFieldService svc) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] string? model, CancellationToken ct) => this.ToResult(await svc.ListAsync(model, ct));
+
+    [HttpPost, RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Create(CustomFieldUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Update(int id, CustomFieldUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageCustomFields)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    // Reading and editing values is checked inside the service: the permission depends on the model, and the caller's client/site scope applies.
+    [HttpGet("values/{model}/{target}")]
+    public async Task<IActionResult> Values(string model, string target, CancellationToken ct) => this.ToResult(await svc.ValuesAsync(HttpContext.GetUser(), model, target, ct));
+
+    [HttpPut("values/{model}/{target}")]
+    public async Task<IActionResult> SetValues(string model, string target, CustomFieldValuesSet req, CancellationToken ct) => this.ToResult(await svc.SetValuesAsync(HttpContext.GetUser(), model, target, req, ct));
+}
+
+// ------------------------------------------------------------------------------------------ script snippets
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("script-snippets")]
+public class ScriptSnippetsController(ISnippetService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListScripts)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpGet("{id:int}"), RequirePerm(Perm.ListScripts)]
+    public async Task<IActionResult> Get(int id, CancellationToken ct) => this.ToResult(await svc.GetAsync(id, ct));
+
+    [HttpPost, RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Create(SnippetUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Update(int id, SnippetUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageScripts)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
 // ------------------------------------------------------------------------------------------ VNC
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class VncController(IVncService svc) : ControllerBase
@@ -209,4 +270,73 @@ public class InstallerController(IInstallerService svc) : ControllerBase
         Response.Headers.CacheControl = "no-store";
         return this.ToResult(await svc.GenerateAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
     }
+}
+
+/// <summary>Push install: the server installs the agent on remote Windows computers with a domain administrator account (WinRM).</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("installer/push"), RequirePerm(Perm.PushInstall)]
+public class PushInstallController(IPushInstallService svc) : ControllerBase
+{
+    /// <summary>The body carries the domain credential, so nothing is cached. Returns a job immediately; poll GET {id}.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Start(PushInstallRequest req, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.StartAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
+    }
+
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(HttpContext.GetUser(), ct));
+
+    [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
+}
+
+// ------------------------------------------------------------------------------------------ Windows Update
+[ApiController, Authorize(AuthDefaults.DashboardPolicy)]
+public class WinUpdateAdminController(IWinUpdateAdminService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> Allowed(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet("agents/{agentId}/winupdates"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> List(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.ListAsync(agentId, ct));
+
+    [HttpPut("agents/{agentId}/winupdates/action"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> SetAction(string agentId, WinUpdateActionRequest req, CancellationToken ct) =>
+        !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.SetActionAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpPost("agents/{agentId}/winupdates/scan"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> Scan(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.ScanAsync(HttpContext.GetUser(), agentId, ct));
+
+    [HttpPost("agents/{agentId}/winupdates/install"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> Install(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.InstallNowAsync(HttpContext.GetUser(), agentId, ct));
+
+    [HttpGet("agents/{agentId}/winupdates/policy"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> GetAgentPolicy(string agentId, CancellationToken ct) => !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.GetAgentPolicyAsync(agentId, ct));
+
+    [HttpPut("agents/{agentId}/winupdates/policy"), RequirePerm(Perm.ManageWinUpdates)]
+    public async Task<IActionResult> SaveAgentPolicy(string agentId, WinUpdatePolicyDto req, CancellationToken ct) =>
+        !await Allowed(agentId, ct) ? Forbid() : this.ToResult(await svc.SaveAgentPolicyAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpGet("automation/policies/{id:int}/winupdates"), RequirePerm(Perm.ListPolicies)]
+    public async Task<IActionResult> GetPolicy(int id, CancellationToken ct) => this.ToResult(await svc.GetPolicyAsync(id, ct));
+
+    [HttpPut("automation/policies/{id:int}/winupdates"), RequirePerm(Perm.ManagePolicies)]
+    public async Task<IActionResult> SavePolicy(int id, WinUpdatePolicyDto req, CancellationToken ct) => this.ToResult(await svc.SavePolicyAsync(HttpContext.GetUser(), id, req, ct));
+}
+
+// ------------------------------------------------------------------------------------------ Alert notifications
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("notifications/channels"), RequirePerm(Perm.ManageNotifications)]
+public class NotificationsController(INotificationAdminService svc) : ControllerBase
+{
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost]
+    public async Task<IActionResult> Create(NotificationChannelUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, NotificationChannelUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    [HttpPost("{id:int}/test")]
+    public async Task<IActionResult> Test(int id, CancellationToken ct) => this.ToResult(await svc.TestAsync(HttpContext.GetUser(), id, ct));
 }

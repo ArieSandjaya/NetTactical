@@ -1,4 +1,5 @@
 using TacticalRmm.Application.Dtos;
+using TacticalRmm.Application.Logic;
 using TacticalRmm.Domain.Entities;
 
 namespace TacticalRmm.Application.Abstractions;
@@ -74,6 +75,34 @@ public interface IPolicyAdminService
     Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
 }
 
+public interface IAlertTemplateAdminService
+{
+    Task<Outcome<IReadOnlyList<AlertTemplateDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<AlertTemplateDto>> CreateAsync(User caller, AlertTemplateUpsert req, CancellationToken ct = default);
+    Task<Outcome<AlertTemplateDto>> UpdateAsync(User caller, int id, AlertTemplateUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+}
+
+public interface ICustomFieldService
+{
+    Task<Outcome<IReadOnlyList<CustomFieldDto>>> ListAsync(string? model, CancellationToken ct = default);
+    Task<Outcome<CustomFieldDto>> CreateAsync(User caller, CustomFieldUpsert req, CancellationToken ct = default);
+    Task<Outcome<CustomFieldDto>> UpdateAsync(User caller, int id, CustomFieldUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Every field of the model with this target's value. Target is the client or site id, or the agent_id string.</summary>
+    Task<Outcome<IReadOnlyList<CustomFieldValueDto>>> ValuesAsync(User caller, string model, string target, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<CustomFieldValueDto>>> SetValuesAsync(User caller, string model, string target, CustomFieldValuesSet req, CancellationToken ct = default);
+}
+
+public interface ISnippetService
+{
+    Task<Outcome<IReadOnlyList<SnippetDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> GetAsync(int id, CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> CreateAsync(User caller, SnippetUpsert req, CancellationToken ct = default);
+    Task<Outcome<SnippetDto>> UpdateAsync(User caller, int id, SnippetUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+}
+
 public interface IVncService
 {
     Task<Outcome<IReadOnlyList<VncCredentialDto>>> ListAsync(CancellationToken ct = default);
@@ -86,8 +115,49 @@ public interface IVncService
     Task<Outcome<VncFileDto>> PrepareFileAsync(User caller, string agentId, CancellationToken ct = default);
 }
 
+public interface INotificationAdminService
+{
+    Task<Outcome<IReadOnlyList<NotificationChannelDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<NotificationChannelDto>> CreateAsync(User caller, NotificationChannelUpsert req, CancellationToken ct = default);
+    Task<Outcome<NotificationChannelDto>> UpdateAsync(User caller, int id, NotificationChannelUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Sends a sample alert to one channel now and reports the result.</summary>
+    Task<Outcome<NotificationTestResult>> TestAsync(User caller, int id, CancellationToken ct = default);
+}
+
+/// <summary>Hands alert events to the background sender; never blocks and never throws.</summary>
+public interface INotificationQueue { void Enqueue(AlertEvent e); }
+
 public interface IInstallerService
 {
     /// <param name="defaultApi">Used when the request does not name the public API URL (the URL of the current request).</param>
     Task<Outcome<InstallerDto>> GenerateAsync(User caller, InstallerRequest req, string defaultApi, CancellationToken ct = default);
+}
+
+/// <summary>Runs a PowerShell script on a remote Windows computer over WinRM with explicit credentials.</summary>
+public interface IRemoteExecutor
+{
+    Task<RemoteRunResult> RunAsync(RemoteRunRequest request, CancellationToken ct = default);
+}
+
+public interface IPushInstallService
+{
+    /// <summary>Validates, then starts a background push and returns at once; poll <see cref="GetAsync"/>.</summary>
+    Task<Outcome<PushJobDto>> StartAsync(User caller, PushInstallRequest req, string defaultApi, CancellationToken ct = default);
+    Task<Outcome<PushJobDto>> GetAsync(User caller, string id, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<PushJobDto>>> ListAsync(User caller, CancellationToken ct = default);
+}
+
+public interface IWinUpdateAdminService
+{
+    Task<Outcome<IReadOnlyList<WinUpdateDto>>> ListAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<int>> SetActionAsync(User caller, string agentId, WinUpdateActionRequest req, CancellationToken ct = default);
+    /// <summary>Asks the agent to scan Windows Update now; the result arrives through the normal agent callback.</summary>
+    Task<Outcome<bool>> ScanAsync(User caller, string agentId, CancellationToken ct = default);
+    /// <summary>Installs the approved, not yet installed updates now.</summary>
+    Task<Outcome<WinUpdateInstallResult>> InstallNowAsync(User caller, string agentId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> GetAgentPolicyAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> SaveAgentPolicyAsync(User caller, string agentId, WinUpdatePolicyDto req, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> GetPolicyAsync(int policyId, CancellationToken ct = default);
+    Task<Outcome<WinUpdatePolicyView>> SavePolicyAsync(User caller, int policyId, WinUpdatePolicyDto req, CancellationToken ct = default);
 }

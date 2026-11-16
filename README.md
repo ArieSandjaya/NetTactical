@@ -19,7 +19,7 @@ Check, AutomatedTask, Alert (dashboard), Script, run script/cmd/ping/reboot via 
 
 **All of the agent's `/api/v3` endpoints now exist** (apart from those listed below): `checkin`, `config`, `checkrunner`, `runchecks`, `checkinterval`,
 `taskrunner`, `newagent`, `syncmesh`, `choco`, `software`, `winupdates` (PUT/PATCH/POST), `superseded`, `histresult`, `installer` (GET/POST),
-`meshexe`, `meshreinstall`. The MeshCentral integration (AES-GCM token, device group listing via WebSocket, installer download) is configured through `Tactical:Mesh`.
+`meshexe`, `meshreinstall`. `meshexe` and `meshreinstall` only answer 400 "MeshCentral is not used"; `syncmesh` just stores the node id.
 
 ## Dashboard CRUD (new)
 - **Check** — `GET agents/{agentId}/checks`, `GET automation/policies/{id}/checks`, `GET/PUT/DELETE checks/{id}`, `POST checks` (per-type validation: disk, cpu, memory, ping, winsvc, script, eventlog; the ping host is checked against injection).
@@ -64,18 +64,57 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - The token belongs to the installer account and has a fixed expiry; unlike dashboard sessions it is never auto-extended.
 - Anyone holding the token can enroll an agent in any client/site until it expires. Treat it like a password. The page says so and the response is sent with `Cache-Control: no-store`.
 - Requires the new permission `can_install_agents` (superusers have it). Every generation is written to the audit log.
-- The agent is installed **without** the MeshCentral agent by default (`--nomesh`, per the Tactical RMM docs; "Take Control" then does not work, use VNC instead). Tick *Install MeshCentral agent* on the page only if you run MeshCentral. Agents that already have the Mesh agent keep it until you remove the "Mesh Agent" service/program on that computer.
+- Agents are always installed **without** the MeshCentral agent (`--nomesh`, per the Tactical RMM docs; "Take Control" does not exist here, use VNC instead). MeshCentral is not used by this project at all. An agent that already has the Mesh agent keeps it until you remove the "Mesh Agent" program on that computer.
 - The server URL defaults to the address you are browsing; override it in the form if agents reach the server under another name. Use https in production.
 - Verification: command building and input validation are unit-tested; the page was checked against a mock API. The generated commands follow upstream's manual install sequence but have not been run on a real Windows machine or against a real server.
+
+## Notifications (email / webhook)
+`#/notifications` (permission `can_manage_notifications`, superusers have it) manages channels. When an alert opens or resolves (check, task or offline agent whose email-alert flag is on), every enabled matching channel gets a message.
+- **Email**: SMTP with STARTTLS (implicit TLS/465 is not supported). **Webhook**: JSON or Slack format; JSON bodies carry an HMAC-SHA256 `X-NetTactical-Signature`.
+- Secrets (SMTP password, webhook secret) are stored AES-GCM encrypted and never returned by the API. Webhook URLs to loopback/link-local/private-metadata addresses are refused, redirects are not followed.
+- Each channel has a Test button. Sending is queued in the background and never blocks agent check-in.
+- Verified with unit tests and a mock API; not yet against a real SMTP server or webhook receiver.
+
+## Push install (domain administrator)
+The **Install agent** page (`#/installer`) has a second card, *Push install with a domain administrator*: the server installs the agent on up to 20 computers at once over PowerShell remoting (WinRM), using the client/site/options chosen at the top. Needs the permission `can_push_install` (superusers have it); every push is audited (who, which computers, which account; never the password).
+- **Credential**: `DOMAIN\user` or `user@domain.tld`, typed for each push. It is sent to the server over your HTTPS session, handed to PowerShell on standard input, and never stored, logged or returned. Use a dedicated deployment account and always put the server behind HTTPS.
+- **Safety**: if any computer rejects the credential the rest of the job is skipped, so a wrong password cannot lock the domain account. Targets must be hostnames or private IPv4 addresses (loopback, link-local and multicast are refused). Each computer gets its own 1-hour installer token.
+- **Force reinstall** runs the existing uninstaller first, then installs again. Without it an already installed computer is reported as *Already installed*.
+- **Requirements on the target**: WinRM enabled (`winrm quickconfig` or the GPO *Allow remote server management through WinRM*), firewall open on 5985 (or 5986 with `Tactical:Push:UseSsl`), the account is a local administrator (Domain Admins normally is), and the computer can download the agent from GitHub.
+- **Requirements on the server**: PowerShell. Windows: the built-in `powershell.exe`. When using hostnames the domain account authenticates with Kerberos; for IP addresses add them to the WinRM client's TrustedHosts (`Set-Item WSMan:\localhost\Client\TrustedHosts -Value 10.0.0.*`). Docker/Linux: build with `docker compose build --build-arg WITH_POWERSHELL=true` (installs PowerShell 7 and `gss-ntlmssp`); NTLM then works for domain accounts, Kerberos does not.
+- Settings: `Tactical:Push:PowerShellPath`, `UseSsl`, `MaxParallel` (4), `TargetTimeoutSeconds` (600). Jobs are kept in memory for 6 hours and lost when the server restarts.
+- Verified: validation, script generation, error classification and secret scrubbing (unit tests), and the page against a mock API. **Not verified**: the PowerShell/WinRM execution itself has never run against a real Windows computer or domain, and the Docker PowerShell option has not been built.
+
+## Windows Update approval and schedule
+- **Per computer**: device page, tab **Patch**. Select updates and *Approve* / *Ignore* / *Reset*; *Scan now* asks the agent to rescan; *Install approved now* installs the approved ones immediately (the agent must answer a ping). *Settings* edits that computer's own rules.
+- **Per automation policy**: **Policies** page, button **Updates**. Applies to every agent using the policy (unless inheritance is blocked or the agent overrides a field).
+- **Rules** (agent over policy, field by field, `inherit` falls through): approve/ignore by severity (critical, important, moderate, low, other); install schedule `never / daily / weekly (weekdays) / monthly (day)` at an hour in the **agent's time zone**; reboot after install (`never / only if required / always`). New updates reported by the agent get the automatic decision at once; saving settings applies them to updates that nobody decided on yet. A manual Approve/Ignore is never overwritten. With no rule set, updates wait for a manual decision.
+- **Scheduler**: a background job checks once a minute, and during the scheduled hour sends the approved updates to every agent that answers a ping (an offline agent is retried each minute until the hour ends, then waits for the next run). Needs permission `can_manage_winupdates` to change anything (superusers have it); changes are audited.
+- Existing databases get the new columns automatically at start-up (`SchemaUpgrade`).
+- Verified: rule logic (unit tests) and the pages against a mock API. **Not verified**: the NATS commands `getwinupdates` and `installwinupdates` (with `guids`) are taken from the upstream agent protocol but have not been run against a real agent; if the agent's time zone name cannot be resolved on the server the schedule falls back to UTC.
 
 ## Security notes
 - **MessagePack**: upgraded `2.5.172` -> `2.5.303` (fixes the 2.x advisories CVE-2024-48924, CVE-2026-48510, CVE-2026-48512 and CVE-2026-92707; the 3.x line is fixed in 3.1.9). Replies from endpoints are decoded through `AgentReplyDecoder`: 32 MB size cap, `MessagePackSecurity.UntrustedData`, object-graph depth limit 32, and malformed input returns `"malformed"` instead of throwing. The stack uses plain NATS, so use a TLS-protected link where possible.
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
+## Script snippets
+Reusable pieces of script (`#/snippets`; listing needs `can_list_scripts`, changes need `can_manage_scripts`). Write `{{name}}` in a script and the snippet's code is put there each time the script runs on an agent: a script run from the dashboard, a script action of an automated task, and a script check.
+- Names are letters, digits, `-` and `_`. Editing a snippet changes every script that uses it. A snippet cannot be renamed, and cannot be deleted while a script still uses it (the page shows how many do).
+- Insertion happens once: a snippet that contains `{{other}}` does not pull in another snippet (so nothing can loop). Unknown names are left as written. The result is limited to 1,000,000 characters.
+- API: `GET/POST /script-snippets`, `GET/PUT/DELETE /script-snippets/{id}`.
+- Not included: snippets inside script arguments or environment variables, and `{{client.Field}}` custom-field placeholders.
+
+## Custom fields
+Fields an administrator defines once for **clients, sites or assets** (`#/custom-fields`, permission `can_manage_custom_fields`). Types: text, number, yes/no, date and time, pick one (with a list of choices). A field can have a default value that shows wherever no value is set.
+- Values are edited on the Clients & Sites page (button **Fields** on a client or site; needs `can_manage_clients` / `can_manage_sites`) and on each asset's page (needs `can_edit_agent`). Reading needs the matching list permission, and the role's client/site scope applies.
+- API: `GET/POST /custom-fields`, `PUT/DELETE /custom-fields/{id}`, `GET/PUT /custom-fields/values/{model}/{target}` (`target` is the client or site id, or the asset's `agent_id`). A blank value removes the value.
+- A field's model and type cannot change after creation. Removing a choice from a pick-one field clears that value where it was used. Deleting a field, client, site or asset deletes its values.
+- Not included: using fields inside scripts (`{{client.Name}}`), a "required" flag, multiple-choice, and filling a field from a check result.
+
 ## Not covered (deliberately, "core first")
-Full policy inheritance (client/site level), automatic winupdate scheduling & approval, chocolatey installation, file transfer, the 'collector' result to custom field (histresult), Mesh permission sync (`run_sync_task`), terminal & WebSocket (SignalR),
-email/SMS/webhook notifications, AlertTemplate, custom fields, script snippets, reporting & SSO (`ee/`, separate sponsor licence), Mesh.
+Chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
+SMS notifications, alert templates beyond the simple "always notify" flags (no custom messages, no per-template email recipients), placeholders such as `{{client.Field}}` in scripts, custom-field results from checks, reporting & SSO (`ee/`, separate sponsor licence).
 
 ## VNC remote control (TightVNC already on the endpoints)
 Instead of MeshAgent, the dashboard can open the TightVNC that is already installed on an asset (useful when the antivirus blocks MeshAgent). Nothing is installed by us.
@@ -85,8 +124,67 @@ Instead of MeshAgent, the dashboard can open the TightVNC that is already instal
   - `GET/POST /vnc/credentials`, `PUT/DELETE /vnc/credentials/{id}`
 - **Target address** — taken only from the asset's own record (local IPs from the agent's hardware inventory, `wmi_detail`), never from the request. Only private LAN addresses (10/8, 172.16/12, 192.168/16) are contacted unless `Tactical:Vnc:AllowPublicTargets` is set. Port: `Tactical:Vnc:Port` (5900).
 - The API server must be able to reach port 5900 of the assets (same LAN, as here) and the viewer machine as well, since the viewer connects directly. VNC is not encrypted: restrict port 5900 with the Windows firewall to the admin/RMM subnets.
-- Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases created earlier need `ALTER TABLE agents_agent ADD COLUMN wmi_detail jsonb;`.
+- Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases are upgraded automatically at startup (`SchemaUpgrade`, idempotent SQL), so no manual `ALTER TABLE` is needed.
 - Verified: DES/obfuscation against OpenSSL, the handshake against a fake VNC server (wrong password, protocol 3.3, refusal, unsupported, timeout). Not verified against a real TightVNC server or viewer.
+
+## Agents need NATS (read this if agents stay offline)
+
+Agents connect to a **NATS server** (port 4222) and the API sends commands through it. Running only the API (for example from Visual Studio) is not enough: the log shows `can not connect uris: nats://127.0.0.1:4222`, agents cannot connect, and every command to an agent fails.
+
+- Easiest: install Docker Desktop and run the whole stack: `docker compose up -d --build` (see Docker Compose below). It starts PostgreSQL, NATS (with the original `nats-api`) and the API. Dashboard: `http://localhost:8080`.
+- Check NATS from PowerShell: `Test-NetConnection 127.0.0.1 -Port 4222` must say `TcpTestSucceeded : True`.
+- Endpoints must reach this computer on the API port and on 4222 (open both in Windows Firewall). Generate the installer with the server's LAN address (for example `http://192.168.1.10:8080`), not `localhost`.
+- When NATS is down the API now answers a command within about 3 seconds with "NATS down" instead of waiting up to a minute (which made the dashboard look frozen).
+- Running the API alone on Windows also prints `nats-server reload failed`; that is harmless and is now a single informational line.
+
+## Windows (Docker Desktop)
+
+Everything runs in Docker, so Windows works the same as a Linux server. Requirements: Windows 10/11 (64-bit) with Docker Desktop (WSL2 backend) installed and running.
+
+```
+git clone https://github.com/ArieSandjaya/NetTactical.git
+cd NetTactical
+scripts\windows\nettactical.cmd setup      # creates .env with generated secrets and prints the first admin login
+scripts\windows\nettactical.cmd up         # builds and starts PostgreSQL + NATS + API
+scripts\windows\nettactical.cmd firewall   # as Administrator: opens the API and NATS ports (Private/Domain networks only)
+scripts\windows\nettactical.cmd status     # containers and port checks
+```
+
+Other commands: `logs [api|nats|db]`, `down`, `update` (git pull + rebuild), `backup` (database dump into `backups\`). `setup` picks this computer's LAN address for `PUBLIC_URL` (agents use it); change it in `.env` if endpoints reach it under another name or behind HTTPS, then run `up` again.
+
+Notes
+- Use the **Docker** route for agents: the Visual Studio profile starts only the API, so NATS is missing and agents stay offline (see "Agents need NATS").
+- `.gitattributes` forces LF endings for files used inside the Linux containers; without it Git for Windows can turn `entrypoint.sh` into CRLF and the NATS container fails to start.
+- These scripts were written without access to a Windows machine and have not been run; if one fails, send the message.
+- A fully native route (API, PostgreSQL and NATS installed directly on Windows, no Docker) is not provided: the upstream `nats-api` is published only as a Linux binary.
+
+## Developing from Visual Studio
+
+Running only the API from Visual Studio leaves NATS and `nats-api` missing, so agents cannot connect. Run PostgreSQL and NATS in Docker and the API from Visual Studio:
+
+1. Create `.env` (Windows: `scripts\windows\nettactical.cmd setup`, otherwise copy `.env.example`). Keep the values: the API settings below must match them.
+2. Start the two containers:
+   ```
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db nats
+   ```
+   This publishes PostgreSQL on `127.0.0.1:5432` (set `DB_PORT` in `.env` if that port is taken) and NATS on `4222`, and shares the folder `.dev\nats` with the container.
+3. Add `src\TacticalRmm.Api\appsettings.Development.json` (not committed with real values; use your own `.env` values):
+   ```json
+   {
+     "ConnectionStrings": { "Default": "Host=127.0.0.1;Port=5432;Database=tacticalrmm;Username=tactical;Password=<POSTGRES_PASSWORD from .env>" },
+     "Tactical": {
+       "SecretKey": "<TACTICAL_SECRET_KEY from .env>",
+       "NatsUrl": "nats://127.0.0.1:4222",
+       "NatsConfPath": "C:\\path\\to\\NetTactical\\.dev\\nats\\nats-rmm.conf",
+       "NatsServerBin": ""
+     }
+   }
+   ```
+   `NatsServerBin` stays empty because the container reloads nats-server itself. The password and secret key must be exactly those in `.env`, or `nats-api` and the API cannot talk to the database and NATS.
+4. Start the API from Visual Studio. Check that `Test-NetConnection 127.0.0.1 -Port 4222` succeeds.
+5. For agents on other computers the API must listen on the network: use `http://0.0.0.0:<port>` as `applicationUrl` in `launchSettings.json`, open that port and 4222 in Windows Firewall, and put the LAN address (not `localhost`) in the installer's Server URL.
+
+This mode was prepared without a Windows machine and has not been run.
 
 ## Docker Compose
 `docker compose up -d --build` starts three containers: **db** (PostgreSQL 16), **nats** (nats-server + the unchanged upstream `nats-api`, downloaded at image build time from the Tactical RMM `v1.6.1` tag, not stored in this repo) and **api** (this project, serving the dashboard on `http://localhost:8080/`).
@@ -113,7 +211,7 @@ The installer token is shown once in the log on first run.
 ## Verification status (honest)
 - `Domain` + `Application` were built and tested: **59 + 123 logic assertions pass, plus 12 tests for the health score, metric rules, and agent data parser** (check evaluation, permissions, Mesh AES-GCM token, Mesh URLs, installer version, superseded updates, reboot decisions; Check/Task validators, Task Scheduler payload, account rules). The new CRUD services & controllers were only compiled against stubs — they have not been run against Postgres.
 - The whole solution **compiled successfully** against temporary stubs for EF Core / NATS / MessagePack (the ASP.NET parts were compiled with the real SDK). This only proves the code is self-consistent, **not** that the calls into those packages' APIs are correct.
-- `dotnet build` has never been run with the real NuGet packages, and nothing has been tested against a real Go agent, NATS, MeshCentral, or Postgres.
+- `dotnet build` has never been run with the real NuGet packages, and nothing has been tested against a real Go agent, NATS, or Postgres.
 - There is no `NuGet.config` in this zip; the build uses nuget.org as usual.
 
 ## Licence & origin

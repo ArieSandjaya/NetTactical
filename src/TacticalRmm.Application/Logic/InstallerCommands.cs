@@ -33,17 +33,16 @@ public static partial class InstallerCommands
         VerRx().IsMatch(version) && Architectures.Contains(arch)
             ? $"https://github.com/amidaware/rmmagent/releases/download/v{version}/{FileName(version, arch)}" : null;
 
-    public static string InstallArguments(string api, int clientId, int siteId, string agentType, string token, bool rdp, bool ping, bool power, bool noMesh = false)
+    public static string InstallArguments(string api, int clientId, int siteId, string agentType, string token, bool rdp, bool ping, bool power)
     {
         if (ValidateApi(api) is { } e) throw new ArgumentException(e);
         if (!AgentTypes.Contains(agentType)) throw new ArgumentException("agent type must be workstation or server");
         if (!TokenRx().IsMatch(token)) throw new ArgumentException("invalid token");
         var parts = new List<string> { "-m", "install", "--api", $"\"{NormalizeApi(api)}\"", "--client-id", clientId.ToString(), "--site-id", siteId.ToString(),
-            "--agent-type", $"\"{agentType}\"", "--auth", $"\"{token}\"" };
+            "--agent-type", $"\"{agentType}\"", "--auth", $"\"{token}\"", "--nomesh" };   // MeshCentral is not used: skip its agent
         if (rdp) parts.Add("--rdp");
         if (ping) parts.Add("--ping");
         if (power) parts.Add("--power");
-        if (noMesh) parts.Add("--nomesh");   // skip the MeshCentral agent; "Take Control" will not work
         return string.Join(' ', parts);
     }
 

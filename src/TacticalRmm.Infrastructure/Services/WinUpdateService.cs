@@ -25,17 +25,8 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
         await DeleteSupersededAsync(agent.Id, ct);
     }
 
-    private async Task<string> EffectiveRebootPolicyAsync(Agent agent, CancellationToken ct)
-    {
-        var own = await db.WinUpdatePolicies.AsNoTracking().FirstOrDefaultAsync(p => p.AgentId == agent.Id, ct);
-        var agentValue = own?.RebootAfterInstall ?? "inherit";
-        if (agentValue != "inherit" || agent.PolicyId is null || agent.BlockPolicyInheritance) return agentValue;
-
-        var active = await db.Policies.AsNoTracking().AnyAsync(p => p.Id == agent.PolicyId && p.Active, ct);
-        if (!active) return agentValue;
-        var pol = await db.WinUpdatePolicies.AsNoTracking().FirstOrDefaultAsync(p => p.PolicyId == agent.PolicyId, ct);
-        return PatchPolicyResolver.EffectiveReboot(agentValue, pol?.RebootAfterInstall);
-    }
+    private async Task<string> EffectiveRebootPolicyAsync(Agent agent, CancellationToken ct) =>
+        (await PatchPolicyLoader.EffectiveAsync(db, agent, ct)).Reboot;
 
     public async Task<bool> MarkResultAsync(Agent agent, string guid, bool success, CancellationToken ct = default)
     {
@@ -53,6 +44,7 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
         if (updates.Count == 0) return false;
 
         var existing = await db.WinUpdates.Where(x => x.AgentId == agent.Id).ToListAsync(ct);
+        var effective = await PatchPolicyLoader.EffectiveAsync(db, agent, ct);
         var returned = new HashSet<string>();
         foreach (var item in updates)
         {
@@ -67,7 +59,8 @@ public sealed class WinUpdateService(AppDbContext db, IAgentCommandBus bus, IAud
                 Installed = item.Installed, Downloaded = item.Downloaded, Description = item.Description,
                 Severity = item.Severity, Categories = item.Categories ?? new(), CategoryIds = item.CategoryIds ?? new(),
                 KbArticleIds = item.KbArticleIds, MoreInfoUrls = item.MoreInfoUrls ?? new(),
-                SupportUrl = item.SupportUrl, RevisionNumber = item.RevisionNumber
+                SupportUrl = item.SupportUrl, RevisionNumber = item.RevisionNumber,
+                Action = item.Installed ? "nothing" : WinUpdateRules.AutoAction(effective, item.Severity)
             });
         }
 

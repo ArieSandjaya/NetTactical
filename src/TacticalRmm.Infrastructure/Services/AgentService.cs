@@ -88,6 +88,7 @@ public sealed class AgentService(
             db.AgentTokens.RemoveRange(db.AgentTokens.Where(t => t.UserId == user.Id));
             db.Users.Remove(user);
         }
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => v.Field.Model == "agent" && v.TargetId == agent.Id));
         db.Agents.Remove(agent);
         await db.SaveChangesAsync(ct);
         await audit.LogAsync(username, AuditAction.Delete, "agent", $"{username} deleted agent {agent.Hostname}", agent.Hostname, null, null, ct);
@@ -111,7 +112,7 @@ public sealed class AgentService(
             ["func"] = "runscript",
             ["timeout"] = timeout,
             ["script_args"] = ScriptArgParser.Parse(agent, script.Shell, req.Args ?? script.Args),
-            ["payload"] = new Dictionary<string, object?> { ["code"] = script.ScriptBody, ["shell"] = script.Shell },
+            ["payload"] = new Dictionary<string, object?> { ["code"] = await SnippetExpander.ExpandAsync(db, script.ScriptBody, ct), ["shell"] = script.Shell },
             ["run_as_user"] = runAsUser,
             ["env_vars"] = ScriptArgParser.Parse(agent, script.Shell, req.EnvVars ?? script.EnvVars),
             ["nushell_enable_config"] = opt.Value.Agent.NushellEnableConfig,

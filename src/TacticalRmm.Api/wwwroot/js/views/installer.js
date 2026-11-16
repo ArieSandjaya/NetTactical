@@ -1,14 +1,16 @@
 import { h } from '../dom.js';
 import { api } from '../api.js';
 import { loader } from '../ui.js';
-import { field, check, select, notice, btn } from '../forms.js';
+import { field, check, select, notice, btn, input } from '../forms.js';
 
 // Agent installer generator: pick client/site, get a time-limited token plus copy-ready install commands.
 const HOURS = [[1, '1 hour'], [8, '8 hours'], [24, '24 hours'], [72, '3 days'], [168, '7 days'], [720, '30 days']];
 
 export function installerView(root) {
   const st = { clients: null, notice: null, busy: false, result: null, copied: null,
-    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, mesh: false, api: '' } };
+    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, api: '' },
+    push: { targets: '', username: '', password: '', force: false }, job: null, pushBusy: false, pushNotice: null };
+  let timer = null;
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
 
@@ -23,7 +25,7 @@ export function installerView(root) {
     const f = st.form;
     st.busy = true; st.notice = null; st.result = null; paint();
     try {
-      const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, expires_hours: Number(f.expires_hours), rdp: f.rdp, ping: f.ping, power: f.power, install_mesh: f.mesh };
+      const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, expires_hours: Number(f.expires_hours), rdp: f.rdp, ping: f.ping, power: f.power };
       if (f.api.trim()) payload.api = f.api.trim();
       st.result = await api('installer/generate', { method: 'POST', body: payload });
     } catch (e) { st.notice = { ok: false, msg: e.message }; }
@@ -58,6 +60,63 @@ export function installerView(root) {
       block('token', 'Installer token', r.token));
   }
 
+  // ---- push install (domain administrator over WinRM). The password lives only in st.push until Start is pressed, then it is wiped.
+  async function pollJob() {
+    clearTimeout(timer); timer = null;
+    if (!st.job || st.job.state === 'done') return;
+    try { st.job = await api(`installer/push/${st.job.id}`); } catch (e) { st.pushNotice = { ok: false, msg: e.message }; paint(); return; }
+    paint();
+    if (st.job.state !== 'done') timer = setTimeout(pollJob, 2000);
+  }
+
+  async function startPush() {
+    const f = st.form, p = st.push;
+    if (!p.targets.trim() || !p.username.trim() || !p.password) { st.pushNotice = { ok: false, msg: 'Enter the computers, the administrator account and its password.' }; paint(); return; }
+    st.pushBusy = true; st.pushNotice = null; paint();
+    try {
+      const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, rdp: f.rdp, ping: f.ping, power: f.power,
+        targets: p.targets, username: p.username.trim(), password: p.password, force: p.force };
+      if (f.api.trim()) payload.api = f.api.trim();
+      st.job = await api('installer/push', { method: 'POST', body: payload });
+      p.password = '';                                   // never kept after the request
+      timer = setTimeout(pollJob, 1500);
+    } catch (e) { st.pushNotice = { ok: false, msg: e.message }; }
+    st.pushBusy = false; paint();
+  }
+
+  const STATUS = { queued: ['neutral', 'Waiting'], running: ['info', 'Installing…'], installed: ['good', 'Installed'], already_installed: ['warn', 'Already installed'], failed: ['crit', 'Failed'], skipped: ['neutral', 'Skipped'] };
+
+  function pushCard() {
+    const p = st.push, j = st.job;
+    const running = j && j.state !== 'done';
+    const pw = input('password', p, 'password', '', { autocomplete: 'new-password', spellcheck: 'false' });
+    const ta = h('textarea', { class: 'search', rows: '5', style: { maxWidth: 'none', flex: 'none', height: 'auto', fontFamily: 'monospace' }, placeholder: 'PC-01\nPC-02\n10.0.0.25', spellcheck: 'false', autocomplete: 'off' });
+    ta.value = p.targets; ta.addEventListener('input', () => { p.targets = ta.value; });
+    return h('section', { class: 'card stack', style: { gap: '14px' } },
+      h('h2', { style: { fontSize: '16px' } }, 'Push install with a domain administrator'),
+      h('p', { class: 'muted' }, 'The server installs the agent on the computers below over WinRM (port 5985/5986), using the client, site and options chosen above. Each computer downloads the agent from GitHub. The password is used for this push only: it is not stored or logged.'),
+      h('div', { class: 'banner', role: 'note' }, 'Use a dedicated deployment account. If a computer rejects the password the rest of the push is cancelled, so a wrong password cannot lock the account.'),
+      field('Computers (hostname or IPv4, one per line, max 20)', ta),
+      h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px' } },
+        field('Domain administrator', input('text', p, 'username', 'PLAZA\\admin.deploy  or  user@plaza.local', { spellcheck: 'false' })), field('Password', pw)),
+      check('Force reinstall (uninstalls an existing agent first)', p, 'force'),
+      h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
+        btn(st.pushBusy ? 'Starting…' : 'Push install', startPush, { primary: true, disabled: st.pushBusy || running || !st.form.site }), notice(st.pushNotice)),
+      j ? jobCard(j) : null);
+  }
+
+  function jobCard(j) {
+    const done = j.targets.filter((t) => !['queued', 'running'].includes(t.status)).length;
+    return h('div', { class: 'stack', style: { gap: '8px' }, 'aria-live': 'polite' },
+      h('span', { class: 'eyebrow' }, `${j.client_name} / ${j.site_name} · as ${j.username}${j.force ? ' · force' : ''} · ${done}/${j.targets.length} finished${j.state === 'done' ? '' : ' (running)'}`),
+      j.warnings.map((w) => h('div', { class: 'banner', role: 'note' }, w)),
+      h('div', { class: 'stack', style: { gap: '6px' } }, j.targets.map((t) => {
+        const [tone, text] = STATUS[t.status] ?? ['neutral', t.status];
+        return h('div', { class: 'row-line', style: { display: 'flex', gap: '10px', alignItems: 'baseline', flexWrap: 'wrap' } },
+          h('strong', { style: { minWidth: '140px' } }, t.host), h('span', { class: `pill ${tone}` }, text), t.message ? h('span', { class: 'muted', style: { overflowWrap: 'anywhere' } }, t.message) : null);
+      })));
+  }
+
   function paint(err) {
     if (err) { body.replaceChildren(h('div', { class: 'banner', role: 'alert' }, err.message || String(err))); return; }
     if (!st.clients) return;
@@ -68,7 +127,7 @@ export function installerView(root) {
     clientSel.addEventListener('change', () => { f.site = String(sitesOf()[0]?.id ?? ''); st.result = null; paint(); });
     body.replaceChildren(
       h('div', { class: 'page-head' }, h('div', { class: 'stack' }, h('h1', null, 'Install agent'),
-        h('p', { class: 'muted' }, 'Generate a time-limited token and copy-ready commands to install the Tactical RMM agent on a Windows computer.'))),
+        h('p', { class: 'muted' }, 'Generate a time-limited token and copy-ready commands, or push the agent to computers with a domain administrator account (below).'))),
       h('section', { class: 'card stack', style: { gap: '14px' } },
         h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px' } },
           field('Client', clientSel), field('Site', select(sites.map((s) => [s.id, s.name]), f, 'site')),
@@ -76,12 +135,13 @@ export function installerView(root) {
           field('Architecture', select([['amd64', '64-bit'], ['386', '32-bit']], f, 'arch'), '1 1 120px'),
           field('Token valid for', select(HOURS, f, 'expires_hours'), '1 1 140px')),
         h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '16px' } },
-          check('Enable RDP', f, 'rdp'), check('Enable ping rule', f, 'ping'), check('Disable sleep / hibernate', f, 'power'), check('Install MeshCentral agent (needed for Take Control)', f, 'mesh')),
+          check('Enable RDP', f, 'rdp'), check('Enable ping rule', f, 'ping'), check('Disable sleep / hibernate', f, 'power')),
         h('label', { class: 'stack', style: { gap: '4px' } }, h('span', { class: 'eyebrow' }, 'Server URL agents will use (optional, defaults to this page\'s address)'),
           (() => { const el = h('input', { type: 'text', class: 'search', style: { maxWidth: 'none', flex: 'none' }, placeholder: 'https://rmm.example.com', autocomplete: 'off', value: f.api }); el.addEventListener('input', () => { f.api = el.value; }); return el; })()),
         h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
           btn(st.busy ? 'Generating…' : 'Generate installer', generate, { primary: true, disabled: st.busy || !f.site }), notice(st.notice))),
-      st.result ? resultCard(st.result) : null);
+      ...(st.result ? [resultCard(st.result)] : []),
+      pushCard());
   }
-  return ld.stop;
+  return () => { ld.stop(); clearTimeout(timer); };
 }

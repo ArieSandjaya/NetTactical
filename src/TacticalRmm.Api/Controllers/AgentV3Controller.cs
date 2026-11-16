@@ -15,7 +15,7 @@ namespace TacticalRmm.Api.Controllers;
 [ApiController, Route("api/v3")]
 public class AgentV3Controller(
     IAgentService agents, ICheckService checks, ITaskService tasks,
-    IWinUpdateService winUpdates, IAgentTelemetryService telemetry, IMeshService mesh,
+    IWinUpdateService winUpdates, IAgentTelemetryService telemetry,
     IOptions<TacticalOptions> opt) : ControllerBase
 {
     private async Task<Agent?> Me(CancellationToken ct) => await agents.GetByUserAsync(HttpContext.GetUser().Id, ct);
@@ -214,27 +214,15 @@ public class AgentV3Controller(
             : Ok("ok");
     }
 
+    // MeshCentral is not used by this server: agents are installed with --nomesh. These two routes only exist so an agent that still asks
+    // for the MeshAgent gets a clear message instead of a 404.
+    private const string NoMesh = "MeshCentral is not used by this server. Install the agent with --nomesh.";
+
     [Authorize(AuthDefaults.InstallerPolicy)]
     [HttpPost("meshexe")]
-    public async Task<IActionResult> MeshExe(MeshExePayload body, CancellationToken ct)
-    {
-        var ident = MeshAgentIdent.ForInstaller(body.Plat, body.Goarch);
-        if (ident is null) return BadRequest("Arch not supported");
-        try { return File(await mesh.DownloadAgentAsync(ident.Value, body.Plat!, ct), "application/octet-stream", "meshagent"); }
-        catch (MeshUnavailableException e) { return BadRequest(e.Message); }
-    }
+    public IActionResult MeshExe(MeshExePayload body) => BadRequest(NoMesh);
 
     [Authorize(AuthDefaults.AgentPolicy)]
     [HttpGet("{agentId}/meshreinstall")]
-    public async Task<IActionResult> MeshReinstall(string agentId, CancellationToken ct)
-    {
-        var me = await Me(ct);
-        if (me is null || me.AgentId != agentId) return NotFound();
-        try
-        {
-            var bytes = await mesh.DownloadAgentAsync(MeshAgentIdent.ForReinstall(me.Goarch), me.Plat, ct);
-            return File(bytes, "application/octet-stream", $"mesh-{me.Plat}-{me.Goarch}");
-        }
-        catch (MeshUnavailableException e) { return BadRequest(e.Message); }
-    }
+    public IActionResult MeshReinstall(string agentId) => BadRequest(NoMesh);
 }

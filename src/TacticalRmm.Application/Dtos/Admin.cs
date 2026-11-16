@@ -17,6 +17,8 @@ public static class Outcome
     public static Outcome<T> Forbidden<T>(string? msg = null) => new(OutcomeStatus.Forbidden, default, msg ?? "Forbidden");
     public static Outcome<T> Invalid<T>(string msg) => new(OutcomeStatus.Invalid, default, msg);
     public static Outcome<T> Conflict<T>(string msg) => new(OutcomeStatus.Conflict, default, msg);
+    /// <summary>The same failure with another value type (status and message are kept).</summary>
+    public static Outcome<T> Fail<T>(Outcome<int> failed) => new(failed.Status, default, failed.Error);
 }
 
 // ----------------------------------------------------------------------------- checks
@@ -160,8 +162,8 @@ public class RoleUpsert
 }
 
 // ----------------------------------------------------------------------------- org & policy
-public class ClientUpdate { public string? Name { get; set; } }
-public class SiteUpsert { public string? Name { get; set; } public int? Client { get; set; } }
+public class ClientUpdate { public string? Name { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } public int? AlertTemplate { get; set; } public bool? ClearAlertTemplate { get; set; } }
+public class SiteUpsert { public string? Name { get; set; } public int? Client { get; set; } public int? Policy { get; set; } public bool? ClearPolicy { get; set; } public int? AlertTemplate { get; set; } public bool? ClearAlertTemplate { get; set; } }
 public record SiteDto(int Id, string Name, int ClientId);
 public class AgentUpdate
 {

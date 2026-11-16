@@ -5,5 +5,10 @@ nats-rmm.conf
 appsettings.*.json
 .env
 .vs/
+<<<<<<< HEAD
 /.vs/NetTactical/CopilotIndices/17.14.1710.49791/CodeChunks.db
 /.vs/NetTactical/CopilotIndices/17.14.1710.49791/SemanticSymbols.db
+=======
+backups/
+.dev/
+>>>>>>> a988f65d6ea0ff2c98e8d143b76a21b9f87233fe

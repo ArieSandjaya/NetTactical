@@ -20,7 +20,7 @@ public static class DependencyInjection
             .Validate(o => o.SecretKey.Length >= 32, "Tactical:SecretKey is required and must be at least 32 characters")
             .ValidateOnStart();
 
-        s.AddDbContext<AppDbContext>(o => o.UseNpgsql(cfg.GetConnectionString("Default")));
+        s.AddDbContext<AppDbContext>(o => o.UseNpgsql(cfg.GetConnectionString("Default"), n => n.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
         s.AddSingleton<INatsConnection>(sp =>
         {
@@ -47,8 +47,6 @@ public static class DependencyInjection
         s.AddScoped<IAlertService, AlertService>();
         s.AddScoped<IWinUpdateService, WinUpdateService>();
         s.AddScoped<IAgentTelemetryService, AgentTelemetryService>();
-        s.AddHttpClient("mesh");
-        s.AddScoped<IMeshService, MeshService>();
         s.AddScoped<ICheckAdminService, CheckAdminService>();
         s.AddScoped<ITaskSyncService, TaskSyncService>();
         s.AddScoped<ITaskAdminService, TaskAdminService>();
@@ -56,8 +54,19 @@ public static class DependencyInjection
         s.AddScoped<IRoleAdminService, RoleAdminService>();
         s.AddScoped<IOrgAdminService, OrgAdminService>();
         s.AddScoped<IPolicyAdminService, PolicyAdminService>();
+        s.AddScoped<IAlertTemplateAdminService, AlertTemplateAdminService>();
+        s.AddScoped<ICustomFieldService, CustomFieldService>();
+        s.AddScoped<ISnippetService, SnippetService>();
         s.AddScoped<IVncService, VncService>();
         s.AddScoped<IInstallerService, InstallerService>();
+        s.AddScoped<IWinUpdateAdminService, WinUpdateAdminService>();
+        s.AddHostedService<WinUpdateScheduler>();
+        s.AddSingleton<IRemoteExecutor, Push.PowerShellRemoteExecutor>();
+        s.AddSingleton<IPushInstallService, Push.PushInstallService>();
+        s.AddScoped<INotificationAdminService, NotificationAdminService>();
+        s.AddSingleton<Notifications.NotificationQueue>();
+        s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());
+        s.AddHostedService<Notifications.NotificationWorker>();
         s.AddScoped<IFleetService, FleetService>();
         s.AddHostedService<AgentOutagesJob>();
         s.AddHostedService<TaskSyncJob>();

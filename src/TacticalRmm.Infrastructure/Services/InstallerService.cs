@@ -34,7 +34,7 @@ public sealed class InstallerService(AppDbContext db, ITokenService tokens, IAud
         var file = InstallerCommands.FileName(version, req.Arch);
 
         var (token, expiry) = await tokens.CreateInstallerTokenAsync(installer.Id, TimeSpan.FromHours(req.ExpiresHours), ct);
-        var args = InstallerCommands.InstallArguments(api, site.ClientId, site.Id, req.AgentType, token, req.Rdp, req.Ping, req.Power, noMesh: !req.InstallMesh);
+        var args = InstallerCommands.InstallArguments(api, site.ClientId, site.Id, req.AgentType, token, req.Rdp, req.Ping, req.Power);
 
         var warnings = new List<string>();
         if (!api.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) warnings.Add("The API URL is not https. Agents are normally installed against an https URL; put a TLS reverse proxy in front of this server.");

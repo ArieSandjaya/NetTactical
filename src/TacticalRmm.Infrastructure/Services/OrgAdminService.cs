@@ -17,13 +17,47 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         var c = await db.Clients.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (c is null) return Outcome.NotFound<bool>();
         if (!ScopeGuard.CanSeeClient(caller, id)) return Outcome.Forbidden<bool>();
-        var err = CheckName(req.Name);
-        if (err is not null) return Outcome.Invalid<bool>(err);
-        var name = req.Name!.Trim();
-        if (await db.Clients.AnyAsync(x => x.Name == name && x.Id != id, ct)) return Outcome.Conflict<bool>("A client with this name already exists");
-        var old = c.Name; c.Name = name;
+        var policyChange = req.ClearPolicy == true || req.Policy is not null;
+        var templateChange = req.ClearAlertTemplate == true || req.AlertTemplate is not null;
+        if (req.Name is null && !policyChange && !templateChange) return Outcome.Invalid<bool>("name, policy or alert template is required");
+
+        string? oldName = null;
+        if (req.Name is not null)
+        {
+            var err = CheckName(req.Name);
+            if (err is not null) return Outcome.Invalid<bool>(err);
+            var name = req.Name.Trim();
+            if (await db.Clients.AnyAsync(x => x.Name == name && x.Id != id, ct)) return Outcome.Conflict<bool>("A client with this name already exists");
+            oldName = c.Name; c.Name = name;
+        }
+        string? policyNote = null;
+        if (policyChange)
+        {
+            // A policy runs scripts and tasks on every agent below, so it needs the policy permission, not just the client one.
+            if (!PermissionEvaluator.Has(caller, Perm.ManagePolicies)) return Outcome.Forbidden<bool>("Assigning a policy needs the policy permission");
+            if (req.ClearPolicy == true) { c.PolicyId = null; policyNote = "removed its policy"; }
+            else
+            {
+                var pol = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.Policy, ct);
+                if (pol is null) return Outcome.NotFound<bool>("Policy not found");
+                c.PolicyId = pol.Id; policyNote = $"set its policy to '{pol.Name}'";
+            }
+        }
+        string? templateNote = null;
+        if (templateChange)
+        {
+            if (!PermissionEvaluator.Has(caller, Perm.ManageAlerts)) return Outcome.Forbidden<bool>("Assigning an alert template needs the alerts permission");
+            if (req.ClearAlertTemplate == true) { c.AlertTemplateId = null; templateNote = "removed its alert template"; }
+            else
+            {
+                var tpl = await db.AlertTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.AlertTemplate, ct);
+                if (tpl is null) return Outcome.NotFound<bool>("Alert template not found");
+                c.AlertTemplateId = tpl.Id; templateNote = $"set its alert template to '{tpl.Name}'";
+            }
+        }
         await db.SaveChangesAsync(ct);
-        await audit.LogAsync(caller.Username, AuditAction.Modify, "client", $"{caller.Username} renamed client '{old}' to '{name}'", ct: ct);
+        var what = new[] { oldName is null ? null : $"renamed it from '{oldName}'", policyNote, templateNote }.Where(x => x is not null);
+        await audit.LogAsync(caller.Username, AuditAction.Modify, "client", $"{caller.Username} modified client '{c.Name}': {string.Join(", ", what)}", ct: ct);
         return Outcome.Ok(true);
     }
 
@@ -36,6 +70,8 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         var agents = await db.Agents.CountAsync(a => siteIds.Contains(a.SiteId), ct);
         if (agents > 0) return Outcome.Conflict<bool>($"Client still has {agents} agent(s); move or uninstall them first");
 
+        // Custom field values point to their client/site by id only, so they are removed here.
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => (v.Field.Model == "client" && v.TargetId == id) || (v.Field.Model == "site" && siteIds.Contains(v.TargetId))));
         db.Sites.RemoveRange(c.Sites);
         db.Clients.Remove(c);
         await db.SaveChangesAsync(ct);
@@ -76,9 +112,33 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         if (err is not null) return Outcome.Invalid<SiteDto>(err);
         if (await db.Sites.AnyAsync(s => s.ClientId == newClient && s.Name == name && s.Id != id, ct)) return Outcome.Conflict<SiteDto>("This client already has a site with that name");
 
+        string? policyNote = null;
+        if (req.ClearPolicy == true || req.Policy is not null)
+        {
+            // A policy runs scripts and tasks on every agent below, so it needs the policy permission, not just the site one.
+            if (!PermissionEvaluator.Has(caller, Perm.ManagePolicies)) return Outcome.Forbidden<SiteDto>("Assigning a policy needs the policy permission");
+            if (req.ClearPolicy == true) { site.PolicyId = null; policyNote = "; removed its policy"; }
+            else
+            {
+                var pol = await db.Policies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.Policy, ct);
+                if (pol is null) return Outcome.NotFound<SiteDto>("Policy not found");
+                site.PolicyId = pol.Id; policyNote = $"; set its policy to '{pol.Name}'";
+            }
+        }
+        if (req.ClearAlertTemplate == true || req.AlertTemplate is not null)
+        {
+            if (!PermissionEvaluator.Has(caller, Perm.ManageAlerts)) return Outcome.Forbidden<SiteDto>("Assigning an alert template needs the alerts permission");
+            if (req.ClearAlertTemplate == true) { site.AlertTemplateId = null; policyNote += "; removed its alert template"; }
+            else
+            {
+                var tpl = await db.AlertTemplates.AsNoTracking().FirstOrDefaultAsync(x => x.Id == req.AlertTemplate, ct);
+                if (tpl is null) return Outcome.NotFound<SiteDto>("Alert template not found");
+                site.AlertTemplateId = tpl.Id; policyNote += $"; set its alert template to '{tpl.Name}'";
+            }
+        }
         site.Name = name; site.ClientId = newClient;
         await db.SaveChangesAsync(ct);
-        await audit.LogAsync(caller.Username, AuditAction.Modify, "site", $"{caller.Username} modified site '{name}'", ct: ct);
+        await audit.LogAsync(caller.Username, AuditAction.Modify, "site", $"{caller.Username} modified site '{name}'{policyNote}", ct: ct);
         return Outcome.Ok(new SiteDto(site.Id, site.Name, site.ClientId));
     }
 
@@ -91,6 +151,7 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
         if (agents > 0) return Outcome.Conflict<bool>($"Site still has {agents} agent(s); move or uninstall them first");
         if (await db.Sites.CountAsync(s => s.ClientId == site.ClientId, ct) <= 1) return Outcome.Conflict<bool>("A client must keep at least one site");
 
+        db.CustomFieldValues.RemoveRange(db.CustomFieldValues.Where(v => v.Field.Model == "site" && v.TargetId == id));
         db.Sites.Remove(site);
         await db.SaveChangesAsync(ct);
         await audit.LogAsync(caller.Username, AuditAction.Delete, "site", $"{caller.Username} deleted site '{site.Name}'", ct: ct);

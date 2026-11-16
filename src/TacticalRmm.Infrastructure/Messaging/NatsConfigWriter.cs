@@ -75,6 +75,12 @@ public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> 
         }
         finally { Gate.Release(); }
 
+        // Running nats-server as a separate process or container: nothing to reload from here.
+        if (string.IsNullOrWhiteSpace(o.NatsServerBin) || (Path.IsPathRooted(o.NatsServerBin) && !File.Exists(o.NatsServerBin)))
+        {
+            log.LogInformation("nats config written to {Path}; reload skipped because '{Bin}' is not on this machine. Reload nats-server yourself or run it with -c on this file.", o.NatsConfPath, o.NatsServerBin);
+            return;
+        }
         try
         {
             await Task.Delay(500, ct);

@@ -83,7 +83,7 @@ public class ClientsController(AppDbContext db, IAuditService audit) : Controlle
         var u = HttpContext.GetUser();
         var clients = await db.Clients.AsNoTracking().Include(c => c.Sites).OrderBy(c => c.Name).ToListAsync(ct);
         var result = clients
-            .Select(c => new { c.Id, c.Name, Sites = c.Sites.Where(s => PermissionEvaluator.CanSeeSite(u, s)).Select(s => new { s.Id, s.Name }).ToList() })
+            .Select(c => new { c.Id, c.Name, c.PolicyId, c.AlertTemplateId, Sites = c.Sites.Where(s => PermissionEvaluator.CanSeeSite(u, s)).Select(s => new { s.Id, s.Name, s.PolicyId, s.AlertTemplateId }).ToList() })
             .Where(c => c.Sites.Count > 0 || (c.Sites.Count == 0 && PermissionEvaluator.IsSuper(u)));
         return Ok(result);
     }

@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Real PostgreSQL for the integration tests (each test makes its own throwaway database).
+      NT_TEST_PG: "Host=localhost;Port=5432;Username=postgres;Password=ci;Database=postgres"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore NetTactical.sln
+
+      - name: Build
+        run: dotnet build NetTactical.sln --no-restore -c Release
+
+      - name: Test
+        run: dotnet test NetTactical.sln --no-build -c Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/test-results.trx"
+          if-no-files-found: ignore
+
+  ui-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax-check UI modules
+        run: |
+          set -e
+          for f in $(find src/TacticalRmm.Api/wwwroot/js -name '*.js'); do
+            node --check --input-type=module < "$f" || { echo "syntax error in $f"; exit 1; }
+          done

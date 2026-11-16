@@ -90,35 +90,8 @@ public class MiscTests
     }
 }
 
-public class MeshAndPatchTests
+public class AgentVersionTests
 {
-    private const string Key = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
-
-    [Fact]
-    public void Mesh_auth_token_roundtrip_and_alphabet()
-    {
-        var t = MeshAuth.CreateAuthToken("Admin", Key, 1700000000);
-        Assert.DoesNotContain('+', t); Assert.DoesNotContain('/', t);
-        Assert.Equal("{\"userid\":\"user//admin\", \"domainid\":\"\", \"time\":1700000000}", MeshAuth.Decrypt(t, Key));
-    }
-
-    [Fact]
-    public void Mesh_url_windows_vs_posix()
-    {
-        Assert.Equal("http://127.0.0.1:4430/meshagents?id=4&meshid=abc&installflags=0",
-            MeshUrls.AgentDownload("http://127.0.0.1:4430/", MeshAgentIdent.Win64, AgentPlat.Windows, "abc"));
-        Assert.Equal("https://m.example.com/meshagents?id=abc&installflags=2&meshinstall=10005",
-            MeshUrls.AgentDownload("https://m.example.com", MeshAgentIdent.DarwinUniversal, AgentPlat.Darwin, "abc"));
-    }
-
-    [Fact]
-    public void Mesh_ident_mapping()
-    {
-        Assert.Equal(4, MeshAgentIdent.ForInstaller(AgentPlat.Windows, GoArch.Amd64));
-        Assert.Equal(3, MeshAgentIdent.ForInstaller(AgentPlat.Windows, GoArch.I386));
-        Assert.Null(MeshAgentIdent.ForInstaller(AgentPlat.Linux, GoArch.Amd64));
-    }
-
     [Theory]
     [InlineData("2.11.0", "2.12.0", true)]
     [InlineData("2.12.0", "2.12.0", false)]
