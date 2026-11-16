@@ -37,6 +37,7 @@ public static class ReportRules
         if (!string.IsNullOrWhiteSpace(to) && !DateTime.TryParseExact(to, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out t)) return (default, default, "to must be a date like 2026-11-30");
         if (f > t) return (default, default, "from is after to");
         if ((t - f).TotalDays >= MaxRangeDays) return (default, default, $"the period can be at most {MaxRangeDays} days");
-        return (f, t.AddDays(1), null);
+        // UTC kind is required: PostgreSQL (timestamp with time zone) refuses a DateTime of unspecified kind.
+        return (DateTime.SpecifyKind(f, DateTimeKind.Utc), DateTime.SpecifyKind(t.AddDays(1), DateTimeKind.Utc), null);
     }
 }

@@ -46,6 +46,8 @@ public class ReportRulesTests
         Assert.Null(err);
         Assert.Equal(new DateTime(2026, 10, 17), f);
         Assert.Equal(new DateTime(2026, 11, 17), t);
+        Assert.Equal(DateTimeKind.Utc, f.Kind);   // PostgreSQL only accepts UTC
+        Assert.Equal(DateTimeKind.Utc, t.Kind);
     }
 
     [Fact]
