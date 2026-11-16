@@ -229,6 +229,28 @@ public class ScriptSnippetsController(ISnippetService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ reports
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("reports")]
+public class ReportsController(IReportService svc) : ControllerBase
+{
+    // Which reports a caller can run depends on their permissions, so the checks are inside the service.
+    [HttpGet]
+    public IActionResult List() => Ok(svc.Available(HttpContext.GetUser()));
+
+    [HttpGet("{name}")]
+    public async Task<IActionResult> Run(string name, [FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId,
+        [FromQuery] string? from, [FromQuery] string? to, CancellationToken ct) =>
+        this.ToResult(await svc.BuildAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, ct));
+
+    [HttpGet("{name}/csv")]
+    public async Task<IActionResult> Csv(string name, [FromQuery(Name = "client_id")] int? clientId, [FromQuery(Name = "site_id")] int? siteId,
+        [FromQuery] string? from, [FromQuery] string? to, CancellationToken ct)
+    {
+        var r = await svc.CsvAsync(HttpContext.GetUser(), name, clientId, siteId, from, to, ct);
+        return r.IsOk ? File(r.Value!.Content, "text/csv; charset=utf-8", r.Value.FileName) : this.ToResult(r);
+    }
+}
+
 // ------------------------------------------------------------------------------------------ VNC
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class VncController(IVncService svc) : ControllerBase
