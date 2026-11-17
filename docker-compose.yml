@@ -40,7 +40,11 @@ services:
       - "${NATS_PORT:-4222}:4222"
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        # PowerShell 7 inside the API image, needed for "Push install" (WinRM). Set WITH_POWERSHELL=false in .env to leave it out.
+        WITH_POWERSHELL: ${WITH_POWERSHELL:-true}
     restart: unless-stopped
     depends_on:
       db:
