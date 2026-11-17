@@ -58,6 +58,7 @@ public static class DependencyInjection
         s.AddScoped<ICustomFieldService, CustomFieldService>();
         s.AddScoped<ISnippetService, SnippetService>();
         s.AddScoped<IReportService, ReportService>();
+        s.AddScoped<ISoftwareService, SoftwareService>();
         s.AddScoped<IVncService, VncService>();
         s.AddScoped<IInstallerService, InstallerService>();
         s.AddScoped<IWinUpdateAdminService, WinUpdateAdminService>();

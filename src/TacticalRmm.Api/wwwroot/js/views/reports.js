@@ -7,7 +7,7 @@ const PREVIEW = 200;   // rows shown on screen; the CSV file has all of them
 
 // Reports: pick one, narrow it to a client or site (and a period for alerts), look at it, download it as CSV.
 export function reportsView(root) {
-  const st = { reports: null, clients: [], name: null, client: '', site: '', from: '', to: '', table: null, busy: false, notice: null };
+  const st = { reports: null, clients: [], name: null, client: '', site: '', from: '', to: '', q: '', table: null, busy: false, notice: null };
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   const ld = loader(body, async (signal) => ({ reports: await api('reports', { signal }), clients: await api('clients', { signal }).catch(() => []) }),
@@ -18,6 +18,7 @@ export function reportsView(root) {
     const q = new URLSearchParams();
     if (st.site) q.set('site_id', st.site); else if (st.client) q.set('client_id', st.client);
     if (info()?.uses_period) { if (st.from) q.set('from', st.from); if (st.to) q.set('to', st.to); }
+    if (info()?.uses_search && st.q.trim()) q.set('q', st.q.trim());
     const s = q.toString();
     return s ? `?${s}` : '';
   };
@@ -58,9 +59,9 @@ export function reportsView(root) {
     const shown = t.rows.slice(0, PREVIEW);
     return h('section', { class: 'card stack', style: { gap: '10px' } },
       h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' } },
-        h('h2', { style: { fontSize: '16px' } }, t.title), h('span', { class: 'muted' }, `${t.scope} · ${t.rows.length} row${t.rows.length === 1 ? '' : 's'}`)),
-      t.truncated ? h('div', { class: 'banner', role: 'status' }, 'There are more alerts in this period than the report holds (5000). Narrow the period or the client to see the rest.') : null,
-      t.rows.length > PREVIEW ? h('span', { class: 'muted' }, `Showing the first ${PREVIEW} rows. The CSV file has all ${t.rows.length}.`) : null,
+        h('h2', { style: { fontSize: '16px' } }, t.title), h('span', { class: 'muted' }, `${t.scope} · ${t.total} row${t.total === 1 ? '' : 's'}`)),
+      t.truncated ? h('div', { class: 'banner', role: 'status' }, 'There is more data than the report holds. Narrow the period, the client or the search to see the rest.') : null,
+      t.total > t.rows.length ? h('span', { class: 'muted' }, `Showing the first ${t.rows.length} rows. The CSV file has all ${t.total}.`) : null,
       h('div', { class: 'scroll-x' }, h('table', { class: 'report-table' },
         h('thead', null, h('tr', null, t.columns.map((c) => h('th', { scope: 'col' }, c)))),
         h('tbody', null, shown.map((r) => h('tr', null, r.map((v) => h('td', null, v))))),
@@ -82,6 +83,7 @@ export function reportsView(root) {
           sel('Site', st.site, [['', 'All sites'], ...sites.map((s) => [s.id, s.name])], (v) => { st.site = v; paint(); }),
           info().uses_period ? date('From', st.from, (v) => { st.from = v; }) : null,
           info().uses_period ? date('To', st.to, (v) => { st.to = v; }) : null),
+        info().uses_search ? (() => { const i = h('input', { type: 'search', class: 'search', placeholder: 'Application name, publisher or version (optional)', 'aria-label': 'Search applications', value: st.q, style: { maxWidth: 'none', flex: 'none', width: '100%' } }); i.addEventListener('input', () => { st.q = i.value; }); return h('label', { class: 'stack', style: { gap: '4px' } }, h('span', { class: 'eyebrow' }, 'Find an application'), i); })() : null,
         info().uses_period ? h('span', { class: 'muted', style: { fontSize: '12px' } }, 'Leave the dates empty for the last 30 days. The period can be at most one year. Times are in UTC.') : null,
         h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, btn('Show report', run, { primary: true, disabled: st.busy }), btn('Download CSV', csv, { disabled: st.busy })),
         notice(st.notice)),

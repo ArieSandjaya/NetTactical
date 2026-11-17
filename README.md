@@ -98,10 +98,18 @@ The **Install agent** page (`#/installer`) has a second card, *Push install with
 - `Directory.Build.props` turns on NuGet audit (direct and transitive packages); watch the restore warnings.
 - The new decoder has only been compiled against stubs; `dotnet build` and a real agent reply still need to be run.
 
+## Installed software
+Like Tactical RMM, each asset has a **Software** tab (asset page) with the applications it reported: name, version, publisher, install date. Search by name, publisher or version; **Refresh from agent** asks the agent for a fresh list right now (NATS command `softwarelist`, 15 second wait) and stores it. If the agent is offline the tab says so and keeps the last list. The list also arrives when the agent posts it to `/api/v3/software`; either way only the known fields are kept (at most 10,000 items per asset).
+- The **Installed software** report (Reports page) has one row per asset and application for a client or site, with a search box to find who has an application or a version, and a CSV download.
+- API: `GET /agents/{agent_id}/software`, `POST /agents/{agent_id}/software/refresh` (permission `can_list_agents` and access to the asset), `GET /reports/software?q=`.
+- Not tested against a real agent: the `softwarelist` request and the shape of its reply follow Tactical RMM and have only been tested with a fake agent.
+- Not included: uninstalling software from the dashboard, and a "last refreshed" automatic schedule (a list is refreshed when you press the button or when the agent posts one).
+
 ## Reports
 `#/reports`: look at a report on screen (first 200 rows) or download it as a CSV file that opens in Excel. Narrow it to a client or site; the role's client/site scope always applies.
 - **Asset inventory** (`can_list_agents`): client, site, hostname, OS, agent version, online status, last seen, health score, pending updates, open alerts, reboot needed, uptime.
 - **Outstanding patches** (`can_list_agents`): assets with pending or failed Windows updates, or that need a reboot.
+- **Installed software** (`can_list_agents`): see the Installed software section.
 - **Alert history** (`can_list_alerts`): alerts of a period (dates inclusive, default last 30 days, at most one year, times in UTC), open and resolved, up to 5000.
 - API: `GET /reports`, `GET /reports/{name}` (JSON table), `GET /reports/{name}/csv`; filters `client_id`, `site_id`, `from`, `to` (`yyyy-MM-dd`).
 - CSV safety: text that starts with `=`, `+`, `-` or `@` gets a leading apostrophe, so a hostname or alert message sent by an agent cannot run as a spreadsheet formula. The file is UTF-8 with a byte order mark.

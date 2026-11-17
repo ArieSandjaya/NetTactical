@@ -51,6 +51,8 @@ public class InstalledSoftware
     public long Id { get; set; }
     public int AgentId { get; set; }
     public string Software { get; set; } = "[]"; // jsonb
+    /// <summary>When the list was last received from the agent.</summary>
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class AgentNote

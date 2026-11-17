@@ -122,6 +122,8 @@ public static class SchemaUpgrade
             modified_time timestamp with time zone NULL)
         """,
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_script_snippets_name ON script_snippets (name)",
+        // v10: when an agent's installed-software list was received
+        "ALTER TABLE installed_software ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone NULL",
 ];
 
     public static async Task RunAsync(AppDbContext db, ILogger log, CancellationToken ct = default)
