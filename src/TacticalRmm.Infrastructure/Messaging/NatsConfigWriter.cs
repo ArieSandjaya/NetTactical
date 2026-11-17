@@ -66,6 +66,11 @@ public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> 
             ["websocket"] = new { host = o.NatsWsHost, port = o.NatsWsPort, no_tls = true },
         };
 
+        // TLS on the standard port. allow_non_tls keeps plain connections working for the API and nats-api inside the stack;
+        // agents that use tls:// upgrade after the server's INFO, which is what the Go agent does.
+        if (!string.IsNullOrWhiteSpace(o.NatsTlsCertFile) && !string.IsNullOrWhiteSpace(o.NatsTlsKeyFile))
+            config["tls"] = new Dictionary<string, object> { ["cert_file"] = o.NatsTlsCertFile, ["key_file"] = o.NatsTlsKeyFile, ["timeout"] = 5, ["allow_non_tls"] = true };
+
         await Gate.WaitAsync(ct);
         try
         {

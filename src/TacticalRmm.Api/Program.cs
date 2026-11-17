@@ -74,6 +74,10 @@ static class Bootstrap
         await db.Database.EnsureCreatedAsync();
         await SchemaUpgrade.RunAsync(db, sp.GetRequiredService<ILogger<Program>>());   // databases created by an earlier version get the newer tables/columns
 
+        // Rewrite nats-rmm.conf at startup so changed settings (for example the TLS certificate) apply without waiting for an agent to be added.
+        try { await sp.GetRequiredService<INatsConfigWriter>().ReloadAsync(); }
+        catch (Exception e) { sp.GetRequiredService<ILogger<Program>>().LogWarning(e, "could not write the nats config at startup"); }
+
         if (await db.Users.AnyAsync()) return;
         var hasher = sp.GetRequiredService<IPasswordHasher>();
         var tokens = sp.GetRequiredService<ITokenService>();

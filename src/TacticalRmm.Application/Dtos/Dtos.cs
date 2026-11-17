@@ -85,6 +85,9 @@ public class TacticalOptions
     public int NatsStdPort { get; set; } = 4222;
     public string NatsWsHost { get; set; } = "127.0.0.1";
     public int NatsWsPort { get; set; } = 9235;
+    /// <summary>Certificate (PEM, full chain) and private key NATS uses for TLS on the standard port; paths as the nats-server process sees them. Both empty: no TLS.</summary>
+    public string NatsTlsCertFile { get; set; } = "";
+    public string NatsTlsKeyFile { get; set; } = "";
     public string AllowResponseExpiration { get; set; } = "1435m";
     public int UserTokenTtlHours { get; set; } = 5;
     public string LatestAgentVer { get; set; } = "2.12.0";

@@ -149,6 +149,13 @@ By default the Go agent connects to NATS over **WebSocket on port 443**; only an
 - The **Install agent** page has a choice "How agents reach NATS": the default (443, needs the proxy) or direct on 4222 (adds `--natsport 4222` to the install command, for both the copy-ready commands and push install).
 - An agent that is already installed keeps its setting; to change it, reinstall it with the option, or set `NatsStandardPort` in its registry and restart the agent service (check the key location on your agent version first).
 
+### TLS on NATS (agents installed with `--natsport`)
+The Go agent connects with `tls://host:port`, so the NATS server must offer TLS itself. A TLS-terminating proxy (nginx `stream` with `ssl`) in front of NATS does not work: NATS speaks first (`INFO`), the proxy waits for a TLS hello, and the agent times out.
+1. Copy the certificate chain and key for your agent host name to `./certs/fullchain.pem` and `./certs/privkey.pem` (or point `NATS_CERT_DIR` at another folder).
+2. In `.env`: `NATS_TLS_CERT=/certs/fullchain.pem` and `NATS_TLS_KEY=/certs/privkey.pem`.
+3. `docker compose up -d --build`. At startup the API rewrites `nats-rmm.conf` with a `tls` block (`allow_non_tls`, so the API and nats-api inside the stack keep using plain `nats://nats:4222`), and the nats container reloads itself.
+4. Publish port 4222 (or forward your 4221 as raw TCP, `proxy_pass nats:4222` in an nginx `stream` block **without** `ssl`). The certificate's name must match the host the agent uses. After renewing the certificate, `docker compose restart nats`.
+
 ## Agents need NATS (read this if agents stay offline)
 
 Agents connect to a **NATS server** (port 4222) and the API sends commands through it. Running only the API (for example from Visual Studio) is not enough: the log shows `can not connect uris: nats://127.0.0.1:4222`, agents cannot connect, and every command to an agent fails.
