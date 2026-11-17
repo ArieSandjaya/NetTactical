@@ -20,6 +20,14 @@ export function deviceView(root, agentId) {
   const id = encodeURIComponent(agentId);
   const fields = customFieldsPanel('agent', agentId);   // created once: a refresh of the page must not lose what is being typed
 
+  async function removeAgent() {
+    const host = st.data?.agent?.hostname || agentId;
+    if (!confirm(`Delete "${host}" from NetTactical?\n\nIf the agent is reachable it is told to uninstall itself. Its history and custom-field values are removed. This cannot be undone.`)) return;
+    st.removing = true; st.removeErr = ''; paint();
+    try { await api(`agents/${id}`, { method: 'DELETE' }); location.hash = '#/'; }
+    catch (e) { st.removing = false; st.removeErr = e.status === 403 ? 'You do not have permission to delete agents.' : e.message; if (alive) paint(); }
+  }
+
   async function load(silent) {
     if (!silent) body.replaceChildren(h('div', { class: 'loading' }, 'Loading device details…'));
     try {
@@ -93,6 +101,8 @@ export function deviceView(root, agentId) {
             h('button', { class: 'btn primary', disabled: st.vnc.busy, onclick: vncConnect }, 'Connect (VNC)'),
             h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
             actionsCard(st.actions, id, a.plat, () => alive && paint()),
+            h('button', { class: 'btn danger', disabled: !!st.removing, onclick: removeAgent }, st.removing ? 'Deleting…' : 'Delete agent'),
+            st.removeErr ? h('span', { class: 'pill crit', role: 'alert' }, st.removeErr) : null,
             st.vnc.msg ? h('span', { class: `pill ${st.vnc.ok === null ? 'neutral' : st.vnc.ok ? 'good' : 'crit'}`, role: 'status', style: { fontWeight: '500' } }, st.vnc.msg) : null)),
         h('div', { class: 'stack', style: { flex: '1 1 260px', gap: '12px' } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px' } },

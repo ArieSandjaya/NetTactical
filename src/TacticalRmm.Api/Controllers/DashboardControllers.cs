@@ -28,10 +28,10 @@ public class AgentsController(IAgentService agents, IPermissionService perms, IA
     }
 
     [HttpDelete("{agentId}"), RequirePerm(Perm.UninstallAgents)]
-    public async Task<IActionResult> Delete(string agentId, CancellationToken ct)
+    public async Task<IActionResult> Delete(string agentId, CancellationToken ct, [FromQuery] bool uninstall = true)
     {
         if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
-        try { await agents.DeleteAsync(agentId, HttpContext.GetUser().Username, ct); return Ok("ok"); }
+        try { await agents.DeleteAsync(agentId, HttpContext.GetUser().Username, uninstall, ct); return Ok("ok"); }
         catch (KeyNotFoundException) { return NotFound(); }
     }
 

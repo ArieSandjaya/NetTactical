@@ -61,7 +61,8 @@ public interface IAgentService
     Task<Agent?> GetByAgentIdAsync(string agentId, CancellationToken ct = default);
     Task<Agent?> GetByUserAsync(int userId, CancellationToken ct = default);
     Task<NewAgentResult> RegisterAsync(NewAgentRequest req, string installerUser, string? ip, CancellationToken ct = default);
-    Task DeleteAsync(string agentId, string username, CancellationToken ct = default);
+    /// <summary>Removes the agent from the database. With <paramref name="uninstall"/> it first tells a reachable agent to remove itself (best effort).</summary>
+    Task DeleteAsync(string agentId, string username, bool uninstall = true, CancellationToken ct = default);
     Task<object?> RunScriptAsync(string agentId, RunScriptRequest req, string username, CancellationToken ct = default);
 }
 

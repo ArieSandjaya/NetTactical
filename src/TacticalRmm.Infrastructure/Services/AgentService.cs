@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TacticalRmm.Application.Abstractions;
 using TacticalRmm.Application.Dtos;
@@ -12,7 +13,7 @@ namespace TacticalRmm.Infrastructure.Services;
 
 public sealed class AgentService(
     AppDbContext db, IAgentCommandBus bus, ITokenService tokens, IPasswordHasher hasher,
-    IAuditService audit, INatsConfigWriter natsConf, IOptions<TacticalOptions> opt) : IAgentService
+    IAuditService audit, INatsConfigWriter natsConf, IOptions<TacticalOptions> opt, ILogger<AgentService> log) : IAgentService
 {
     public static string StatusOf(Agent a, DateTime now)
     {
@@ -79,9 +80,15 @@ public sealed class AgentService(
         return new NewAgentResult(agent.Id, token);
     }
 
-    public async Task DeleteAsync(string agentId, string username, CancellationToken ct = default)
+    public async Task DeleteAsync(string agentId, string username, bool uninstall = true, CancellationToken ct = default)
     {
         var agent = await db.Agents.FirstOrDefaultAsync(a => a.AgentId == agentId, ct) ?? throw new KeyNotFoundException();
+        // Tell the agent to remove itself before its NATS credentials disappear; an offline agent simply keeps running until it is uninstalled by hand.
+        if (uninstall)
+        {
+            try { await bus.PublishAsync(agent.AgentId, new Dictionary<string, object?> { ["func"] = "uninstall" }, ct); }
+            catch (Exception e) { log.LogWarning(e, "could not send the uninstall command to {Agent}", agent.Hostname); }
+        }
         var user = await db.Users.FirstOrDefaultAsync(u => u.AgentId == agent.Id, ct);
         if (user is not null)
         {
