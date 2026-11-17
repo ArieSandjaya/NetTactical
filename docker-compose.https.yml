@@ -1,4 +1,5 @@
 # HTTPS straight from the API container (Kestrel), no reverse proxy:
+# Uses the same files as NATS (NATS_TLS_CERT / NATS_TLS_KEY in .env, default /certs/fullchain.pem and /certs/privkey.pem).
 #   1. put fullchain.pem and privkey.pem in ./certs (or set NATS_CERT_DIR); the key must be readable by the container user: chmod 644 certs/privkey.pem
 #   2. .env: PUBLIC_URL=https://your.host.name   (HTTPS_PORT=443 is the default host port)
 #   3. docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
@@ -7,8 +8,8 @@ services:
   api:
     environment:
       ASPNETCORE_HTTPS_PORTS: "8443"
-      Kestrel__Certificates__Default__Path: /certs/fullchain.pem
-      Kestrel__Certificates__Default__KeyPath: /certs/privkey.pem
+      Kestrel__Certificates__Default__Path: ${NATS_TLS_CERT:-/certs/fullchain.pem}
+      Kestrel__Certificates__Default__KeyPath: ${NATS_TLS_KEY:-/certs/privkey.pem}
     volumes:
       - ${NATS_CERT_DIR:-./certs}:/certs:ro
     # HTTPS only: the plain HTTP port is no longer published on the host.
