@@ -8,7 +8,7 @@ const HOURS = [[1, '1 hour'], [8, '8 hours'], [24, '24 hours'], [72, '3 days'], 
 
 export function installerView(root) {
   const st = { clients: null, notice: null, busy: false, result: null, copied: null,
-    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, api: '' },
+    form: { client: '', site: '', agent_type: 'workstation', arch: 'amd64', expires_hours: '24', rdp: false, ping: false, power: false, api: '', nats: '' },
     push: { targets: '', username: '', password: '', force: false }, job: null, pushBusy: false, pushNotice: null };
   let timer = null;
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
@@ -27,6 +27,7 @@ export function installerView(root) {
     try {
       const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, expires_hours: Number(f.expires_hours), rdp: f.rdp, ping: f.ping, power: f.power };
       if (f.api.trim()) payload.api = f.api.trim();
+      if (f.nats) payload.nats_port = Number(f.nats);
       st.result = await api('installer/generate', { method: 'POST', body: payload });
     } catch (e) { st.notice = { ok: false, msg: e.message }; }
     st.busy = false; paint();
@@ -77,6 +78,7 @@ export function installerView(root) {
       const payload = { client_id: Number(f.client), site_id: Number(f.site), agent_type: f.agent_type, arch: f.arch, rdp: f.rdp, ping: f.ping, power: f.power,
         targets: p.targets, username: p.username.trim(), password: p.password, force: p.force };
       if (f.api.trim()) payload.api = f.api.trim();
+      if (f.nats) payload.nats_port = Number(f.nats);
       st.job = await api('installer/push', { method: 'POST', body: payload });
       p.password = '';                                   // never kept after the request
       timer = setTimeout(pollJob, 1500);
@@ -138,6 +140,11 @@ export function installerView(root) {
           check('Enable RDP', f, 'rdp'), check('Enable ping rule', f, 'ping'), check('Disable sleep / hibernate', f, 'power')),
         h('label', { class: 'stack', style: { gap: '4px' } }, h('span', { class: 'eyebrow' }, 'Server URL agents will use (optional, defaults to this page\'s address)'),
           (() => { const el = h('input', { type: 'text', class: 'search', style: { maxWidth: 'none', flex: 'none' }, placeholder: 'https://rmm.example.com', autocomplete: 'off', value: f.api }); el.addEventListener('input', () => { f.api = el.value; }); return el; })()),
+        h('label', { class: 'stack', style: { gap: '4px' } }, h('span', { class: 'eyebrow' }, 'How agents reach NATS'),
+          (() => { const s = h('select', { class: 'search', style: { maxWidth: 'none', flex: 'none' }, 'aria-label': 'How agents reach NATS' },
+            [['', 'Default: WebSocket on port 443 (needs a reverse proxy)'], ['4222', 'Direct to NATS on port 4222 (--natsport 4222)']].map(([v, t]) => h('option', { value: v, selected: f.nats === v }, t)));
+            s.addEventListener('change', () => { f.nats = s.value; }); return s; })(),
+          h('span', { class: 'muted', style: { fontSize: '12px' } }, 'Agents installed without a NATS port connect through your reverse proxy on 443. Pick the direct option when the server\'s NATS port 4222 is reachable and there is no proxy for NATS.')),
         h('div', { style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
           btn(st.busy ? 'Generating…' : 'Generate installer', generate, { primary: true, disabled: st.busy || !f.site }), notice(st.notice))),
       ...(st.result ? [resultCard(st.result)] : []),

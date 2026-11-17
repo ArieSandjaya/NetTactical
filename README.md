@@ -144,6 +144,11 @@ Instead of MeshAgent, the dashboard can open the TightVNC that is already instal
 - Fix included: the Go `nats-api` writes a `wmi_detail` column that the schema was missing, so the agent hardware inventory was being lost. Existing databases are upgraded automatically at startup (`SchemaUpgrade`, idempotent SQL), so no manual `ALTER TABLE` is needed.
 - Verified: DES/obfuscation against OpenSSL, the handshake against a fake VNC server (wrong password, protocol 3.3, refusal, unsupported, timeout). Not verified against a real TightVNC server or viewer.
 
+## How agents reach NATS (443 or 4222)
+By default the Go agent connects to NATS over **WebSocket on port 443**; only an agent installed with `--natsport N` connects straight to NATS on port N (the value is kept in the registry as `NatsStandardPort`). This stack publishes NATS on 4222 and its WebSocket only on `127.0.0.1:9235` without TLS, so port 443 works only when **your reverse proxy** forwards it to 9235 with the WebSocket `Upgrade` headers and a valid certificate. If that proxy, its certificate or its firewall rule fails, every agent installed with the default goes offline ("cannot connect to NATS on 443").
+- The **Install agent** page has a choice "How agents reach NATS": the default (443, needs the proxy) or direct on 4222 (adds `--natsport 4222` to the install command, for both the copy-ready commands and push install).
+- An agent that is already installed keeps its setting; to change it, reinstall it with the option, or set `NatsStandardPort` in its registry and restart the agent service (check the key location on your agent version first).
+
 ## Agents need NATS (read this if agents stay offline)
 
 Agents connect to a **NATS server** (port 4222) and the API sends commands through it. Running only the API (for example from Visual Studio) is not enough: the log shows `can not connect uris: nats://127.0.0.1:4222`, agents cannot connect, and every command to an agent fails.

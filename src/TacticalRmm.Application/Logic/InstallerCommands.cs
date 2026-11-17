@@ -24,6 +24,9 @@ public static partial class InstallerCommands
         : !ApiRx().IsMatch(api.Trim()) ? "api url must look like https://rmm.example.com (scheme, host and optional port only)"
         : null;
 
+    /// <summary>Null when fine. The NATS port is optional (null = the agent's default, WebSocket on 443).</summary>
+    public static string? NatsPortError(int? port) => port is null or (>= 1 and <= 65535) ? null : "nats_port must be between 1 and 65535 (or empty for the default, WebSocket on 443)";
+
     public static string NormalizeApi(string api) => api.Trim().TrimEnd('/');
 
     public static string FileName(string version, string arch) => $"tacticalagent-v{version}-windows-{arch}.exe";
@@ -33,16 +36,19 @@ public static partial class InstallerCommands
         VerRx().IsMatch(version) && Architectures.Contains(arch)
             ? $"https://github.com/amidaware/rmmagent/releases/download/v{version}/{FileName(version, arch)}" : null;
 
-    public static string InstallArguments(string api, int clientId, int siteId, string agentType, string token, bool rdp, bool ping, bool power)
+    public static string InstallArguments(string api, int clientId, int siteId, string agentType, string token, bool rdp, bool ping, bool power, int? natsPort = null)
     {
         if (ValidateApi(api) is { } e) throw new ArgumentException(e);
         if (!AgentTypes.Contains(agentType)) throw new ArgumentException("agent type must be workstation or server");
         if (!TokenRx().IsMatch(token)) throw new ArgumentException("invalid token");
+        if (NatsPortError(natsPort) is { } pe) throw new ArgumentException(pe);
         var parts = new List<string> { "-m", "install", "--api", $"\"{NormalizeApi(api)}\"", "--client-id", clientId.ToString(), "--site-id", siteId.ToString(),
             "--agent-type", $"\"{agentType}\"", "--auth", $"\"{token}\"", "--nomesh" };   // MeshCentral is not used: skip its agent
         if (rdp) parts.Add("--rdp");
         if (ping) parts.Add("--ping");
         if (power) parts.Add("--power");
+        // Without --natsport the agent talks to NATS over WebSocket on port 443 (needs a reverse proxy); with it, straight to that NATS port (e.g. 4222).
+        if (natsPort is { } np) { parts.Add("--natsport"); parts.Add(np.ToString(System.Globalization.CultureInfo.InvariantCulture)); }
         return string.Join(' ', parts);
     }
 

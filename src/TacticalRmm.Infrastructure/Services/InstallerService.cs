@@ -16,6 +16,7 @@ public sealed class InstallerService(AppDbContext db, ITokenService tokens, IAud
     {
         if (!InstallerCommands.AgentTypes.Contains(req.AgentType)) return Outcome.Invalid<InstallerDto>("agent_type must be workstation or server");
         if (!InstallerCommands.Architectures.Contains(req.Arch)) return Outcome.Invalid<InstallerDto>("arch must be amd64 or 386");
+        if (InstallerCommands.NatsPortError(req.NatsPort) is { } npe) return Outcome.Invalid<InstallerDto>(npe);
         if (!InstallerCommands.ValidHours.Contains(req.ExpiresHours)) return Outcome.Invalid<InstallerDto>($"expires_hours must be one of {string.Join(", ", InstallerCommands.ValidHours)}");
         var api = string.IsNullOrWhiteSpace(req.Api) ? defaultApi : req.Api;
         if (InstallerCommands.ValidateApi(api) is { } apiError) return Outcome.Invalid<InstallerDto>(apiError);
@@ -34,7 +35,7 @@ public sealed class InstallerService(AppDbContext db, ITokenService tokens, IAud
         var file = InstallerCommands.FileName(version, req.Arch);
 
         var (token, expiry) = await tokens.CreateInstallerTokenAsync(installer.Id, TimeSpan.FromHours(req.ExpiresHours), ct);
-        var args = InstallerCommands.InstallArguments(api, site.ClientId, site.Id, req.AgentType, token, req.Rdp, req.Ping, req.Power);
+        var args = InstallerCommands.InstallArguments(api, site.ClientId, site.Id, req.AgentType, token, req.Rdp, req.Ping, req.Power, req.NatsPort);
 
         var warnings = new List<string>();
         if (!api.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) warnings.Add("The API URL is not https. Agents are normally installed against an https URL; put a TLS reverse proxy in front of this server.");

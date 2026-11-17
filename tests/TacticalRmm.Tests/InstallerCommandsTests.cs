@@ -53,4 +53,32 @@ public class InstallerCommandsTests
         var ps = InstallerCommands.PowerShell("https://example.com/agent.exe", "agent.exe", args);
         Assert.True(ps.Contains("Invoke-WebRequest -Uri 'https://example.com/agent.exe'") && ps.Contains("-m install"), "powershell");
     }
+
+    [Fact]
+    public void NatsPortIsOnlyAddedWhenGiven()
+    {
+        var none = InstallerCommands.InstallArguments("https://rmm.example.com", 3, 7, "server", Tok, false, false, false);
+        Assert.DoesNotContain("--natsport", none);   // default: WebSocket on 443
+        var direct = InstallerCommands.InstallArguments("https://rmm.example.com", 3, 7, "server", Tok, false, false, false, 4222);
+        Assert.EndsWith("--natsport 4222", direct);
+        Assert.Contains("--nomesh", direct);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(65536)]
+    public void NatsPortOutOfRangeIsRejected(int port)
+    {
+        Assert.NotNull(InstallerCommands.NatsPortError(port));
+        Assert.Throws<ArgumentException>(() => InstallerCommands.InstallArguments("https://a.com", 1, 1, "server", Tok, false, false, false, port));
+    }
+
+    [Fact]
+    public void NatsPortAcceptsEmptyAndValidPorts()
+    {
+        Assert.Null(InstallerCommands.NatsPortError(null));
+        Assert.Null(InstallerCommands.NatsPortError(1));
+        Assert.Null(InstallerCommands.NatsPortError(65535));
+    }
 }
