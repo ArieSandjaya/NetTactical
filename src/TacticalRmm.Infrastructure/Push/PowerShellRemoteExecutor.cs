@@ -21,7 +21,9 @@ public sealed class PowerShellRemoteExecutor(IOptions<TacticalOptions> opt) : IR
         function Emit($s,$m){ [Console]::Out.WriteLine('NTRMM:' + (@{status=$s;message=$m} | ConvertTo-Json -Compress)) }
         try {
           $cred=New-Object System.Management.Automation.PSCredential($in.user,(ConvertTo-SecureString $in.pass -AsPlainText -Force))
-          $so=New-PSSessionOption -OpenTimeout 30000 -OperationTimeout ([int]$in.timeout*1000) -NoMachineProfile
+          # Not New-PSSessionOption: on Linux it lacks -OpenTimeout and others. The .NET class has the same properties everywhere.
+          $so=New-Object System.Management.Automation.Remoting.PSSessionOption
+          $so.OpenTimeout=[TimeSpan]::FromSeconds(30); $so.OperationTimeout=[TimeSpan]::FromSeconds([int]$in.timeout); $so.NoMachineProfile=$true
           $p=@{ComputerName=$in.host;Credential=$cred;Authentication='Negotiate';SessionOption=$so;ScriptBlock=[scriptblock]::Create($in.script);ErrorAction='Stop'}
           if($in.ssl){ $p.UseSSL=$true }
           $r=Invoke-Command @p
