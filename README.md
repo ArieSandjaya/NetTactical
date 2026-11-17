@@ -75,6 +75,11 @@ Served directly by the API from `src/TacticalRmm.Api/wwwroot` (open `/` in a bro
 - Each channel has a Test button. Sending is queued in the background and never blocks agent check-in.
 - Verified with unit tests and a mock API; not yet against a real SMTP server or webhook receiver.
 
+## HTTPS without a reverse proxy
+The API container can serve HTTPS itself (Kestrel). Put `fullchain.pem` and `privkey.pem` in `./certs` (`chmod 644 certs/privkey.pem`, the container user must read it), set `PUBLIC_URL=https://your.host.name` in `.env`, and start with the extra file:
+`docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build`
+The dashboard and `/api/v3` are then on `https://your.host.name` (host port `HTTPS_PORT`, default 443) and the plain HTTP port is no longer published. Use that address as Server URL for installing agents. The certificate name must match the host name and agents must trust the CA. Renew: replace the files and `docker compose restart api`. NATS has its own TLS (section above).
+
 ## Push install (domain administrator)
 The **Install agent** page (`#/installer`) has a second card, *Push install with a domain administrator*: the server installs the agent on up to 20 computers at once over PowerShell remoting (WinRM), using the client/site/options chosen at the top. Needs the permission `can_push_install` (superusers have it); every push is audited (who, which computers, which account; never the password).
 - **Credential**: `DOMAIN\user` or `user@domain.tld`, typed for each push. It is sent to the server over your HTTPS session, handed to PowerShell on standard input, and never stored, logged or returned. Use a dedicated deployment account and always put the server behind HTTPS.
