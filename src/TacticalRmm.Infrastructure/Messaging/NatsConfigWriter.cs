@@ -15,6 +15,9 @@ public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> 
 {
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
+    // nats-server's parser rejects \uXXXX escapes, which the default encoder writes for > < & + ' and similar characters (subjects use ">").
+    private static readonly JsonSerializerOptions ConfJson = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     public async Task ReloadAsync(CancellationToken ct = default)
     {
         var o = opt.Value;
@@ -75,7 +78,7 @@ public sealed class NatsConfigWriter(AppDbContext db, IOptions<TacticalOptions> 
         try
         {
             var tmp = o.NatsConfPath + ".tmp";
-            await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(config), ct);
+            await File.WriteAllTextAsync(tmp, JsonSerializer.Serialize(config, ConfJson), ct);
             File.Move(tmp, o.NatsConfPath, overwrite: true);
         }
         finally { Gate.Release(); }
