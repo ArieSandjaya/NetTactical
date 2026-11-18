@@ -85,7 +85,7 @@ public class SoftwarePostgresTests
         await using var _db = db;
         await new AgentTelemetryService(db).SaveSoftwareAsync(a1, """[{"name":"App","version":"1","uninstall":"evil.exe","location":"C:\\"},{"name":""},"junk"]""");
         var stored = await db.InstalledSoftware.AsNoTracking().SingleAsync();
-        Assert.DoesNotContain("uninstall", stored.Software);
+        Assert.Contains("evil.exe", stored.Software);   // kept as text for the Uninstall button; it only ever runs on the agent that posted it
         Assert.Contains("App", stored.Software);
         Assert.NotNull(stored.UpdatedAt);
     }

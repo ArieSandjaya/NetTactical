@@ -38,7 +38,8 @@ public class SoftwareListTests
         Assert.Equal("42", items[1].Size);
         var back = SoftwareList.ToJson(items);
         Assert.DoesNotContain("location", back);
-        Assert.DoesNotContain("uninstall", back);
+        Assert.Contains("\"uninstall\":\"x.exe\"", back);   // kept: the Uninstall button needs it
+        Assert.Equal("x.exe", SoftwareList.ParseJson(back)[0].Uninstall);
         Assert.Equal(items, SoftwareList.ParseJson(back));
     }
 
