@@ -8,7 +8,7 @@ public class AgentUpdateTests
     [Fact]
     public void AnOldWindowsAgentGetsTheUrlVersionAndInstallerName()
     {
-        var p = AgentUpdate.Decide("windows", "amd64", "2.8.0", "2.12.0");
+        var p = AgentUpdatePlan.Decide("windows", "amd64", "2.8.0", "2.12.0");
         Assert.Null(p.Error); Assert.Null(p.Skip);
         Assert.Equal("agentupdate", p.Payload!["func"]);
         var pl = (IDictionary<string, object?>)p.Payload["payload"]!;
@@ -17,13 +17,13 @@ public class AgentUpdateTests
         Assert.Equal("tacticalagent-v2.12.0-windows-amd64.exe", pl["inno"]);
     }
 
-    [Fact] public void ACurrentAgentIsSkipped() => Assert.NotNull(AgentUpdate.Decide("windows", "amd64", "2.12.0", "2.12.0").Skip);
-    [Fact] public void AnUnknownArchitectureDefaultsTo64Bit() => Assert.Contains("amd64", (string)((IDictionary<string, object?>)AgentUpdate.Decide("windows", null, "1.0.0", "2.12.0").Payload!["payload"]!)["url"]!);
-    [Fact] public void LinuxIsRefused() => Assert.NotNull(AgentUpdate.Decide("linux", "amd64", "1.0.0", "2.12.0").Error);
+    [Fact] public void ACurrentAgentIsSkipped() => Assert.NotNull(AgentUpdatePlan.Decide("windows", "amd64", "2.12.0", "2.12.0").Skip);
+    [Fact] public void AnUnknownArchitectureDefaultsTo64Bit() => Assert.Contains("amd64", (string)((IDictionary<string, object?>)AgentUpdatePlan.Decide("windows", null, "1.0.0", "2.12.0").Payload!["payload"]!)["url"]!);
+    [Fact] public void LinuxIsRefused() => Assert.NotNull(AgentUpdatePlan.Decide("linux", "amd64", "1.0.0", "2.12.0").Error);
     [Fact] public void ABadArchitectureOrVersionIsRefused()
     {
-        Assert.NotNull(AgentUpdate.Decide("windows", "../x", "1.0.0", "2.12.0").Error);
-        Assert.NotNull(AgentUpdate.Decide("windows", "amd64", "1.0.0", "latest").Error);
+        Assert.NotNull(AgentUpdatePlan.Decide("windows", "../x", "1.0.0", "2.12.0").Error);
+        Assert.NotNull(AgentUpdatePlan.Decide("windows", "amd64", "1.0.0", "latest").Error);
     }
 
     [Theory]

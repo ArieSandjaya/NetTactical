@@ -1,7 +1,7 @@
 namespace TacticalRmm.Application.Logic;
 
 /// <summary>Decides whether and how an agent is updated to the version set in Tactical:LatestAgentVer. Pure logic.</summary>
-public static class AgentUpdate
+public static class AgentUpdatePlan
 {
     /// <summary>Either a command payload (url, version, inno) or a Skip/Error text.</summary>
     public record Plan(IDictionary<string, object?>? Payload, string? Skip, string? Error);

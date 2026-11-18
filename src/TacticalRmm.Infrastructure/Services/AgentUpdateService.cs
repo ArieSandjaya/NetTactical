@@ -15,7 +15,7 @@ public sealed class AgentUpdateService(AppDbContext db, IAgentCommandBus bus, IA
         var a = await db.Agents.AsNoTracking().Where(x => x.AgentId == agentId).Select(x => new { x.Hostname, x.Plat, x.Goarch, x.Version }).FirstOrDefaultAsync(ct);
         if (a is null) return Outcome.NotFound<AgentUpdateDto>("Agent not found");
         var latest = opt.Value.LatestAgentVer;
-        var plan = AgentUpdate.Decide(a.Plat, a.Goarch, a.Version, latest);
+        var plan = AgentUpdatePlan.Decide(a.Plat, a.Goarch, a.Version, latest);
         if (plan.Error is { } e) return Outcome.Invalid<AgentUpdateDto>(e);
         if (plan.Skip is { } s) return Outcome.Ok(new AgentUpdateDto("skipped", s));
         var pong = await bus.RequestAsync(agentId, new Dictionary<string, object?> { ["func"] = "ping" }, TimeSpan.FromSeconds(3), ct);
