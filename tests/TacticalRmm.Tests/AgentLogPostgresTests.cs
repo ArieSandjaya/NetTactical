@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using TacticalRmm.Application.Abstractions;
+using TacticalRmm.Application.Dtos;
 using TacticalRmm.Domain.Entities;
 using TacticalRmm.Infrastructure.Services;
 using Xunit;
