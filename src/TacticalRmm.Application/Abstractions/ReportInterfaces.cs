@@ -19,4 +19,6 @@ public interface ISoftwareService
     Task<Outcome<SoftwareDto>> GetAsync(string agentId, CancellationToken ct = default);
     /// <summary>Asks the agent for its list now (NATS "softwarelist"), stores it and returns it. Conflict when the agent does not answer.</summary>
     Task<Outcome<SoftwareDto>> RefreshAsync(string agentId, string username, CancellationToken ct = default);
+    /// <summary>Runs the registered uninstall command of one application from the stored list on the agent and waits for it (up to 10 minutes).</summary>
+    Task<Outcome<SoftwareUninstallResult>> UninstallAsync(string agentId, SoftwareUninstallRequest req, string username, CancellationToken ct = default);
 }

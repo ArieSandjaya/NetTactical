@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace TacticalRmm.Application.Logic;
 
 /// <summary>One installed application as reported by an agent.</summary>
-public sealed record SoftwareItem(string Name, string? Version, string? Publisher, string? InstallDate, string? Size, string? Source);
+public sealed record SoftwareItem(string Name, string? Version, string? Publisher, string? InstallDate, string? Size, string? Source, string? Uninstall = null);
 
 /// <summary>
 /// The installed-software list of an agent: reads what the agent sends (NATS reply or the JSON it posts), keeps only the fields the dashboard uses,
@@ -12,16 +12,16 @@ public sealed record SoftwareItem(string Name, string? Version, string? Publishe
 /// </summary>
 public static class SoftwareList
 {
-    public const int MaxItems = 10_000, MaxText = 300;
+    public const int MaxItems = 10_000, MaxText = 300, MaxUninstall = 1000;
 
-    private static readonly string[] Keys = ["name", "version", "publisher", "install_date", "size", "source"];
+    private static readonly string[] Keys = ["name", "version", "publisher", "install_date", "size", "source", "uninstall"];
 
-    private static string? Clean(object? v)
+    private static string? Clean(object? v, int max = MaxText)
     {
         var t = v switch { null => null, string s => s, bool or sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture), _ => null };
         t = t?.Trim();
         if (string.IsNullOrEmpty(t)) return null;
-        return t.Length > MaxText ? t[..MaxText] : t;
+        return t.Length > max ? t[..max] : t;
     }
 
     private static List<SoftwareItem> Build(IEnumerable<Func<string, object?>> rows)
@@ -31,7 +31,7 @@ public static class SoftwareList
         {
             var name = Clean(get("name"));
             if (name is null) continue;
-            list.Add(new SoftwareItem(name, Clean(get("version")), Clean(get("publisher")), Clean(get("install_date")), Clean(get("size")), Clean(get("source"))));
+            list.Add(new SoftwareItem(name, Clean(get("version")), Clean(get("publisher")), Clean(get("install_date")), Clean(get("size")), Clean(get("source")), Clean(get("uninstall"), MaxUninstall)));
             if (list.Count >= MaxItems) break;
         }
         return list.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase).ThenBy(i => i.Version, StringComparer.OrdinalIgnoreCase).ToList();
@@ -85,7 +85,7 @@ public static class SoftwareList
     {
         var d = new Dictionary<string, string>();
         void Put(string k, string? v) { if (v is not null) d[k] = v; }
-        Put(Keys[0], i.Name); Put(Keys[1], i.Version); Put(Keys[2], i.Publisher); Put(Keys[3], i.InstallDate); Put(Keys[4], i.Size); Put(Keys[5], i.Source);
+        Put(Keys[0], i.Name); Put(Keys[1], i.Version); Put(Keys[2], i.Publisher); Put(Keys[3], i.InstallDate); Put(Keys[4], i.Size); Put(Keys[5], i.Source); Put(Keys[6], i.Uninstall);
         return d;
     }));
 

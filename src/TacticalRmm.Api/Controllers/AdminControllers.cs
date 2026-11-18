@@ -247,6 +247,14 @@ public class SoftwareController(ISoftwareService svc, IPermissionService perms) 
         if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
         return this.ToResult(await svc.RefreshAsync(agentId, HttpContext.GetUser().Username, ct));
     }
+
+    /// <summary>Removes one application from the stored list by running its uninstall command on the asset. Same permission as running a command.</summary>
+    [HttpPost("uninstall"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Uninstall(string agentId, SoftwareUninstallRequest req, CancellationToken ct)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
+        return this.ToResult(await svc.UninstallAsync(agentId, req, HttpContext.GetUser().Username, ct));
+    }
 }
 
 // ------------------------------------------------------------------------------------------ reports
