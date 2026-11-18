@@ -65,6 +65,7 @@ public static class DependencyInjection
         s.AddHostedService<WinUpdateScheduler>();
         s.AddSingleton<IRemoteExecutor, Push.PowerShellRemoteExecutor>();
         s.AddSingleton<IPushInstallService, Push.PushInstallService>();
+        s.AddSingleton<IBulkService, BulkService>();
         s.AddScoped<INotificationAdminService, NotificationAdminService>();
         s.AddSingleton<Notifications.NotificationQueue>();
         s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());

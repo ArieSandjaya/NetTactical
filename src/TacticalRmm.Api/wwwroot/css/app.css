@@ -117,7 +117,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .cols-task { grid-template-columns: minmax(200px, 2fr) 120px 150px minmax(0, 1fr); }
 .cols-patch { grid-template-columns: 110px minmax(220px, 3fr) 110px 110px; }
 .cols-patchm { grid-template-columns: 34px 110px minmax(220px, 3fr) 100px 120px 100px; }
-.cols-asset { grid-template-columns: minmax(200px, 2fr) 64px 84px minmax(0, 1.6fr) 70px 64px 90px; }
+.cols-asset { grid-template-columns: 28px minmax(200px, 2fr) 64px 84px minmax(0, 1.6fr) 70px 64px 90px; }
 .cols-alert { grid-template-columns: 96px minmax(220px, 3fr) minmax(150px, 1.4fr) 110px 100px; }
 .cols-upd { grid-template-columns: 110px minmax(220px, 3fr) 110px 120px 70px; }
 .cols-pdev { grid-template-columns: minmax(200px, 2fr) 80px 70px 130px 90px; }

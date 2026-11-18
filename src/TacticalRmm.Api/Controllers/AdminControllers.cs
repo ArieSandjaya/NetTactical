@@ -339,6 +339,26 @@ public class PushInstallController(IPushInstallService svc) : ControllerBase
     [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ bulk actions
+/// <summary>One action (command, script, restart) on several assets. The permission and the access to every asset are checked in the service.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("bulk-actions")]
+public class BulkController(IBulkService svc) : ControllerBase
+{
+    [HttpPost]
+    public async Task<IActionResult> Start(BulkRequest req, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.StartAsync(HttpContext.GetUser(), req, ct));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(string id, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
+    }
+}
+
 // ------------------------------------------------------------------------------------------ Windows Update
 [ApiController, Authorize(AuthDefaults.DashboardPolicy)]
 public class WinUpdateAdminController(IWinUpdateAdminService svc, IPermissionService perms) : ControllerBase

@@ -2,6 +2,7 @@ import { h } from '../dom.js';
 import { api } from '../api.js';
 import { ago, levelClass, levelWord } from '../format.js';
 import { chip, seg, searchBox, loader } from '../ui.js';
+import { bulkPanel } from './bulkpanel.js';
 
 const LEVELS = [['all', 'All'], ['at_risk', 'At risk'], ['attention', 'Needs attention'], ['healthy', 'Healthy'], ['offline', 'Offline']];
 const SORTS = { score: (a, b) => a.score - b.score || a.hostname.localeCompare(b.hostname),
@@ -9,10 +10,12 @@ const SORTS = { score: (a, b) => a.score - b.score || a.hostname.localeCompare(b
   seen: (a, b) => (new Date(b.last_seen || 0) - new Date(a.last_seen || 0)) };
 
 export function assetsView(root) {
-  const st = { client: null, level: 'all', q: '', sort: 'score', data: null };
+  const st = { client: null, level: 'all', q: '', sort: 'score', data: null, sel: new Map() };   // sel: agent_id -> hostname
   const body = h('div', { class: 'stack', style: { gap: '20px' } });
   root.replaceChildren(body);
   let listEl = null, countEl = null;
+  const bulk = bulkPanel();   // created once: a refresh of the list must not lose what is typed in it
+  const tell = () => bulk.setSelection([...st.sel].map(([agent_id, hostname]) => ({ agent_id, hostname })));
 
   const ld = loader(body, (signal) => api('fleet/assets', { signal }), (d, err) => {
     if (d) st.data = d;
@@ -32,9 +35,16 @@ export function assetsView(root) {
     const rows = visible();
     countEl.textContent = `${rows.length} of ${st.data.assets.length} assets`;
     listEl.replaceChildren(h('div', { class: 'grid-table' },
-      h('div', { class: 'tr th cols-asset' }, h('div', null, 'Asset'), h('div', null, 'Score'), h('div', null, 'Status'), h('div', null, 'Main issue'),
+      h('div', { class: 'tr th cols-asset' }, (() => {
+        const all = h('input', { type: 'checkbox', 'aria-label': 'Select all listed assets', checked: rows.length > 0 && rows.every((a) => st.sel.has(a.agent_id)) });
+        all.addEventListener('change', () => { for (const a of rows) { if (all.checked) st.sel.set(a.agent_id, a.hostname); else st.sel.delete(a.agent_id); } tell(); paintList(); });
+        return all; })(), h('div', null, 'Asset'), h('div', null, 'Score'), h('div', null, 'Status'), h('div', null, 'Main issue'),
         h('div', { style: { textAlign: 'right' } }, 'Updates'), h('div', { style: { textAlign: 'right' } }, 'Alerts'), h('div', { style: { textAlign: 'right' } }, 'Last seen')),
       rows.map((a) => h('div', { class: 'tr cols-asset' },
+        (() => {
+          const cb = h('input', { type: 'checkbox', 'aria-label': `Select ${a.hostname}`, checked: st.sel.has(a.agent_id) });
+          cb.addEventListener('change', () => { if (cb.checked) st.sel.set(a.agent_id, a.hostname); else st.sel.delete(a.agent_id); tell(); paintList(); });
+          return cb; })(),
         h('div', { class: 'stack', style: { gap: '2px' } },
           h('a', { class: 'mono', href: `#/device/${encodeURIComponent(a.agent_id)}`, style: { fontWeight: '500' } }, a.hostname),
           h('span', { class: 'muted', style: { fontSize: '12px' } }, `${a.client} · ${a.site} · ${a.os || 'Unknown OS'}`)),
@@ -59,6 +69,7 @@ export function assetsView(root) {
         h('div', { class: 'chips' },
           chip('All', st.data.assets.length, st.client === null, () => { st.client = null; paint(); }),
           clients.map((c) => chip(c, counts[c], st.client === c, () => { st.client = st.client === c ? null : c; paint(); })))),
+      bulk.el,
       h('div', { class: 'card' },
         h('div', { class: 'page-head', style: { alignItems: 'center' } },
           searchBox(st.q, (v) => { st.q = v; paintList(); }, 'Search assets'),
@@ -68,5 +79,5 @@ export function assetsView(root) {
         listEl)].filter(Boolean));
     paintList();
   }
-  return ld.stop;
+  return () => { ld.stop(); bulk.stop(); };
 }

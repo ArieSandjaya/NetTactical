@@ -161,3 +161,10 @@ public interface IWinUpdateAdminService
     Task<Outcome<WinUpdatePolicyView>> GetPolicyAsync(int policyId, CancellationToken ct = default);
     Task<Outcome<WinUpdatePolicyView>> SavePolicyAsync(User caller, int policyId, WinUpdatePolicyDto req, CancellationToken ct = default);
 }
+
+public interface IBulkService
+{
+    /// <summary>Validates and checks permission and access to every asset, then runs in the background and returns at once; poll <see cref="GetAsync"/>.</summary>
+    Task<Outcome<BulkJobDto>> StartAsync(User caller, BulkRequest req, CancellationToken ct = default);
+    Task<Outcome<BulkJobDto>> GetAsync(User caller, string id, CancellationToken ct = default);
+}
