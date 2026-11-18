@@ -17,6 +17,14 @@ public class PushInstallTests
     }
 
     [Fact]
+    public void AcceptsUnderscoresAndPastedDecorations()
+    {
+        var (h, e) = PushInstall.ParseTargets("PC_LOBBY\n\\\\SRV01\n\"LAP-02\"\nweb01.corp.local.");
+        Assert.Null(e);
+        Assert.Equal(new[] { "PC_LOBBY", "SRV01", "LAP-02", "web01.corp.local" }, h);
+    }
+
+    [Fact]
     public void RejectsDangerousOrMalformedTargets()
     {
         foreach (var bad in new[] { "127.0.0.1", "169.254.169.254", "0.0.0.0", "224.0.0.1", "localhost", "a.localhost", "2130706433", "1.2.3", "::1", "fe80::1", "host name!", "a;b|c", "-bad", "x..y", "http://pc", "pc/share", "0x7f.0.0.1" })

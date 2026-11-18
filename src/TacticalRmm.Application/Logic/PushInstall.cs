@@ -11,7 +11,7 @@ public static partial class PushInstall
     public const string Installed = "installed", AlreadyInstalled = "already_installed", Failed = "failed", Skipped = "skipped", Queued = "queued", Running = "running";
     public const string CatOk = "ok", CatAuth = "auth", CatUnreachable = "unreachable", CatTimeout = "timeout", CatError = "error";
 
-    [GeneratedRegex(@"^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$")]
+    [GeneratedRegex(@"^[A-Za-z0-9_]([A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?(\.[A-Za-z0-9_]([A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?)*$")]
     private static partial Regex HostRx();
     [GeneratedRegex(@"^[A-Za-z0-9][A-Za-z0-9.-]{0,62}\\[A-Za-z0-9._$-]{1,64}$")]
     private static partial Regex DomainUserRx();
@@ -25,7 +25,7 @@ public static partial class PushInstall
     {
         var hosts = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var raw in SplitRx().Split(text ?? "").Where(x => x.Length > 0))
+        foreach (var raw in SplitRx().Split(text ?? "").Select(CleanTarget).Where(x => x.Length > 0))
         {
             if (ValidateTarget(raw) is { } e) return ([], $"'{Trim(raw)}': {e}");
             if (seen.Add(raw)) hosts.Add(raw);
@@ -34,6 +34,9 @@ public static partial class PushInstall
         if (hosts.Count > MaxTargets) return ([], $"at most {MaxTargets} computers per push");
         return (hosts, null);
     }
+
+    /// <summary>Tolerates what people paste: \\\\PC01, "PC01", PC01. (trailing dot), or a name copied with quotes.</summary>
+    private static string CleanTarget(string s) => s.Trim().Trim('"', '\'', '`').TrimStart('\\').TrimEnd('.');
 
     private static string Trim(string s) => s.Length <= 40 ? s : s[..40] + "…";
 
