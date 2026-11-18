@@ -9,6 +9,7 @@ public static class AgentUpdatePlan
     public static Plan Decide(string? plat, string? goarch, string? currentVersion, string latest)
     {
         if (!string.Equals(plat, "windows", StringComparison.OrdinalIgnoreCase)) return new(null, null, "Agent update from the dashboard is only available for Windows assets.");
+        if (InstallerCommands.DownloadUrl(latest, "amd64") is null) return new(null, null, $"Tactical:LatestAgentVer \"{latest}\" is not a plain version like 2.12.0.");
         if (!AgentVersion.IsInstallerOutdated(currentVersion ?? "", latest) && !string.IsNullOrWhiteSpace(currentVersion)) return new(null, "Already on the latest version.", null);
         var arch = string.IsNullOrWhiteSpace(goarch) ? "amd64" : goarch.Trim().ToLowerInvariant();
         var url = InstallerCommands.DownloadUrl(latest, arch);
