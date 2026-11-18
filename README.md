@@ -135,6 +135,14 @@ Fields an administrator defines once for **clients, sites or assets** (`#/custom
 - A field's model and type cannot change after creation. Removing a choice from a pick-one field clears that value where it was used. Deleting a field, client, site or asset deletes its values.
 - Not included: using fields inside scripts (`{{client.Name}}`), a "required" flag, multiple-choice, and filling a field from a check result.
 
+## Bulk actions, maintenance, notes, services, agent update (new)
+- **Bulk actions** (Assets list: tick assets, panel appears): run a command, run a script, restart, maintenance on/off or **update agent** on up to 100 assets (8 at a time). The whole request is refused if one asset is outside your scope or you lack the permission of the action. Results appear live per asset (waiting, running, done, failed, offline). Jobs live in memory for 6 hours and are lost on restart. API: `POST /bulk-actions`, `GET /bulk-actions/{id}`.
+- **Maintenance mode** (asset page button, or bulk): while on, the asset opens no new alerts or notifications; alerts already open stay. Needs `can_edit_agent`.
+- **Notes and history** (asset page tabs): free-text notes per asset, and a history of commands, scripts and actions run from the dashboard (who, when). API under `agents/{agent_id}/notes` and `/history`.
+- **Services and processes** (asset page tabs, Windows, permission `can_send_cmd`): list Windows services and start/stop/restart them; list processes and end one. Live: the agent is asked each time (NATS `winservices`, `winsvcaction`, `procs`, `killproc`).
+- **Update agent** (asset page button for Windows assets, or bulk): the server pings the agent, then sends NATS `agentupdate` with the download URL of `Tactical:LatestAgentVer` (default `2.12.0`, official rmmagent release on GitHub), version and installer name. The agent downloads it and restarts itself. Skipped when already on that version, refused for non-Windows; offline agents get nothing sent. Needs `can_manage_agents`; audited. API: `POST /agents/{agent_id}/update`. Set `Tactical__LatestAgentVer` to the version you want agents to reach.
+- **Not verified on a real agent**: the shape of the `agentupdate` payload and of the services/processes replies follow Tactical RMM from memory and are tested only with a fake agent. Try one test PC first.
+
 ## Not covered (deliberately, "core first")
 Chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
 SMS notifications, alert templates beyond the simple "always notify" flags (no custom messages, no per-template email recipients), placeholders such as `{{client.Field}}` in scripts, custom-field results from checks, reporting & SSO (`ee/`, separate sponsor licence).
