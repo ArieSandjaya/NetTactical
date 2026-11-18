@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TacticalRmm.Application.Abstractions;
+using TacticalRmm.Application.Logic;
 using TacticalRmm.Domain;
 using TacticalRmm.Domain.Entities;
 using TacticalRmm.Infrastructure.Services;
