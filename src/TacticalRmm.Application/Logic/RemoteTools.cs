@@ -23,7 +23,7 @@ public static class RemoteTools
 
     private static string? Text(object? v)
     {
-        var t = v switch { null => null, string s => s, bool or sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(v, CultureInfo.InvariantCulture), _ => null }?.Trim();
+        var t = (v switch { null => null, string s => s, bool or sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(v, CultureInfo.InvariantCulture), _ => null })?.Trim();
         return string.IsNullOrEmpty(t) ? null : t.Length > MaxText ? t[..MaxText] : t;
     }
 
