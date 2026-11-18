@@ -47,7 +47,7 @@ public class BulkPostgresTests
         var audit = new NoAudit(); var bus = new Bus();
         var services = new ServiceCollection()
             .AddScoped(_ => new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(cs).Options))
-            .AddSingleton(perms).AddSingleton<IAuditService>(audit).BuildServiceProvider();
+            .AddLogging().AddScoped<IAgentLogService, AgentLogService>().AddSingleton(perms).AddSingleton<IAuditService>(audit).BuildServiceProvider();
         return (new BulkService(services.GetRequiredService<IServiceScopeFactory>(), bus, NullLogger<BulkService>.Instance), bus, audit, db);
     }
 
@@ -77,6 +77,7 @@ public class BulkPostgresTests
         Assert.Equal("output of " + A1, job.Targets[0].Message);
         Assert.Equal(3, bus.Calls.Count(c => c.func == "rawcmd"));
         Assert.Contains(audit.Messages, m => m.Contains("bulk command") && m.Contains("PC1") && m.Contains("ipconfig"));
+        Assert.Equal(3, await db.AgentHistory.CountAsync(h => h.Type == "cmd_run" && h.Command == "ipconfig" && h.Username == "admin"));   // shows up in each asset's history
     }
 
     [PostgresFact]

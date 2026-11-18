@@ -339,6 +339,29 @@ public class PushInstallController(IPushInstallService svc) : ControllerBase
     [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ notes and history of an asset
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}")]
+public class AgentLogController(IAgentLogService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> MayAsync(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet("history"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> History(string agentId, [FromQuery] int? take, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.HistoryAsync(agentId, take, ct));
+
+    [HttpGet("notes"), RequirePerm(Perm.ListAgents)]
+    public async Task<IActionResult> Notes(string agentId, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.NotesAsync(agentId, ct));
+
+    [HttpPost("notes"), RequirePerm(Perm.EditAgent)]
+    public async Task<IActionResult> AddNote(string agentId, NoteRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.AddNoteAsync(HttpContext.GetUser(), agentId, req.Note, ct));
+
+    [HttpDelete("notes/{noteId:int}"), RequirePerm(Perm.EditAgent)]
+    public async Task<IActionResult> DeleteNote(string agentId, int noteId, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.DeleteNoteAsync(HttpContext.GetUser(), agentId, noteId, ct));
+}
+
 // ------------------------------------------------------------------------------------------ bulk actions
 /// <summary>One action (command, script, restart) on several assets. The permission and the access to every asset are checked in the service.</summary>
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("bulk-actions")]

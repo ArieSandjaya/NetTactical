@@ -168,3 +168,13 @@ public interface IBulkService
     Task<Outcome<BulkJobDto>> StartAsync(User caller, BulkRequest req, CancellationToken ct = default);
     Task<Outcome<BulkJobDto>> GetAsync(User caller, string id, CancellationToken ct = default);
 }
+
+public interface IAgentLogService
+{
+    Task<Outcome<IReadOnlyList<HistoryEntryDto>>> HistoryAsync(string agentId, int? take, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<NoteDto>>> NotesAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<NoteDto>> AddNoteAsync(User caller, string agentId, string? text, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteNoteAsync(User caller, string agentId, int noteId, CancellationToken ct = default);
+    /// <summary>Adds a "cmd_run" line to the asset's history. Best effort: a problem here never stops the command.</summary>
+    Task RecordCommandAsync(string agentId, string username, string command, CancellationToken ct = default);
+}

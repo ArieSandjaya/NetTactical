@@ -109,9 +109,12 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
         switch (req.Action)
         {
             case BulkRules.Command:
+            {
+                using (var hs = scopes.CreateScope()) await hs.ServiceProvider.GetRequiredService<IAgentLogService>().RecordCommandAsync(agentId, job.Username, req.Cmd!);
                 return await bus.RequestAsync(agentId, new Dictionary<string, object?>
                     { ["func"] = "rawcmd", ["timeout"] = req.Timeout, ["payload"] = new Dictionary<string, object?> { ["command"] = req.Cmd, ["shell"] = req.Shell } },
                     TimeSpan.FromSeconds(req.Timeout + 2));
+            }
             case BulkRules.Script:
             {
                 using var scope = scopes.CreateScope();

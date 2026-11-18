@@ -12,7 +12,7 @@ using TacticalRmm.Infrastructure.Persistence;
 namespace TacticalRmm.Api.Controllers;
 
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents")]
-public class AgentsController(IAgentService agents, IPermissionService perms, IAgentCommandBus bus, IAuditService audit) : ControllerBase
+public class AgentsController(IAgentService agents, IPermissionService perms, IAgentCommandBus bus, IAuditService audit, IAgentLogService agentLog) : ControllerBase
 {
     [HttpGet, RequirePerm(Perm.ListAgents)]
     public async Task<IActionResult> List(CancellationToken ct) => Ok(await agents.ListAsync(HttpContext.GetUser(), ct));
@@ -66,6 +66,7 @@ public class AgentsController(IAgentService agents, IPermissionService perms, IA
         if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
         var u = HttpContext.GetUser();
         await audit.LogAsync(u.Username, AuditAction.ExecCommand, "agent", $"{u.Username} ran command on {agentId}: {req.Cmd}", ct: ct);
+        await agentLog.RecordCommandAsync(agentId, u.Username, req.Cmd, ct);
         var r = await bus.RequestAsync(agentId, new Dictionary<string, object?>
             { ["func"] = "rawcmd", ["timeout"] = req.Timeout, ["payload"] = new Dictionary<string, object?> { ["command"] = req.Cmd, ["shell"] = req.Shell } },
             TimeSpan.FromSeconds(req.Timeout + 2), ct);
