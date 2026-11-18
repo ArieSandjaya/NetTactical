@@ -339,6 +339,28 @@ public class PushInstallController(IPushInstallService svc) : ControllerBase
     [HttpGet("{id}")] public async Task<IActionResult> Get(string id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
 }
 
+// ------------------------------------------------------------------------------------------ services and processes of an asset
+/// <summary>A live look at the asset (the agent is asked each time). Everything here needs the permission to run commands, as it can change the computer.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}")]
+public class RemoteToolsController(IRemoteToolsService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> MayAsync(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet("services"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Services(string agentId, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ServicesAsync(agentId, ct)); }
+
+    [HttpPost("services/action"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> ServiceAction(string agentId, ServiceActionRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ServiceActionAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpGet("processes"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Processes(string agentId, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ProcessesAsync(agentId, ct)); }
+
+    [HttpPost("processes/kill"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Kill(string agentId, KillRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.KillAsync(HttpContext.GetUser(), agentId, req, ct));
+}
+
 // ------------------------------------------------------------------------------------------ notes and history of an asset
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}")]
 public class AgentLogController(IAgentLogService svc, IPermissionService perms) : ControllerBase

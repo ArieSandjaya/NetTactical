@@ -6,12 +6,13 @@ import { lineChart } from '../charts.js';
 import { patchPanel } from './patchpanel.js';
 import { softwarePanel } from './softwarepanel.js';
 import { notesPanel, historyPanel } from './agentlog.js';
+import { servicesPanel, processesPanel } from './remotetools.js';
 import {
   ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord,
   checkType, KIND_LABELS, HINTS, METRIC_NAMES,
 } from '../format.js';
 
-const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['software', 'Software'], ['notes', 'Notes'], ['history', 'History'], ['system', 'Disks & services']];
+const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['software', 'Software'], ['notes', 'Notes'], ['history', 'History'], ['services', 'Services'], ['processes', 'Processes'], ['system', 'Disks & services']];
 
 export function deviceView(root, agentId) {
   const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null, vnc: { busy: false, ok: null, msg: '' }, actions: newActionsState() };
@@ -143,7 +144,7 @@ export function deviceView(root, agentId) {
           h('button', { role: 'tab', 'aria-selected': String(st.tab === k), onclick: () => { st.tab = k; paint(); } }, label,
             counts[k] === null ? null : h('span', { class: `count${k === 'issues' && counts[k] ? ' bad' : ''}` }, String(counts[k]))))),
         st.tab === 'issues' ? issuesTab(d) : st.tab === 'checks' ? checksTab(d) : st.tab === 'tasks' ? tasksTab(d)
-          : st.tab === 'patches' ? patchesTab() : st.tab === 'software' ? softwareTab() : st.tab === 'notes' ? notesTab() : st.tab === 'history' ? historyTab() : systemTab(d)));
+          : st.tab === 'patches' ? patchesTab() : st.tab === 'software' ? softwareTab() : st.tab === 'notes' ? notesTab() : st.tab === 'history' ? historyTab() : st.tab === 'services' ? servicesTab() : st.tab === 'processes' ? processesTab() : systemTab(d)));
   }
 
   function seg(items, current, fn, label) {
@@ -200,6 +201,8 @@ export function deviceView(root, agentId) {
   const softwareTab = () => (st.softwarePanel ??= softwarePanel(agentId)).el;
   const notesTab = () => (st.notesPanel ??= notesPanel(agentId)).el;
   const historyTab = () => (st.historyPanel ??= historyPanel(agentId)).el;
+  const servicesTab = () => (st.servicesPanel ??= servicesPanel(agentId)).el;
+  const processesTab = () => (st.processesPanel ??= processesPanel(agentId)).el;
 
   function systemTab(d) {
     return h('div', { class: 'pad row' },

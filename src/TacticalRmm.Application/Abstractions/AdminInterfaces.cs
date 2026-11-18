@@ -178,3 +178,12 @@ public interface IAgentLogService
     /// <summary>Adds a "cmd_run" line to the asset's history. Best effort: a problem here never stops the command.</summary>
     Task RecordCommandAsync(string agentId, string username, string command, CancellationToken ct = default);
 }
+
+/// <summary>Live look at an asset: Windows services and running processes, and the actions on them. Every call asks the agent through NATS.</summary>
+public interface IRemoteToolsService
+{
+    Task<Outcome<IReadOnlyList<ServiceDto>>> ServicesAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> ServiceActionAsync(User caller, string agentId, ServiceActionRequest req, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<ProcessDto>>> ProcessesAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> KillAsync(User caller, string agentId, KillRequest req, CancellationToken ct = default);
+}
