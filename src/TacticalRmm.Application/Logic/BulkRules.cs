@@ -8,11 +8,11 @@ namespace TacticalRmm.Application.Logic;
 public static class BulkRules
 {
     public const int MaxTargets = 100, MaxOutput = 1000, MaxCommand = 4000, MaxTimeout = 300;
-    public const string Command = "command", Script = "script", Reboot = "reboot";
+    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off";
 
     public const string Queued = "queued", Running = "running", Ok = "ok", Failed = "failed", Offline = "offline";
 
-    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot];
+    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff];
     private static readonly string[] Shells = ["cmd", "powershell", "/bin/bash"];
 
     /// <summary>The permission needed to run the action, or null for an unknown action.</summary>
@@ -21,6 +21,7 @@ public static class BulkRules
         Command => Perm.RunCommands,
         Script => Perm.RunScripts,
         Reboot => Perm.RebootAgents,
+        MaintenanceOn or MaintenanceOff => Perm.EditAgent,
         _ => null,
     };
 
@@ -56,6 +57,8 @@ public static class BulkRules
     /// </summary>
     public static (string Status, string? Message) FromReply(string action, object? reply)
     {
+        if (action is MaintenanceOn or MaintenanceOff)   // changed in the database; the agent is not asked
+            return reply as string == "ok" ? (Ok, action == MaintenanceOn ? "Maintenance mode is on." : "Maintenance mode is off.") : (Failed, "Could not change it.");
         if (reply is string s)
         {
             if (s == "timeout") return (Offline, "The agent did not answer (it may be offline).");

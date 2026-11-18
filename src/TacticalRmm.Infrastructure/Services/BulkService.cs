@@ -66,6 +66,8 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
         {
             BulkRules.Command => $"command: {BulkRules.Truncate(req.Cmd)}",
             BulkRules.Script => $"script id {req.Script}",
+            BulkRules.MaintenanceOn => "maintenance mode on",
+            BulkRules.MaintenanceOff => "maintenance mode off",
             _ => "restart",
         };
         await sp.GetRequiredService<IAuditService>().LogAsync(caller.Username, AuditAction.BulkAction, "agent",
@@ -118,6 +120,13 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             }
             case BulkRules.Reboot:
                 return await bus.RequestAsync(agentId, new Dictionary<string, object?> { ["func"] = "rebootnow" }, TimeSpan.FromSeconds(10));
+            case BulkRules.MaintenanceOn or BulkRules.MaintenanceOff:
+            {
+                using var scope = scopes.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var n = await db.Agents.Where(a => a.AgentId == agentId).ExecuteUpdateAsync(u => u.SetProperty(a => a.MaintenanceMode, req.Action == BulkRules.MaintenanceOn));
+                return n == 1 ? "ok" : throw new KeyNotFoundException();
+            }
             default:
                 throw new InvalidOperationException("unknown action");
         }

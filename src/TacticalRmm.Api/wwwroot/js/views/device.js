@@ -20,6 +20,16 @@ export function deviceView(root, agentId) {
   const id = encodeURIComponent(agentId);
   const fields = customFieldsPanel('agent', agentId);   // created once: a refresh of the page must not lose what is being typed
 
+  // While on, the asset opens no new alerts and sends no notifications (planned work, a reboot window). Alerts already open stay.
+  async function toggleMaintenance() {
+    const on = !st.data.agent.maintenance_mode;
+    if (!confirm(on ? `Turn maintenance mode on for "${st.data.agent.hostname}"?\n\nNo new alerts or notifications are created for it until you turn it off.` : `Turn maintenance mode off for "${st.data.agent.hostname}"?`)) return;
+    st.maint = true; st.removeErr = ''; paint();
+    try { await api(`agents/${id}`, { method: 'PUT', body: { maintenance_mode: on } }); await load(true); }
+    catch (e) { st.removeErr = e.status === 403 ? 'You do not have permission to edit agents.' : e.message; }
+    st.maint = false; if (alive) paint();
+  }
+
   async function removeAgent() {
     const host = st.data?.agent?.hostname || agentId;
     if (!confirm(`Delete "${host}" from NetTactical?\n\nIf the agent is reachable it is told to uninstall itself. Its history and custom-field values are removed. This cannot be undone.`)) return;
@@ -101,6 +111,7 @@ export function deviceView(root, agentId) {
             h('button', { class: 'btn primary', disabled: st.vnc.busy, onclick: vncConnect }, 'Connect (VNC)'),
             h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
             actionsCard(st.actions, id, a.plat, () => alive && paint()),
+            h('button', { class: 'btn', disabled: !!st.maint, onclick: toggleMaintenance }, a.maintenance_mode ? 'End maintenance' : 'Maintenance mode'),
             h('button', { class: 'btn danger', disabled: !!st.removing, onclick: removeAgent }, st.removing ? 'Deleting…' : 'Delete agent'),
             st.removeErr ? h('span', { class: 'pill crit', role: 'alert' }, st.removeErr) : null,
             st.vnc.msg ? h('span', { class: `pill ${st.vnc.ok === null ? 'neutral' : st.vnc.ok ? 'good' : 'crit'}`, role: 'status', style: { fontWeight: '500' } }, st.vnc.msg) : null)),

@@ -26,7 +26,7 @@ public record FleetSummaryDto(
 
 /// <summary>One asset in the asset list, with its health score and the main reason for it.</summary>
 public record FleetAssetRow(string AgentId, string Hostname, string Client, string Site, string Os, string? Version, int Score, string Level, bool Online,
-    DateTime? LastSeen, int PendingUpdates, int OpenAlerts, bool NeedsReboot, int? UptimeDays, string? TopReason);
+    DateTime? LastSeen, int PendingUpdates, int OpenAlerts, bool NeedsReboot, int? UptimeDays, string? TopReason, bool Maintenance = false);
 public record FleetAssetsDto(FleetScope Scope, IReadOnlyList<FleetAssetRow> Assets);
 
 public record PatchTotals(int PendingUpdates, int FailedUpdates, int DevicesAffected, int NeedsReboot);

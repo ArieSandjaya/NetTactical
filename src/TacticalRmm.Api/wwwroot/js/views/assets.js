@@ -49,7 +49,7 @@ export function assetsView(root) {
           h('a', { class: 'mono', href: `#/device/${encodeURIComponent(a.agent_id)}`, style: { fontWeight: '500' } }, a.hostname),
           h('span', { class: 'muted', style: { fontSize: '12px' } }, `${a.client} · ${a.site} · ${a.os || 'Unknown OS'}`)),
         h('div', null, h('span', { class: `score ${levelClass(a.level)}`, title: levelWord(a.level) }, String(a.score))),
-        h('div', null, h('span', { class: `pill ${a.online ? 'good' : 'crit'}` }, a.online ? 'Online' : 'Offline')),
+        h('div', null, h('span', { class: `pill ${a.online ? 'good' : 'crit'}` }, a.online ? 'Online' : 'Offline'), a.maintenance ? h('span', { class: 'pill info', style: { marginLeft: '6px' }, title: 'Maintenance mode: no new alerts' }, 'Maint.') : null),
         h('div', null, a.top_reason ? h('span', { class: 'chipx' }, a.top_reason) : h('span', { class: 'muted' }, '—')),
         h('div', { class: 'mono', style: { textAlign: 'right' } }, String(a.pending_updates)),
         h('div', { class: 'mono', style: { textAlign: 'right', color: a.open_alerts ? 'var(--crit)' : '' } }, String(a.open_alerts)),

@@ -19,6 +19,8 @@ public class BulkRulesTests
         Assert.Equal(Perm.RunCommands, BulkRules.RequiredPermission("command"));
         Assert.Equal(Perm.RunScripts, BulkRules.RequiredPermission("script"));
         Assert.Equal(Perm.RebootAgents, BulkRules.RequiredPermission("reboot"));
+        Assert.Equal(Perm.EditAgent, BulkRules.RequiredPermission("maintenance_on"));
+        Assert.Equal(Perm.EditAgent, BulkRules.RequiredPermission("maintenance_off"));
         Assert.Null(BulkRules.RequiredPermission("format-disk"));
         Assert.NotNull(BulkRules.Validate(new BulkRequest("format-disk", [Id(1)])));
     }
@@ -78,5 +80,14 @@ public class BulkRulesTests
     {
         var (_, msg) = BulkRules.FromReply("command", new string('x', 5000));
         Assert.Equal(BulkRules.MaxOutput + 1, msg!.Length);   // text plus the ellipsis
+    }
+
+    [Fact]
+    public void MaintenanceResultsIgnoreTheAgent()
+    {
+        Assert.Equal(("ok", "Maintenance mode is on."), BulkRules.FromReply("maintenance_on", "ok"));
+        Assert.Equal(("ok", "Maintenance mode is off."), BulkRules.FromReply("maintenance_off", "ok"));
+        Assert.Equal("failed", BulkRules.FromReply("maintenance_on", "timeout").Status);
+        Assert.Null(BulkRules.Validate(new BulkRequest("maintenance_on", [Id(1)], Timeout: 0)));
     }
 }

@@ -10,17 +10,17 @@ namespace TacticalRmm.Infrastructure.Services;
 /// <summary>Dashboard alerts. A newly opened or resolved alert is also handed to the notification queue (email / webhook channels).</summary>
 public sealed class AlertService(AppDbContext db, INotificationQueue notifications) : IAlertService
 {
-    private async Task<Alert> OpenOrCreate(Agent agent, string type, int? checkId, int? taskId, string msg, string severity, bool emailFlag, CancellationToken ct)
+    private async Task OpenOrCreate(Agent agent, string type, int? checkId, int? taskId, string msg, string severity, bool emailFlag, CancellationToken ct)
     {
         var alert = await db.Alerts.FirstOrDefaultAsync(a => a.AgentId == agent.Id && a.AlertType == type && !a.Resolved
             && a.AssignedCheckId == checkId && a.AssignedTaskId == taskId, ct);
-        if (alert is not null) { alert.Severity = severity; await db.SaveChangesAsync(ct); return alert; }
+        if (alert is not null) { alert.Severity = severity; await db.SaveChangesAsync(ct); return; }
+        if (agent.MaintenanceMode) return;   // maintenance mode: no new alerts and no notifications for this asset (an alert that is already open stays until it resolves)
         alert = new Alert { AgentId = agent.Id, AlertType = type, AssignedCheckId = checkId, AssignedTaskId = taskId,
             Message = msg, Severity = severity, AlertTime = DateTime.UtcNow };
         db.Alerts.Add(alert);
         await db.SaveChangesAsync(ct);
         await NotifyAsync(NotificationRules.Opened, alert, agent, emailFlag, ct);
-        return alert;
     }
 
     private async Task Resolve(Agent agent, string type, int? checkId, int? taskId, bool emailFlag, CancellationToken ct)

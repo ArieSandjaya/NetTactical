@@ -120,4 +120,17 @@ public class BulkPostgresTests
         Assert.Equal(OutcomeStatus.NotFound, (await svc.GetAsync(other, job.Id)).Status);
         Assert.True((await svc.GetAsync(new User { Id = 9, Username = "root", IsSuperuser = true }, job.Id)).IsOk);
     }
+
+    [PostgresFact]
+    public async Task MaintenanceModeIsSetInTheDatabaseWithoutAskingTheAgent()
+    {
+        var (svc, bus, _, db) = await SetupAsync(new Perms(true));
+        await using var _db = db;
+        var job = await WaitAsync(svc, Caller, (await svc.StartAsync(Caller, new BulkRequest("maintenance_on", [A1, A2]))).Value!.Id);
+        Assert.All(job.Targets, t => Assert.Equal("ok", t.Status));   // PC2 is "offline" for the bus, but it is not asked
+        Assert.Empty(bus.Calls);
+        Assert.Equal(new[] { true, true, false }, await db.Agents.OrderBy(a => a.AgentId).Select(a => a.MaintenanceMode).ToArrayAsync());
+        await WaitAsync(svc, Caller, (await svc.StartAsync(Caller, new BulkRequest("maintenance_off", [A1]))).Value!.Id);
+        Assert.Equal(new[] { false, true, false }, await db.Agents.AsNoTracking().OrderBy(a => a.AgentId).Select(a => a.MaintenanceMode).ToArrayAsync());
+    }
 }
