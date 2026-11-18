@@ -187,3 +187,9 @@ public interface IRemoteToolsService
     Task<Outcome<IReadOnlyList<ProcessDto>>> ProcessesAsync(string agentId, CancellationToken ct = default);
     Task<Outcome<ToolResult>> KillAsync(User caller, string agentId, KillRequest req, CancellationToken ct = default);
 }
+
+/// <summary>Tells an agent to download and install the version set in Tactical:LatestAgentVer (the agent restarts itself).</summary>
+public interface IAgentUpdateService
+{
+    Task<Outcome<AgentUpdateDto>> UpdateAsync(string username, string agentId, CancellationToken ct = default);
+}

@@ -68,6 +68,7 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             BulkRules.Script => $"script id {req.Script}",
             BulkRules.MaintenanceOn => "maintenance mode on",
             BulkRules.MaintenanceOff => "maintenance mode off",
+            BulkRules.AgentUpdateAction => "agent update",
             _ => "restart",
         };
         await sp.GetRequiredService<IAuditService>().LogAsync(caller.Username, AuditAction.BulkAction, "agent",
@@ -123,6 +124,14 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             }
             case BulkRules.Reboot:
                 return await bus.RequestAsync(agentId, new Dictionary<string, object?> { ["func"] = "rebootnow" }, TimeSpan.FromSeconds(10));
+            case BulkRules.AgentUpdateAction:
+            {
+                using var scope = scopes.CreateScope();
+                var r = await scope.ServiceProvider.GetRequiredService<IAgentUpdateService>().UpdateAsync(job.Username, agentId);
+                if (r.Status == OutcomeStatus.Ok) return $"{r.Value!.Status}:{r.Value.Message}";
+                if (r.Status == OutcomeStatus.NotFound) throw new KeyNotFoundException();
+                return (r.Error?.Contains("did not answer") == true ? "offline:" : "fail:") + r.Error;
+            }
             case BulkRules.MaintenanceOn or BulkRules.MaintenanceOff:
             {
                 using var scope = scopes.CreateScope();

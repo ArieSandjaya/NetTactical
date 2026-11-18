@@ -51,6 +51,13 @@ public class AgentsController(IAgentService agents, IPermissionService perms, IA
         return r as string == "ok" ? Ok("ok") : Problem("Unable to contact the agent");
     }
 
+    [HttpPost("{agentId}/update"), RequirePerm(Perm.ManageAgents)]
+    public async Task<IActionResult> UpdateAgent(string agentId, [FromServices] IAgentUpdateService upd, CancellationToken ct)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
+        return this.ToResult(await upd.UpdateAsync(HttpContext.GetUser().Username, agentId, ct));
+    }
+
     [HttpPost("{agentId}/runscript"), RequirePerm(Perm.RunScripts)]
     public async Task<IActionResult> RunScript(string agentId, RunScriptRequest req, CancellationToken ct)
     {

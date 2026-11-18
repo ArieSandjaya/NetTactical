@@ -32,6 +32,16 @@ export function deviceView(root, agentId) {
     st.maint = false; if (alive) paint();
   }
 
+  // Asks the agent to download and install the newest version (Tactical:LatestAgentVer) and restart itself.
+  async function updateAgent() {
+    const a = st.data.agent;
+    if (!confirm(`Update the agent on "${a.hostname}" (now ${a.version || '?'})?\n\nIt downloads the newest agent from GitHub and restarts itself.`)) return;
+    st.upd = true; st.updMsg = null; paint();
+    try { const r = await api(`agents/${id}/update`, { method: 'POST' }); st.updMsg = { ok: true, msg: r.message }; }
+    catch (e) { st.updMsg = { ok: false, msg: e.status === 403 ? 'You do not have permission to manage agents.' : e.message }; }
+    st.upd = false; if (alive) paint();
+  }
+
   async function removeAgent() {
     const host = st.data?.agent?.hostname || agentId;
     if (!confirm(`Delete "${host}" from NetTactical?\n\nIf the agent is reachable it is told to uninstall itself. Its history and custom-field values are removed. This cannot be undone.`)) return;
@@ -114,6 +124,8 @@ export function deviceView(root, agentId) {
             h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
             actionsCard(st.actions, id, a.plat, () => alive && paint()),
             h('button', { class: 'btn', disabled: !!st.maint, onclick: toggleMaintenance }, a.maintenance_mode ? 'End maintenance' : 'Maintenance mode'),
+            /^windows$/i.test(a.plat || '') ? h('button', { class: 'btn', disabled: !!st.upd, onclick: updateAgent }, st.upd ? 'Updating…' : 'Update agent') : null,
+            st.updMsg ? h('span', { class: `pill ${st.updMsg.ok ? 'good' : 'crit'}`, role: 'status' }, st.updMsg.msg) : null,
             h('button', { class: 'btn danger', disabled: !!st.removing, onclick: removeAgent }, st.removing ? 'Deleting…' : 'Delete agent'),
             st.removeErr ? h('span', { class: 'pill crit', role: 'alert' }, st.removeErr) : null,
             st.vnc.msg ? h('span', { class: `pill ${st.vnc.ok === null ? 'neutral' : st.vnc.ok ? 'good' : 'crit'}`, role: 'status', style: { fontWeight: '500' } }, st.vnc.msg) : null)),

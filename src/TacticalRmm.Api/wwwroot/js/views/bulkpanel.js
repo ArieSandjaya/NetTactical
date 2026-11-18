@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { api } from '../api.js';
 import { field, input, select, btn, notice } from '../forms.js';
 
-const ACTIONS = [['command', 'Run command'], ['script', 'Run script'], ['reboot', 'Restart'], ['maintenance_on', 'Maintenance on'], ['maintenance_off', 'Maintenance off']];
+const ACTIONS = [['command', 'Run command'], ['script', 'Run script'], ['reboot', 'Restart'], ['maintenance_on', 'Maintenance on'], ['maintenance_off', 'Maintenance off'], ['agent_update', 'Update agent']];
 const STATUS = { queued: ['neutral', 'Waiting'], running: ['info', 'Running'], ok: ['good', 'Done'], failed: ['crit', 'Failed'], offline: ['warn', 'Offline'] };
 
 // Actions on the assets ticked in the list: one form, one job, a live result per asset. Created once by the page and reused,
@@ -31,7 +31,7 @@ export function bulkPanel() {
     const body = { action: st.action, agent_ids: ids };
     if (st.action === 'command') { if (!st.cmd.trim()) { st.notice = { ok: false, msg: 'Enter a command.' }; paint(); return; } Object.assign(body, { cmd: st.cmd, shell: st.shell, timeout: timeout() }); }
     if (st.action === 'script') { if (!st.scriptId) { st.notice = { ok: false, msg: 'Choose a script.' }; paint(); return; } Object.assign(body, { script: +st.scriptId, args: st.args.split('\n').map((x) => x.trim()).filter(Boolean), timeout: timeout() }); }
-    const what = { reboot: 'Restart', script: 'Run the script on', command: 'Run the command on', maintenance_on: 'Turn maintenance mode on for', maintenance_off: 'Turn maintenance mode off for' }[st.action];
+    const what = { reboot: 'Restart', script: 'Run the script on', command: 'Run the command on', maintenance_on: 'Turn maintenance mode on for', maintenance_off: 'Turn maintenance mode off for', agent_update: 'Update the agent on' }[st.action];
     if (!confirm(`${what} ${ids.length} asset${ids.length === 1 ? '' : 's'}?${st.action === 'reboot' ? '\n\nUnsaved work on those computers will be lost.' : ''}`)) return;
     st.busy = true; st.notice = null; st.job = null; paint();
     try { st.job = await api('bulk-actions', { method: 'POST', body }); poll(); }
@@ -53,6 +53,7 @@ export function bulkPanel() {
           field('Arguments (one per line, optional)', input('text', st, 'args', ''), '2 1 240px'),
           field('Timeout (s)', input('number', st, 'timeout', '30'), '0 1 100px'))
         : st.action === 'reboot' ? h('span', { class: 'muted' }, 'Restarts every selected computer immediately. Unsaved work on them will be lost.')
+          : st.action === 'agent_update' ? h('span', { class: 'muted' }, 'Windows agents that are online download the newest agent and restart themselves. Already up to date or offline assets are reported, not changed.')
           : h('span', { class: 'muted' }, st.action === 'maintenance_on' ? 'Selected assets stop opening new alerts and notifications. Alerts already open stay.' : 'Selected assets create alerts and notifications again.');
     root.replaceChildren(...[
       h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between' } },

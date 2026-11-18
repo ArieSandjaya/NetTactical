@@ -8,11 +8,11 @@ namespace TacticalRmm.Application.Logic;
 public static class BulkRules
 {
     public const int MaxTargets = 100, MaxOutput = 1000, MaxCommand = 4000, MaxTimeout = 300;
-    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off";
+    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off", AgentUpdateAction = "agent_update";
 
     public const string Queued = "queued", Running = "running", Ok = "ok", Failed = "failed", Offline = "offline";
 
-    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff];
+    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff, AgentUpdateAction];
     private static readonly string[] Shells = ["cmd", "powershell", "/bin/bash"];
 
     /// <summary>The permission needed to run the action, or null for an unknown action.</summary>
@@ -22,6 +22,7 @@ public static class BulkRules
         Script => Perm.RunScripts,
         Reboot => Perm.RebootAgents,
         MaintenanceOn or MaintenanceOff => Perm.EditAgent,
+        AgentUpdateAction => Perm.ManageAgents,
         _ => null,
     };
 
@@ -59,6 +60,13 @@ public static class BulkRules
     {
         if (action is MaintenanceOn or MaintenanceOff)   // changed in the database; the agent is not asked
             return reply as string == "ok" ? (Ok, action == MaintenanceOn ? "Maintenance mode is on." : "Maintenance mode is off.") : (Failed, "Could not change it.");
+        if (action == AgentUpdateAction)   // reply is "started:<text>", "skipped:<text>", or "fail:<text>" / "offline:<text>" from the update service
+        {
+            var t = Convert.ToString(reply) ?? "";
+            var i = t.IndexOf(':');
+            var (k, m) = i < 0 ? (t, "") : (t[..i], t[(i + 1)..]);
+            return k switch { "started" => (Ok, m), "skipped" => (Ok, m), "offline" => (Offline, m), _ => (Failed, m) };
+        }
         if (reply is string s)
         {
             if (s == "timeout") return (Offline, "The agent did not answer (it may be offline).");
