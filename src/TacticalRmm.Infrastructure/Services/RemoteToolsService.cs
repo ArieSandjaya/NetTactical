@@ -3,6 +3,7 @@ using TacticalRmm.Application.Abstractions;
 using TacticalRmm.Application.Dtos;
 using TacticalRmm.Application.Logic;
 using TacticalRmm.Domain;
+using TacticalRmm.Domain.Entities;
 using TacticalRmm.Infrastructure.Persistence;
 
 namespace TacticalRmm.Infrastructure.Services;
