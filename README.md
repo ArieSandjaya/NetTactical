@@ -90,6 +90,8 @@ The **Install agent** page (`#/installer`) has a second card, *Push install with
 - Settings: `Tactical:Push:PowerShellPath`, `UseSsl`, `MaxParallel` (4), `TargetTimeoutSeconds` (600). Jobs are kept in memory for 6 hours and lost when the server restarts.
 - Verified: validation, script generation, error classification and secret scrubbing (unit tests), and the page against a mock API. **Not verified**: the PowerShell/WinRM execution itself has never run against a real Windows computer or domain, and the Docker PowerShell option has not been built.
 
+**Computer names**: the server runs in a container, which usually cannot resolve short Windows names (`PCHP-ARIE`). Set `PUSH_DNS_SUFFIX=corp.local` in `.env` and short names become `PCHP-ARIE.corp.local`; or type the full name or the IPv4 address. A failed short name now shows this advice in the result.
+
 ## Windows Update approval and schedule
 - **Per computer**: device page, tab **Patch**. Select updates and *Approve* / *Ignore* / *Reset*; *Scan now* asks the agent to rescan; *Install approved now* installs the approved ones immediately (the agent must answer a ping). *Settings* edits that computer's own rules.
 - **Per automation policy**: **Policies** page, button **Updates**. Applies to every agent using the policy (unless inheritance is blocked or the agent overrides a field).

@@ -107,9 +107,11 @@ public sealed class PushInstallService(IServiceScopeFactory scopes, IRemoteExecu
                     if (abort.IsCancellationRequested) { Set(job, t, PushInstall.Skipped, "Skipped because the credential was rejected by another computer (to avoid locking the account).", null); return; }
                     Set(job, t, PushInstall.Running, null, null);
                     var script = await BuildScriptAsync(a);
-                    var r = await remote.RunAsync(new RemoteRunRequest(t.Host, job.Username, a.Password, script, o.UseSsl, Math.Max(60, o.TargetTimeoutSeconds)));
+                    var r = await remote.RunAsync(new RemoteRunRequest(PushInstall.Connect(t.Host, o.DnsSuffix), job.Username, a.Password, script, o.UseSsl, Math.Max(60, o.TargetTimeoutSeconds)));
                     if (r.Category == PushInstall.CatAuth) abort.Cancel();
-                    Set(job, t, r.Status, r.Message is null ? null : PushInstall.Scrub(r.Message, a.Password), r.Category);
+                    var msg = r.Message is null ? null : PushInstall.Scrub(r.Message, a.Password);
+                    if (r.Status == PushInstall.Failed && r.Category != PushInstall.CatAuth && PushInstall.NameHint(t.Host, o.DnsSuffix) is { } hint) msg = $"{msg} — {hint}";
+                    Set(job, t, r.Status, msg, r.Category);
                 }
                 catch (Exception e)
                 {

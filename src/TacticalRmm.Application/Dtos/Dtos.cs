@@ -109,6 +109,8 @@ public class PushOptions
     /// <summary>Use HTTPS WinRM (5986) instead of HTTP (5985).</summary>
     public bool UseSsl { get; set; }
     public int MaxParallel { get; set; } = 4;
+    /// <summary>Appended to a computer name without a dot (PC01 becomes PC01.corp.local), because a container cannot resolve NetBIOS names. Empty = use the name as typed.</summary>
+    public string DnsSuffix { get; set; } = "";
     /// <summary>Upper bound per target, in seconds.</summary>
     public int TargetTimeoutSeconds { get; set; } = 600;
 }

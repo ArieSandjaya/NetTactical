@@ -38,6 +38,20 @@ public static partial class PushInstall
     /// <summary>Tolerates what people paste: \\\\PC01, "PC01", PC01. (trailing dot), or a name copied with quotes.</summary>
     private static string CleanTarget(string s) => s.Trim().Trim('"', '\'', '`').TrimStart('\\').TrimEnd('.');
 
+    /// <summary>The name WinRM connects to: a name without a dot gets the DNS suffix (if one is set); IP addresses and full names are unchanged.</summary>
+    public static string Connect(string host, string? dnsSuffix)
+    {
+        var sfx = (dnsSuffix ?? "").Trim().Trim('.');
+        return sfx.Length == 0 || host.Contains('.') || IPAddress.TryParse(host, out _) || !HostRx().IsMatch(sfx) ? host : $"{host}.{sfx}";
+    }
+
+    /// <summary>Extra advice when a short name fails; null for IP addresses and full names.</summary>
+    public static string? NameHint(string host, string? dnsSuffix) =>
+        host.Contains('.') || IPAddress.TryParse(host, out _) ? null
+        : string.IsNullOrWhiteSpace(dnsSuffix)
+            ? $"'{host}' is a short name and the server (a Docker container) usually cannot resolve those. Type the full name ({host}.yourdomain.local) or the IP address, or set Tactical__Push__DnsSuffix to your domain."
+            : $"The server tried {Connect(host, dnsSuffix)}. Check that this name resolves from the server, or use the IP address.";
+
     private static string Trim(string s) => s.Length <= 40 ? s : s[..40] + "…";
 
     /// <summary>Null when acceptable. Only a DNS host name or a plain IPv4 address; never loopback, link-local, multicast or unspecified.</summary>

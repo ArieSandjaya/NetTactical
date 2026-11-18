@@ -17,6 +17,19 @@ public class PushInstallTests
     }
 
     [Fact]
+    public void ShortNamesGetTheDnsSuffixOthersStayAsTyped()
+    {
+        Assert.Equal("PCHP-ARIE.corp.local", PushInstall.Connect("PCHP-ARIE", ".corp.local"));
+        Assert.Equal("PCHP-ARIE", PushInstall.Connect("PCHP-ARIE", ""));
+        Assert.Equal("pc.other.lan", PushInstall.Connect("pc.other.lan", "corp.local"));
+        Assert.Equal("10.0.0.5", PushInstall.Connect("10.0.0.5", "corp.local"));
+        Assert.Equal("PC1", PushInstall.Connect("PC1", "bad suffix!"));
+        Assert.NotNull(PushInstall.NameHint("PC1", ""));
+        Assert.Null(PushInstall.NameHint("10.0.0.5", ""));
+        Assert.Null(PushInstall.NameHint("pc.corp.local", ""));
+    }
+
+    [Fact]
     public void AcceptsUnderscoresAndPastedDecorations()
     {
         var (h, e) = PushInstall.ParseTargets("PC_LOBBY\n\\\\SRV01\n\"LAP-02\"\nweb01.corp.local.");

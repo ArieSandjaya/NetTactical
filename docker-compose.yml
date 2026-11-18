@@ -61,6 +61,7 @@ services:
       Tactical__BootstrapAdmin__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env (>= 12 characters)}
       # TLS for NATS: put fullchain.pem and privkey.pem in ./certs (or set NATS_CERT_DIR) and set both variables in .env. Empty = no TLS.
       Tactical__NatsTlsCertFile: ${NATS_TLS_CERT:-}
+      Tactical__Push__DnsSuffix: ${PUSH_DNS_SUFFIX:-}
       Tactical__NatsTlsKeyFile: ${NATS_TLS_KEY:-}
       Tactical__CorsOrigins__0: ${PUBLIC_URL:-http://localhost:8080}
     volumes:
