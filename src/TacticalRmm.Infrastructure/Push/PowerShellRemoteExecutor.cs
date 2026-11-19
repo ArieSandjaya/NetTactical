@@ -20,6 +20,9 @@ public sealed class PowerShellRemoteExecutor(IOptions<TacticalOptions> opt) : IR
         $in=[Console]::In.ReadToEnd() | ConvertFrom-Json
         function Emit($s,$m){ [Console]::Out.WriteLine('NTRMM:' + (@{status=$s;message=$m} | ConvertTo-Json -Compress)) }
         try {
+          # PSWSMan 3.x: switch the WSMan client on for this session. (2.x installed libraries at build time and has no such command.)
+          Import-Module PSWSMan -ErrorAction SilentlyContinue
+          if(Get-Command Enable-PSWSMan -ErrorAction SilentlyContinue){ try { Enable-PSWSMan -Force -ErrorAction Stop } catch { Enable-PSWSMan -ErrorAction Stop } }
           $cred=New-Object System.Management.Automation.PSCredential($in.user,(ConvertTo-SecureString $in.pass -AsPlainText -Force))
           # Not New-PSSessionOption: on Linux it lacks -OpenTimeout and others. The .NET class has the same properties everywhere.
           $so=New-Object System.Management.Automation.Remoting.PSSessionOption

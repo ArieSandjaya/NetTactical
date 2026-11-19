@@ -25,12 +25,12 @@ RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
       && mkdir -p /opt/microsoft/powershell/7 && tar -xzf /tmp/pwsh.tgz -C /opt/microsoft/powershell/7 && chmod +x /opt/microsoft/powershell/7/pwsh \
       && ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh && rm -f /tmp/pwsh.tgz && rm -rf /var/lib/apt/lists/*; \
     fi
-# PSWSMan adds the WSMan client libraries (libmi, libpsrpclient) that PowerShell on Linux lacks. This step is separate and checks its own result:
-# without it every push install fails with "no supported WSMan client library was found". If it fails, the build stops here with the reason.
+# PSWSMan gives PowerShell on Linux a WSMan client. Version 2.x installs native libraries once (Install-WSMan); version 3.x has no such step and is
+# switched on in each session with Enable-PSWSMan (the push script does that). Both are handled: the module is saved where pwsh finds it, and
+# Install-WSMan runs only if this version has it. The build stops only if the module cannot be downloaded.
 RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
-      pwsh -NoProfile -NonInteractive -Command "\$ErrorActionPreference='Stop'; \$ProgressPreference='SilentlyContinue'; Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Save-Module -Name PSWSMan -Repository PSGallery -Path /opt/microsoft/powershell/7/Modules -Force -AcceptLicense; Import-Module PSWSMan -Force; Install-WSMan" \
-      && pwsh -NoProfile -NonInteractive -Command "try { Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null } catch { if (\$_.Exception.Message -match 'WSMan client library|no supported WSMan') { Write-Error 'PSWSMan is not working'; exit 1 } }" \
-      || { echo 'ERROR: the WSMan client for PowerShell could not be installed. Build with WITH_POWERSHELL=false in .env to skip Push install.'; exit 1; }; \
+      pwsh -NoProfile -NonInteractive -Command "\$ErrorActionPreference='Stop'; \$ProgressPreference='SilentlyContinue'; Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Save-Module -Name PSWSMan -Repository PSGallery -Path /opt/microsoft/powershell/7/Modules -Force -AcceptLicense; Import-Module PSWSMan -Force; if (Get-Command Install-WSMan -ErrorAction SilentlyContinue) { Install-WSMan }; (Get-Module PSWSMan).Version.ToString()" \
+      || { echo 'ERROR: the PSWSMan module could not be downloaded from the PowerShell Gallery. Build with WITH_POWERSHELL=false in .env to skip Push install.'; exit 1; }; \
     fi
 # Shared with the NATS container: the API writes nats-rmm.conf here. A new named volume copies this ownership.
 RUN mkdir -p /data/nats && chown app:app /data/nats
