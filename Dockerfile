@@ -28,7 +28,7 @@ RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
 # PSWSMan adds the WSMan client libraries (libmi, libpsrpclient) that PowerShell on Linux lacks. This step is separate and checks its own result:
 # without it every push install fails with "no supported WSMan client library was found". If it fails, the build stops here with the reason.
 RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
-      pwsh -NoProfile -NonInteractive -Command "\$ErrorActionPreference='Stop'; \$ProgressPreference='SilentlyContinue'; Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Save-Module -Name PSWSMan -Repository PSGallery -Path /opt/microsoft/powershell/7/Modules -Force -AcceptLicense; Import-Module /opt/microsoft/powershell/7/Modules/PSWSMan -Force; Install-WSMan" \
+      pwsh -NoProfile -NonInteractive -Command "\$ErrorActionPreference='Stop'; \$ProgressPreference='SilentlyContinue'; Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Save-Module -Name PSWSMan -Repository PSGallery -Path /opt/microsoft/powershell/7/Modules -Force -AcceptLicense; Import-Module PSWSMan -Force; Install-WSMan" \
       && pwsh -NoProfile -NonInteractive -Command "try { Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null } catch { if (\$_.Exception.Message -match 'WSMan client library|no supported WSMan') { Write-Error 'PSWSMan is not working'; exit 1 } }" \
       || { echo 'ERROR: the WSMan client for PowerShell could not be installed. Build with WITH_POWERSHELL=false in .env to skip Push install.'; exit 1; }; \
     fi
