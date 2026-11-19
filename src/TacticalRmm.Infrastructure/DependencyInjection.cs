@@ -32,9 +32,11 @@ public static class DependencyInjection
                 AuthOpts = new NatsAuthOpts { Username = "tacticalrmm", Password = t.SecretKey },
                 ConnectTimeout = TimeSpan.FromSeconds(3),
                 // The server reaches NATS over the internal network by the name "nats", which never matches the public certificate. With NATS TLS on, the
-                // client would upgrade to TLS (Auto) and fail verification, so every server-to-agent command would report "NATS not reachable".
-                // NATS allows plain connections (allow_non_tls); only a tls:// URL opts in to TLS.
-                TlsOpts = new NatsTlsOpts { Mode = t.NatsUrl.StartsWith("tls://", StringComparison.OrdinalIgnoreCase) ? TlsMode.Require : TlsMode.Disable },
+                // server may even require TLS. Auto uses TLS when the server offers it (and plain otherwise); for a nats:// URL the certificate name is not
+                // checked, because the hop is inside the Docker network. A tls:// URL keeps full verification.
+                TlsOpts = t.NatsUrl.StartsWith("tls://", StringComparison.OrdinalIgnoreCase)
+                    ? new NatsTlsOpts { Mode = TlsMode.Require }
+                    : new NatsTlsOpts { Mode = TlsMode.Auto, InsecureSkipVerify = true },
             });
         });
         s.AddSingleton<IAgentCommandBus, NatsCommandBus>();
