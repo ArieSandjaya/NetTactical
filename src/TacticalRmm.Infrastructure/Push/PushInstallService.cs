@@ -110,7 +110,9 @@ public sealed class PushInstallService(IServiceScopeFactory scopes, IRemoteExecu
                     var r = await remote.RunAsync(new RemoteRunRequest(PushInstall.Connect(t.Host, o.DnsSuffix), job.Username, a.Password, script, o.UseSsl, Math.Max(60, o.TargetTimeoutSeconds)));
                     if (r.Category == PushInstall.CatAuth) abort.Cancel();
                     var msg = r.Message is null ? null : PushInstall.Scrub(r.Message, a.Password);
-                    if (r.Status == PushInstall.Failed && r.Category != PushInstall.CatAuth && PushInstall.NameHint(t.Host, o.DnsSuffix) is { } hint) msg = $"{msg} — {hint}";
+                    if (r.Status == PushInstall.Failed && msg is not null && msg.Contains("WSMan client library", StringComparison.OrdinalIgnoreCase))
+                        msg = $"{msg} — This image has no WSMan client. Rebuild it: git pull, then docker compose build --no-cache api (the build now stops with the reason if it cannot install PSWSMan).";
+                    else if (r.Status == PushInstall.Failed && r.Category != PushInstall.CatAuth && PushInstall.NameHint(t.Host, o.DnsSuffix) is { } hint) msg = $"{msg} — {hint}";
                     Set(job, t, r.Status, msg, r.Category);
                 }
                 catch (Exception e)

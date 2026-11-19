@@ -23,9 +23,14 @@ RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
       apt-get update && apt-get install -y --no-install-recommends curl ca-certificates libicu72 gss-ntlmssp \
       && curl -fsSL -o /tmp/pwsh.tgz "https://github.com/PowerShell/PowerShell/releases/download/v${PWSH_VERSION}/powershell-${PWSH_VERSION}-linux-x64.tar.gz" \
       && mkdir -p /opt/microsoft/powershell/7 && tar -xzf /tmp/pwsh.tgz -C /opt/microsoft/powershell/7 && chmod +x /opt/microsoft/powershell/7/pwsh \
-      && ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh && rm -f /tmp/pwsh.tgz && rm -rf /var/lib/apt/lists/* \
-      && { pwsh -NoProfile -NonInteractive -Command "\$ProgressPreference='SilentlyContinue'; Install-Module -Name PSWSMan -Scope AllUsers -Force -AcceptLicense; Install-WSMan" \
-           || echo 'WARNING: PSWSMan (WSMan client for Linux) could not be installed; Push install will not work in this image'; }; \
+      && ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh && rm -f /tmp/pwsh.tgz && rm -rf /var/lib/apt/lists/*; \
+    fi
+# PSWSMan adds the WSMan client libraries (libmi, libpsrpclient) that PowerShell on Linux lacks. This step is separate and checks its own result:
+# without it every push install fails with "no supported WSMan client library was found". If it fails, the build stops here with the reason.
+RUN if [ "$WITH_POWERSHELL" = "true" ]; then \
+      pwsh -NoProfile -NonInteractive -Command "\$ErrorActionPreference='Stop'; \$ProgressPreference='SilentlyContinue'; Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Install-Module -Name PSWSMan -Repository PSGallery -Scope AllUsers -Force -AcceptLicense; Install-WSMan" \
+      && pwsh -NoProfile -NonInteractive -Command "try { Test-WSMan -ComputerName localhost -ErrorAction Stop | Out-Null } catch { if (\$_.Exception.Message -match 'WSMan client library|no supported WSMan') { Write-Error 'PSWSMan is not working'; exit 1 } }" \
+      || { echo 'ERROR: the WSMan client for PowerShell could not be installed. Build with WITH_POWERSHELL=false in .env to skip Push install.'; exit 1; }; \
     fi
 # Shared with the NATS container: the API writes nats-rmm.conf here. A new named volume copies this ownership.
 RUN mkdir -p /data/nats && chown app:app /data/nats
