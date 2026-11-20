@@ -249,7 +249,7 @@ public class SoftwareController(ISoftwareService svc, IPermissionService perms) 
     }
 
     /// <summary>Removes one application from the stored list by running its uninstall command on the asset. Same permission as running a command.</summary>
-    [HttpPost("uninstall"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("uninstall"), RequirePerm(Perm.ManageSoftware)]
     public async Task<IActionResult> Uninstall(string agentId, SoftwareUninstallRequest req, CancellationToken ct)
     {
         if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
@@ -346,17 +346,17 @@ public class RemoteToolsController(IRemoteToolsService svc, IPermissionService p
 {
     private async Task<bool> MayAsync(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
 
-    [HttpGet("services"), RequirePerm(Perm.RunCommands)]
+    [HttpGet("services"), RequirePerm(Perm.ManageProcs)]
     public async Task<IActionResult> Services(string agentId, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ServicesAsync(agentId, ct)); }
 
-    [HttpPost("services/action"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("services/action"), RequirePerm(Perm.ManageProcs)]
     public async Task<IActionResult> ServiceAction(string agentId, ServiceActionRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ServiceActionAsync(HttpContext.GetUser(), agentId, req, ct));
 
-    [HttpGet("processes"), RequirePerm(Perm.RunCommands)]
+    [HttpGet("processes"), RequirePerm(Perm.ManageProcs)]
     public async Task<IActionResult> Processes(string agentId, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ProcessesAsync(agentId, ct)); }
 
-    [HttpPost("processes/kill"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("processes/kill"), RequirePerm(Perm.ManageProcs)]
     public async Task<IActionResult> Kill(string agentId, KillRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.KillAsync(HttpContext.GetUser(), agentId, req, ct));
 }
@@ -371,7 +371,7 @@ public class FileBrowserController(IFileBrowserService svc, IPermissionService p
     [HttpGet, RequirePerm(Perm.RunCommands)]
     public async Task<IActionResult> List(string agentId, [FromQuery] string? path, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ListAsync(agentId, path, ct)); }
 
-    [HttpGet("download"), RequirePerm(Perm.RunCommands)]
+    [HttpGet("download"), RequirePerm(Perm.UseMesh)]
     public async Task<IActionResult> Download(string agentId, [FromQuery] string? path, CancellationToken ct)
     {
         if (!await MayAsync(agentId, ct)) return Forbid();
@@ -380,19 +380,19 @@ public class FileBrowserController(IFileBrowserService svc, IPermissionService p
         return r.IsOk ? File(r.Value!.Content, "application/octet-stream", r.Value.FileName) : this.ToResult(r);
     }
 
-    [HttpPost("upload"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("upload"), RequirePerm(Perm.UseMesh)]
     public async Task<IActionResult> Upload(string agentId, FileUploadRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.UploadAsync(HttpContext.GetUser(), agentId, req, ct));
 
-    [HttpPost("folder"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("folder"), RequirePerm(Perm.UseMesh)]
     public async Task<IActionResult> NewFolder(string agentId, FolderRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.NewFolderAsync(HttpContext.GetUser(), agentId, req, ct));
 
-    [HttpPost("delete"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("delete"), RequirePerm(Perm.UseMesh)]
     public async Task<IActionResult> Delete(string agentId, FileDeleteRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), agentId, req, ct));
 
-    [HttpPost("rename"), RequirePerm(Perm.RunCommands)]
+    [HttpPost("rename"), RequirePerm(Perm.UseMesh)]
     public async Task<IActionResult> Rename(string agentId, FileRenameRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.RenameAsync(HttpContext.GetUser(), agentId, req, ct));
 }
@@ -407,15 +407,15 @@ public class AgentLogController(IAgentLogService svc, IPermissionService perms) 
     public async Task<IActionResult> History(string agentId, [FromQuery] int? take, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.HistoryAsync(agentId, take, ct));
 
-    [HttpGet("notes"), RequirePerm(Perm.ListAgents)]
+    [HttpGet("notes"), RequirePerm(Perm.ListNotes)]
     public async Task<IActionResult> Notes(string agentId, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.NotesAsync(agentId, ct));
 
-    [HttpPost("notes"), RequirePerm(Perm.EditAgent)]
+    [HttpPost("notes"), RequirePerm(Perm.ManageNotes)]
     public async Task<IActionResult> AddNote(string agentId, NoteRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.AddNoteAsync(HttpContext.GetUser(), agentId, req.Note, ct));
 
-    [HttpDelete("notes/{noteId:int}"), RequirePerm(Perm.EditAgent)]
+    [HttpDelete("notes/{noteId:int}"), RequirePerm(Perm.ManageNotes)]
     public async Task<IActionResult> DeleteNote(string agentId, int noteId, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.DeleteNoteAsync(HttpContext.GetUser(), agentId, noteId, ct));
 }

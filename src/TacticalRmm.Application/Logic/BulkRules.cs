@@ -22,7 +22,7 @@ public static class BulkRules
         Script => Perm.RunScripts,
         Reboot => Perm.RebootAgents,
         MaintenanceOn or MaintenanceOff => Perm.EditAgent,
-        AgentUpdateAction => Perm.ManageAgents,
+        AgentUpdateAction => Perm.UpdateAgents,
         _ => null,
     };
 

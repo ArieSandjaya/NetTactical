@@ -33,5 +33,5 @@ public class AgentUpdateTests
     [InlineData("fail:NATS down", "failed")]
     public void BulkReadsTheUpdateReply(string reply, string status) => Assert.Equal(status, BulkRules.FromReply(BulkRules.AgentUpdateAction, reply).Status);
 
-    [Fact] public void BulkNeedsTheManageAgentsPermission() => Assert.Equal(TacticalRmm.Domain.Perm.ManageAgents, BulkRules.RequiredPermission("agent_update"));
+    [Fact] public void BulkUpdateNeedsTheUpdateAgentsPermission() => Assert.Equal(TacticalRmm.Domain.Perm.UpdateAgents, BulkRules.RequiredPermission("agent_update"));
 }

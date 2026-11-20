@@ -124,6 +124,22 @@ public static class SchemaUpgrade
         "CREATE UNIQUE INDEX IF NOT EXISTS ix_script_snippets_name ON script_snippets (name)",
         // v10: when an agent's installed-software list was received
         "ALTER TABLE installed_software ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone NULL",
+        // v11: finer permissions (as in Tactical RMM's Role). Existing roles get the new permission once, from the permission that used to cover the feature,
+        // so nobody loses access on upgrade. The marker makes this run only once: a permission an admin removes later stays removed.
+        "CREATE TABLE IF NOT EXISTS schema_marks (name text PRIMARY KEY)",
+        """
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM schema_marks WHERE name = 'perms_v11') THEN
+            UPDATE roles SET permissions = permissions || ARRAY['can_manage_procs','can_use_mesh','can_manage_software']::text[] WHERE 'can_send_cmd' = ANY(permissions);
+            UPDATE roles SET permissions = permissions || ARRAY['can_update_agents']::text[] WHERE 'can_manage_agents' = ANY(permissions);
+            UPDATE roles SET permissions = permissions || ARRAY['can_run_bulk']::text[] WHERE permissions && ARRAY['can_send_cmd','can_run_scripts','can_reboot_agents','can_edit_agent']::text[];
+            UPDATE roles SET permissions = permissions || ARRAY['can_list_notes']::text[] WHERE 'can_list_agents' = ANY(permissions);
+            UPDATE roles SET permissions = permissions || ARRAY['can_manage_notes']::text[] WHERE 'can_edit_agent' = ANY(permissions);
+            UPDATE roles SET permissions = COALESCE((SELECT array_agg(DISTINCT p) FROM unnest(permissions) AS p), ARRAY[]::text[]);
+            INSERT INTO schema_marks (name) VALUES ('perms_v11');
+          END IF;
+        END $$
+        """,
 ];
 
     public static async Task RunAsync(AppDbContext db, ILogger log, CancellationToken ct = default)

@@ -1,0 +1,37 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using TacticalRmm.Domain.Entities;
+using TacticalRmm.Infrastructure.Persistence;
+using Xunit;
+
+namespace TacticalRmm.Tests;
+
+public class PermissionUpgradePostgresTests
+{
+    [PostgresFact]
+    public async Task ExistingRolesGetTheNewPermissionsOnceFromTheOldOnes()
+    {
+        await using var db = await PgDb.CreateAsync();
+        db.Roles.AddRange(
+            new Role { Name = "ops", Permissions = ["can_send_cmd", "can_manage_agents", "can_list_agents", "can_edit_agent"] },
+            new Role { Name = "viewer", Permissions = ["can_list_agents"] },
+            new Role { Name = "empty", Permissions = [] },
+            new Role { Name = "clients", Permissions = ["can_list_clients"] });
+        await db.SaveChangesAsync();
+
+        await SchemaUpgrade.RunAsync(db, NullLogger.Instance);
+        var roles = await db.Roles.AsNoTracking().ToDictionaryAsync(r => r.Name, r => r.Permissions);
+        Assert.Superset(new HashSet<string> { "can_manage_procs", "can_use_mesh", "can_manage_software", "can_update_agents", "can_run_bulk", "can_list_notes", "can_manage_notes" }, roles["ops"].ToHashSet());
+        Assert.Equal(["can_list_agents", "can_list_notes"], roles["viewer"].Order());          // reading notes only; nothing that changes a computer
+        Assert.Empty(roles["empty"]);
+        Assert.Equal(["can_list_clients"], roles["clients"]);
+
+        // an admin takes a permission away: a later start must not give it back
+        var ops = await db.Roles.SingleAsync(r => r.Name == "ops");
+        ops.Permissions = ops.Permissions.Where(p => p != "can_use_mesh").ToList();
+        await db.SaveChangesAsync();
+        await SchemaUpgrade.RunAsync(db, NullLogger.Instance);
+        db.ChangeTracker.Clear();
+        Assert.DoesNotContain("can_use_mesh", (await db.Roles.AsNoTracking().SingleAsync(r => r.Name == "ops")).Permissions);
+    }
+}

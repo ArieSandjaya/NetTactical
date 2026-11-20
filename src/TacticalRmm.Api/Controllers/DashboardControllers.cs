@@ -51,7 +51,7 @@ public class AgentsController(IAgentService agents, IPermissionService perms, IA
         return r as string == "ok" ? Ok("ok") : Problem("Unable to contact the agent");
     }
 
-    [HttpPost("{agentId}/update"), RequirePerm(Perm.ManageAgents)]
+    [HttpPost("{agentId}/update"), RequirePerm(Perm.UpdateAgents)]
     public async Task<IActionResult> UpdateAgent(string agentId, [FromServices] IAgentUpdateService upd, CancellationToken ct)
     {
         if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();

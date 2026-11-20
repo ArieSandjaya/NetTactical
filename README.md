@@ -146,6 +146,20 @@ Fields an administrator defines once for **clients, sites or assets** (`#/custom
 - **Update agent** (asset page button for Windows assets, or bulk): the server pings the agent, then sends NATS `agentupdate` with the download URL of `Tactical:LatestAgentVer` (default `2.12.0`, official rmmagent release on GitHub), version and installer name. The agent downloads it and restarts itself. Skipped when already on that version, refused for non-Windows; offline agents get nothing sent. Needs `can_manage_agents`; audited. API: `POST /agents/{agent_id}/update`. Set `Tactical__LatestAgentVer` to the version you want agents to reach.
 - **Not verified on a real agent**: the shape of the `agentupdate` payload and of the services/processes replies follow Tactical RMM from memory and are tested only with a fake agent. Try one test PC first.
 
+## Permissions of the live tools (as in Tactical RMM's Role)
+| Permission | Allows |
+|---|---|
+| `can_manage_procs` | services (start/stop/restart/disable/enable) and processes (list, end) |
+| `can_use_mesh` | file browser. Tactical uses this one for Remote Background (MeshCentral); here there is no MeshCentral, so it opens the file browser |
+| `can_update_agents` | update agent (single and bulk) |
+| `can_run_bulk` | bulk actions at all; the action's own permission (`can_send_cmd`, `can_run_scripts`, `can_reboot_agents`, `can_edit_agent`, `can_update_agents`) is needed too |
+| `can_manage_software` | uninstall software (refreshing the list needs `can_list_agents`) |
+| `can_list_notes`, `can_manage_notes` | read / add and delete asset notes |
+
+On upgrade every existing role receives the new permissions once, from the permission that used to cover the feature (for example `can_send_cmd` gives `can_manage_procs`, `can_use_mesh`, `can_manage_software`), so nobody loses access. Permissions you remove later stay removed. Tactical's other flags (`can_view_eventlogs`, `can_recover_agents`, `can_do_server_maint`, `can_code_sign`, `can_run_urlactions`, deployments, reports) are not implemented because the matching features are not.
+
+**Rate limits**: login is limited per IP to 10 per minute and 300 per day (`TRMM_LOGIN_MIN_THROTTLE`, `TRMM_LOGIN_DAY_THROTTLE`), the same defaults as Tactical RMM. Other endpoints are not limited, as in Tactical.
+
 ## Not covered (deliberately, "core first")
 Chocolatey installation, file transfer, the 'collector' result to custom field (histresult), terminal & WebSocket (SignalR),
 SMS notifications, alert templates beyond the simple "always notify" flags (no custom messages, no per-template email recipients), placeholders such as `{{client.Field}}` in scripts, custom-field results from checks, reporting & SSO (`ee/`, separate sponsor licence).

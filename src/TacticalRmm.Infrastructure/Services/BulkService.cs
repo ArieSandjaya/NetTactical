@@ -42,7 +42,7 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
         using var scope = scopes.CreateScope();
         var sp = scope.ServiceProvider;
         var perms = sp.GetRequiredService<IPermissionService>();
-        if (!perms.HasPermission(caller, BulkRules.RequiredPermission(req.Action)!)) return Outcome.Forbidden<BulkJobDto>();
+        if (!perms.HasPermission(caller, Perm.RunBulk) || !perms.HasPermission(caller, BulkRules.RequiredPermission(req.Action)!)) return Outcome.Forbidden<BulkJobDto>();
 
         var db = sp.GetRequiredService<AppDbContext>();
         var ids = req.AgentIds!;
