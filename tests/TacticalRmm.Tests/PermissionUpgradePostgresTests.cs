@@ -27,6 +27,7 @@ public class PermissionUpgradePostgresTests
         Assert.Equal(["can_list_clients"], roles["clients"]);
 
         // an admin takes a permission away: a later start must not give it back
+        db.ChangeTracker.Clear();   // the SQL upgrade changed rows behind the tracked copies
         var ops = await db.Roles.SingleAsync(r => r.Name == "ops");
         ops.Permissions = ops.Permissions.Where(p => p != "can_use_mesh").ToList();
         await db.SaveChangesAsync();
