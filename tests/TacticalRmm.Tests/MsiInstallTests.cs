@@ -7,7 +7,7 @@ namespace TacticalRmm.Tests;
 public class MsiInstallTests
 {
     [Theory]
-    [InlineData("https://dl.example.com/app/setup.msi", true)] [InlineData("https://dl.example.com/get?id=1/setup.MSI", true)] [InlineData(@"\\fs01\apps\setup.msi", true)]
+    [InlineData("https://dl.example.com/app/setup.msi", true)] [InlineData("https://dl.example.com/setup.MSI?token=1&x=2", true)] [InlineData(@"\\fs01\apps\setup.msi", true)]
     [InlineData("http://dl.example.com/setup.msi", false)] [InlineData("https://dl.example.com/setup.exe", false)] [InlineData(@"C:\setup.msi", false)] [InlineData(@"\\fs01\setup.msi", false)]
     [InlineData("", false)] [InlineData("https://x.com/a b.msi", false)] [InlineData("https://x.com/a.msi';calc;'", false)] [InlineData("ftp://x.com/a.msi", false)]
     public void OnlyHttpsOrSharePathsEndingInMsi(string source, bool ok) => Assert.Equal(ok, MsiInstall.CheckSource(source) is null);
