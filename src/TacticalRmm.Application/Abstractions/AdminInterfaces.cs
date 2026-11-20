@@ -193,3 +193,14 @@ public interface IAgentUpdateService
 {
     Task<Outcome<AgentUpdateDto>> UpdateAsync(string username, string agentId, CancellationToken ct = default);
 }
+
+/// <summary>Browse and change files on a Windows asset by running small PowerShell scripts on its agent. Each step is audited.</summary>
+public interface IFileBrowserService
+{
+    Task<Outcome<FileListDto>> ListAsync(string agentId, string? path, CancellationToken ct = default);
+    Task<Outcome<FileDownloadDto>> DownloadAsync(User caller, string agentId, string? path, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> UploadAsync(User caller, string agentId, FileUploadRequest req, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> NewFolderAsync(User caller, string agentId, FolderRequest req, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> DeleteAsync(User caller, string agentId, FileDeleteRequest req, CancellationToken ct = default);
+    Task<Outcome<ToolResult>> RenameAsync(User caller, string agentId, FileRenameRequest req, CancellationToken ct = default);
+}

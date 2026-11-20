@@ -361,6 +361,42 @@ public class RemoteToolsController(IRemoteToolsService svc, IPermissionService p
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.KillAsync(HttpContext.GetUser(), agentId, req, ct));
 }
 
+// ------------------------------------------------------------------------------------------ file browser of an asset
+/// <summary>Browse, download, upload, create, rename and delete files on a Windows asset. As powerful as running commands, so it needs that permission.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}/files"), RequestSizeLimit(16 * 1024 * 1024)]
+public class FileBrowserController(IFileBrowserService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> MayAsync(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet, RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> List(string agentId, [FromQuery] string? path, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.ListAsync(agentId, path, ct)); }
+
+    [HttpGet("download"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Download(string agentId, [FromQuery] string? path, CancellationToken ct)
+    {
+        if (!await MayAsync(agentId, ct)) return Forbid();
+        var r = await svc.DownloadAsync(HttpContext.GetUser(), agentId, path, ct);
+        Response.Headers.CacheControl = "no-store";
+        return r.IsOk ? File(r.Value!.Content, "application/octet-stream", r.Value.FileName) : this.ToResult(r);
+    }
+
+    [HttpPost("upload"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Upload(string agentId, FileUploadRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.UploadAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpPost("folder"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> NewFolder(string agentId, FolderRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.NewFolderAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpPost("delete"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Delete(string agentId, FileDeleteRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), agentId, req, ct));
+
+    [HttpPost("rename"), RequirePerm(Perm.RunCommands)]
+    public async Task<IActionResult> Rename(string agentId, FileRenameRequest req, CancellationToken ct) =>
+        !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.RenameAsync(HttpContext.GetUser(), agentId, req, ct));
+}
+
 // ------------------------------------------------------------------------------------------ notes and history of an asset
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}")]
 public class AgentLogController(IAgentLogService svc, IPermissionService perms) : ControllerBase

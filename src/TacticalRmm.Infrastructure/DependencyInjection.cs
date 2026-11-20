@@ -75,6 +75,7 @@ public static class DependencyInjection
         s.AddScoped<IAgentLogService, AgentLogService>();
         s.AddScoped<IRemoteToolsService, RemoteToolsService>();
         s.AddScoped<IAgentUpdateService, AgentUpdateService>();
+        s.AddScoped<IFileBrowserService, FileBrowserService>();
         s.AddScoped<INotificationAdminService, NotificationAdminService>();
         s.AddSingleton<Notifications.NotificationQueue>();
         s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());
