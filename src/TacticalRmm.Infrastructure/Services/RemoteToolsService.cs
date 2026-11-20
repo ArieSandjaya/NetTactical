@@ -40,14 +40,13 @@ public sealed class RemoteToolsService(AppDbContext db, IAgentCommandBus bus, IA
     public async Task<Outcome<ToolResult>> ServiceActionAsync(User caller, string agentId, ServiceActionRequest req, CancellationToken ct = default)
     {
         var action = req.Action?.Trim().ToLowerInvariant();
-        if (!RemoteTools.ServiceActions.Contains(action)) return Outcome.Invalid<ToolResult>("action must be start, stop or restart");
+        if (!RemoteTools.ServiceActions.Contains(action)) return Outcome.Invalid<ToolResult>("action must be start, stop, restart, disable or enable");
         if (!RemoteTools.ValidServiceName(req.Name)) return Outcome.Invalid<ToolResult>("A service name is required.");
         if (await FindAsync(agentId, ct) is not { } a) return Outcome.NotFound<ToolResult>("Agent not found");
         if (!IsWindows(a.Plat)) return Outcome.Invalid<ToolResult>("Services are only available on Windows assets.");
 
         await audit.LogAsync(caller.Username, AuditAction.ExecCommand, "agent", $"{caller.Username} ran '{action}' on service {req.Name} of {a.Hostname}", a.Hostname, a.Id, ct: ct);
-        var reply = await bus.RequestAsync(agentId, new Dictionary<string, object?>
-            { ["func"] = "winsvcaction", ["payload"] = new Dictionary<string, object?> { ["name"] = req.Name!.Trim(), ["action"] = action } }, TimeSpan.FromSeconds(45), ct);
+        var reply = await bus.RequestAsync(agentId, RemoteTools.ServiceCommand(req.Name!.Trim(), action!), TimeSpan.FromSeconds(45), ct);
         var (ok, msg) = RemoteTools.ServiceActionResult(reply);
         return ok ? Outcome.Ok(new ToolResult(msg)) : Outcome.Conflict<ToolResult>(msg);
     }

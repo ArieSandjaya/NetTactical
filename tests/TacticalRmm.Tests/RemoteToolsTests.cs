@@ -79,6 +79,9 @@ public class RemoteToolsTests
         Assert.False(RemoteTools.ServiceActionResult("timeout").Ok);
         Assert.Equal("The NATS server is not reachable.", RemoteTools.ServiceActionResult("natsdown").Message);
         Assert.False(RemoteTools.ServiceActionResult(null).Ok);
+        Assert.True(RemoteTools.ServiceActionResult("ok").Ok);
+        Assert.Equal("editwinsvc", RemoteTools.ServiceCommand("X", "disable")["func"]);
+        Assert.Equal("winsvcaction", RemoteTools.ServiceCommand("X", "stop")["func"]);
     }
 
     [Fact]

@@ -8,7 +8,13 @@ namespace TacticalRmm.Application.Logic;
 public static class RemoteTools
 {
     public const int MaxRows = 5000, MaxText = 300;
-    public static readonly IReadOnlyList<string> ServiceActions = ["start", "stop", "restart"];
+    public static readonly IReadOnlyList<string> ServiceActions = ["start", "stop", "restart", "disable", "enable"];
+
+    /// <summary>The agent command for a service action: start, stop and restart act on the running service (winsvcaction); disable and enable change
+    /// the startup type (editwinsvc: disabled, or manual for enable) and leave a running service running.</summary>
+    public static IDictionary<string, object?> ServiceCommand(string name, string action) => action is "disable" or "enable"
+        ? new Dictionary<string, object?> { ["func"] = "editwinsvc", ["payload"] = new Dictionary<string, object?> { ["name"] = name, ["startType"] = action == "disable" ? "disabled" : "manual" } }
+        : new Dictionary<string, object?> { ["func"] = "winsvcaction", ["payload"] = new Dictionary<string, object?> { ["name"] = name, ["action"] = action } };
 
     public static bool ValidServiceName(string? name) => !string.IsNullOrWhiteSpace(name) && name.Length <= 256 && !name.Any(char.IsControl);
 
@@ -91,6 +97,7 @@ public static class RemoteTools
         }
         return reply as string switch
         {
+            "ok" => (true, "Done."),
             "timeout" => (false, "The agent did not answer (it may be offline)."),
             "natsdown" => (false, "The NATS server is not reachable."),
             null => (false, "Unexpected reply from the agent."),

@@ -23,8 +23,8 @@ export function servicesPanel(agentId) {
     st.busy = false; paint();
   }
   async function act(s, action) {
-    const word = { start: 'Start', stop: 'Stop', restart: 'Restart' }[action];
-    if (!confirm(`${word} the service "${s.display_name || s.name}"?${action !== 'start' ? '\n\nProgrammes that use it may stop working while it is down.' : ''}`)) return;
+    const word = { start: 'Start', stop: 'Stop', restart: 'Restart', disable: 'Disable', enable: 'Enable' }[action];
+    if (!confirm(`${word} the service "${s.display_name || s.name}"?${action === 'disable' ? '\n\nIts startup type becomes Disabled: it cannot be started, also not after a reboot. A running service keeps running until you stop it.' : action === 'enable' ? '\n\nIts startup type becomes Manual.' : action !== 'start' ? '\n\nProgrammes that use it may stop working while it is down.' : ''}`)) return;
     st.acting = `${s.name}:${action}`; st.notice = null; paint();
     try { await api(`${base}/action`, { method: 'POST', body: { name: s.name, action } }); st.notice = { ok: true, msg: `${word} sent to ${s.display_name || s.name}. Reading the list again…` }; st.acting = null; paint(); st.rows = await api(base); }
     catch (e) { st.notice = { ok: false, msg: why(e) }; }
@@ -49,7 +49,10 @@ export function servicesPanel(agentId) {
           h('td', null, s.start_type || ''),
           h('td', { style: { textAlign: 'right', whiteSpace: 'nowrap' } },
             run(s) ? [btn(st.acting === `${s.name}:restart` ? 'Restarting…' : 'Restart', () => act(s, 'restart'), { disabled: !!st.acting }), ' ', btn(st.acting === `${s.name}:stop` ? 'Stopping…' : 'Stop', () => act(s, 'stop'), { danger: true, disabled: !!st.acting })]
-              : btn(st.acting === `${s.name}:start` ? 'Starting…' : 'Start', () => act(s, 'start'), { disabled: !!st.acting })))),
+              : /^disabled$/i.test(s.start_type || '') ? null : btn(st.acting === `${s.name}:start` ? 'Starting…' : 'Start', () => act(s, 'start'), { disabled: !!st.acting }),
+            ' ', /^disabled$/i.test(s.start_type || '')
+              ? btn(st.acting === `${s.name}:enable` ? 'Enabling…' : 'Enable', () => act(s, 'enable'), { disabled: !!st.acting })
+              : btn(st.acting === `${s.name}:disable` ? 'Disabling…' : 'Disable', () => act(s, 'disable'), { danger: true, disabled: !!st.acting })))),
         found.length ? null : h('caption', { class: 'empty' }, 'No service matches.')))) : null,
       found.length > SHOWN ? h('span', { class: 'muted' }, `Showing the first ${SHOWN} of ${found.length}. Search to narrow the list.`) : null,
     ].flat().filter(Boolean));   // replaceChildren turns null into the text "null"

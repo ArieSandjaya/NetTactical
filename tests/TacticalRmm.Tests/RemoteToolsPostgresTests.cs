@@ -37,6 +37,19 @@ public class RemoteToolsPostgresTests
     private static Dictionary<object, object?> Map(params (string k, object? v)[] kv) => kv.ToDictionary(x => (object)x.k, x => x.v);
 
     [PostgresFact]
+    public async Task DisableAndEnableChangeTheStartupTypeNotTheRunningState()
+    {
+        var (svc, bus, audit, db) = await SetupAsync(_ => "ok");
+        await using var _db = db;
+        Assert.True((await svc.ServiceActionAsync(Caller, Win, new ServiceActionRequest("Spooler", "Disable"))).IsOk);
+        Assert.True((await svc.ServiceActionAsync(Caller, Win, new ServiceActionRequest("Spooler", "enable"))).IsOk);
+        Assert.All(bus.Sent, m => Assert.Equal("editwinsvc", m["func"]));
+        Assert.Equal("disabled", (string)((IDictionary<string, object?>)bus.Sent[0]["payload"]!)["startType"]!);
+        Assert.Equal("manual", (string)((IDictionary<string, object?>)bus.Sent[1]["payload"]!)["startType"]!);
+        Assert.Contains(audit.Messages, m => m.Contains("disable") && m.Contains("Spooler"));
+    }
+
+    [PostgresFact]
     public async Task ServicesAreListedFromTheAgentsReply()
     {
         var (svc, bus, _, db) = await SetupAsync(_ => new List<object?> { Map(("name", "Spooler"), ("display_name", "Print Spooler"), ("status", "running")) });
