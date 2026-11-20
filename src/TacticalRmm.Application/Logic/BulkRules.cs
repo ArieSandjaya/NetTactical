@@ -8,11 +8,11 @@ namespace TacticalRmm.Application.Logic;
 public static class BulkRules
 {
     public const int MaxTargets = 100, MaxOutput = 1000, MaxCommand = 4000, MaxTimeout = 300;
-    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off", AgentUpdateAction = "agent_update";
+    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off", AgentUpdateAction = "agent_update", InstallMsiAction = "install_msi";
 
     public const string Queued = "queued", Running = "running", Ok = "ok", Failed = "failed", Offline = "offline";
 
-    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff, AgentUpdateAction];
+    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff, AgentUpdateAction, InstallMsiAction];
     private static readonly string[] Shells = ["cmd", "powershell", "/bin/bash"];
 
     /// <summary>The permission needed to run the action, or null for an unknown action.</summary>
@@ -23,6 +23,7 @@ public static class BulkRules
         Reboot => Perm.RebootAgents,
         MaintenanceOn or MaintenanceOff => Perm.EditAgent,
         AgentUpdateAction => Perm.UpdateAgents,
+        InstallMsiAction => Perm.ManageSoftware,
         _ => null,
     };
 
@@ -43,6 +44,7 @@ public static class BulkRules
             if (!Shells.Contains(r.Shell)) return "shell must be cmd, powershell or /bin/bash.";
         }
         if (r.Action == Script && r.Script <= 0) return "Choose a script.";
+        if (r.Action == InstallMsiAction && MsiInstall.Validate(r.Url, r.Sha256, r.InstallArgs, r.Timeout) is { } bad) return bad;
         return null;
     }
 
@@ -60,12 +62,12 @@ public static class BulkRules
     {
         if (action is MaintenanceOn or MaintenanceOff)   // changed in the database; the agent is not asked
             return reply as string == "ok" ? (Ok, action == MaintenanceOn ? "Maintenance mode is on." : "Maintenance mode is off.") : (Failed, "Could not change it.");
-        if (action == AgentUpdateAction)   // reply is "started:<text>", "skipped:<text>", or "fail:<text>" / "offline:<text>" from the update service
+        if (action is AgentUpdateAction or InstallMsiAction)   // reply is "started:/skipped:/ok:<text>", or "fail:<text>" / "offline:<text>" from the update or install code
         {
             var t = Convert.ToString(reply) ?? "";
             var i = t.IndexOf(':');
             var (k, m) = i < 0 ? (t, "") : (t[..i], t[(i + 1)..]);
-            return k switch { "started" => (Ok, m), "skipped" => (Ok, m), "offline" => (Offline, m), _ => (Failed, m) };
+            return k switch { "started" or "skipped" or "ok" => (Ok, m), "offline" => (Offline, m), _ => (Failed, m) };
         }
         if (reply is string s)
         {

@@ -69,6 +69,7 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             BulkRules.MaintenanceOn => "maintenance mode on",
             BulkRules.MaintenanceOff => "maintenance mode off",
             BulkRules.AgentUpdateAction => "agent update",
+            BulkRules.InstallMsiAction => "install .msi",
             _ => "restart",
         };
         await sp.GetRequiredService<IAuditService>().LogAsync(caller.Username, AuditAction.BulkAction, "agent",
@@ -124,6 +125,22 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             }
             case BulkRules.Reboot:
                 return await bus.RequestAsync(agentId, new Dictionary<string, object?> { ["func"] = "rebootnow" }, TimeSpan.FromSeconds(10));
+            case BulkRules.InstallMsiAction:
+            {
+                using (var hs = scopes.CreateScope())
+                    await hs.ServiceProvider.GetRequiredService<IAgentLogService>().RecordCommandAsync(agentId, job.Username, $"[install .msi] {req.Url!.Trim()}{(req.Reinstall ? " (reinstall)" : "")}");
+                var timeout = TimeSpan.FromSeconds(req.Timeout);
+                var reply = await bus.RequestAsync(agentId, new Dictionary<string, object?>
+                {
+                    ["func"] = "runscript", ["timeout"] = req.Timeout, ["script_args"] = new List<string>(),
+                    ["payload"] = new Dictionary<string, object?> { ["code"] = MsiInstall.Script(req.Url!, req.Sha256, req.InstallArgs, req.Reinstall), ["shell"] = "powershell" },
+                    ["run_as_user"] = false, ["env_vars"] = new List<string>(), ["nushell_enable_config"] = false, ["deno_default_permissions"] = "", ["id"] = 0,
+                }, timeout + TimeSpan.FromSeconds(5));
+                var (text, err) = FileBrowser.Output(reply);
+                if (err is not null) return (err.Contains("did not answer") ? "offline:" : "fail:") + err;
+                var (payload, perr) = FileBrowser.Payload(text);
+                return perr is not null ? "fail:" + perr : "ok:" + payload;
+            }
             case BulkRules.AgentUpdateAction:
             {
                 using var scope = scopes.CreateScope();
