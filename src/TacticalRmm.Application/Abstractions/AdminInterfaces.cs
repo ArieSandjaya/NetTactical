@@ -220,3 +220,10 @@ public interface IDeploymentService
     /// <summary>Public: the install script for a link, or NotFound when it is unknown, expired or used up (never says which).</summary>
     Task<Outcome<string>> ScriptAsync(string uid, CancellationToken ct = default);
 }
+
+/// <summary>Housekeeping the admin triggers by hand: prune old audit, alert, history and token rows, and remove assets that stopped reporting.</summary>
+public interface IServerMaintenanceService
+{
+    Task<Outcome<MaintenanceResult>> PreviewAsync(string? action, int days, CancellationToken ct = default);
+    Task<Outcome<MaintenanceResult>> RunAsync(User caller, string? action, int days, CancellationToken ct = default);
+}

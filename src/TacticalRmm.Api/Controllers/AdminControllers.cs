@@ -533,3 +533,14 @@ public class NotificationsController(INotificationAdminService svc) : Controller
     [HttpPost("{id:int}/test")]
     public async Task<IActionResult> Test(int id, CancellationToken ct) => this.ToResult(await svc.TestAsync(HttpContext.GetUser(), id, ct));
 }
+
+// ------------------------------------------------------------------------------------------ server maintenance
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("maintenance")]
+public class ServerMaintenanceController(IServerMaintenanceService svc) : ControllerBase
+{
+    [HttpGet("preview"), RequirePerm(Perm.DoServerMaint)]
+    public async Task<IActionResult> Preview([FromQuery] string? action, [FromQuery] int days, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return this.ToResult(await svc.PreviewAsync(action, days, ct)); }
+
+    [HttpPost("run"), RequirePerm(Perm.DoServerMaint)]
+    public async Task<IActionResult> Run(MaintenanceRequest req, CancellationToken ct) => this.ToResult(await svc.RunAsync(HttpContext.GetUser(), req.Action, req.Days, ct));
+}
