@@ -227,3 +227,14 @@ public interface IServerMaintenanceService
     Task<Outcome<MaintenanceResult>> PreviewAsync(string? action, int days, CancellationToken ct = default);
     Task<Outcome<MaintenanceResult>> RunAsync(User caller, string? action, int days, CancellationToken ct = default);
 }
+
+/// <summary>Saved links with placeholders, opened for an asset.</summary>
+public interface IUrlActionService
+{
+    Task<Outcome<IReadOnlyList<UrlActionDto>>> ListAsync(CancellationToken ct = default);
+    /// <summary>Creates (id null) or changes an action.</summary>
+    Task<Outcome<UrlActionDto>> SaveAsync(User caller, int? id, UrlActionRequest req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>The action's link with the asset's values filled in. The caller must already have checked access to the asset.</summary>
+    Task<Outcome<UrlActionRunDto>> RunAsync(User caller, int id, string agentId, CancellationToken ct = default);
+}

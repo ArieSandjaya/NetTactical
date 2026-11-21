@@ -544,3 +544,29 @@ public class ServerMaintenanceController(IServerMaintenanceService svc) : Contro
     [HttpPost("run"), RequirePerm(Perm.DoServerMaint)]
     public async Task<IActionResult> Run(MaintenanceRequest req, CancellationToken ct) => this.ToResult(await svc.RunAsync(HttpContext.GetUser(), req.Action, req.Days, ct));
 }
+
+// ------------------------------------------------------------------------------------------ URL actions
+/// <summary>Saved links with placeholders. Anyone who may run them can list them; changing them needs the core-settings permission.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("urlactions")]
+public class UrlActionsController(IUrlActionService svc, IPermissionService perms) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.RunUrlActions)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+
+    [HttpPost, RequirePerm(Perm.EditCoreSettings)]
+    public async Task<IActionResult> Create(UrlActionRequest req, CancellationToken ct) => this.ToResult(await svc.SaveAsync(HttpContext.GetUser(), null, req, ct));
+
+    [HttpPut("{id:int}"), RequirePerm(Perm.EditCoreSettings)]
+    public async Task<IActionResult> Update(int id, UrlActionRequest req, CancellationToken ct) => this.ToResult(await svc.SaveAsync(HttpContext.GetUser(), id, req, ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.EditCoreSettings)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+
+    [HttpPost("{id:int}/run"), RequirePerm(Perm.RunUrlActions)]
+    public async Task<IActionResult> Run(int id, UrlActionRunRequest req, CancellationToken ct)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), req.AgentId, ct)) return Forbid();
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.RunAsync(HttpContext.GetUser(), id, req.AgentId, ct));
+    }
+}

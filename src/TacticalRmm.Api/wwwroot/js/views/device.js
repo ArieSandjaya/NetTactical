@@ -9,6 +9,7 @@ import { notesPanel, historyPanel } from './agentlog.js';
 import { servicesPanel, processesPanel } from './remotetools.js';
 import { filesPanel } from './filebrowser.js';
 import { eventLogPanel } from './eventlog.js';
+import { urlActionsMenu } from './urlactions.js';
 import {
   ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord,
   checkType, KIND_LABELS, HINTS, METRIC_NAMES,
@@ -125,6 +126,7 @@ export function deviceView(root, agentId) {
             h('button', { class: 'btn primary', disabled: st.vnc.busy, onclick: vncConnect }, 'Connect (VNC)'),
             h('button', { class: 'btn', disabled: st.vnc.busy, onclick: vncTest }, 'Test VNC'),
             actionsCard(st.actions, id, a.plat, () => alive && paint()),
+            (st.urlMenu ??= urlActionsMenu(id)),
             h('button', { class: 'btn', disabled: !!st.maint, onclick: toggleMaintenance }, a.maintenance_mode ? 'End maintenance' : 'Maintenance mode'),
             /^windows$/i.test(a.plat || '') ? h('button', { class: 'btn', disabled: !!st.upd, onclick: updateAgent }, st.upd ? 'Updating…' : 'Update agent') : null,
             st.updMsg ? h('span', { class: `pill ${st.updMsg.ok ? 'good' : 'crit'}`, role: 'status' }, st.updMsg.msg) : null,

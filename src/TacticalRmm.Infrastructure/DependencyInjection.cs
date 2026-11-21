@@ -79,6 +79,7 @@ public static class DependencyInjection
         s.AddScoped<IEventLogService, EventLogService>();
         s.AddScoped<IDeploymentService, DeploymentService>();
         s.AddScoped<IServerMaintenanceService, ServerMaintenanceService>();
+        s.AddScoped<IUrlActionService, UrlActionService>();
         s.AddScoped<INotificationAdminService, NotificationAdminService>();
         s.AddSingleton<Notifications.NotificationQueue>();
         s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());

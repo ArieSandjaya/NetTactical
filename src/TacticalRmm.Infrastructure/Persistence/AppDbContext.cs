@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<InstalledSoftware> InstalledSoftware => Set<InstalledSoftware>();
     public DbSet<AgentNote> AgentNotes => Set<AgentNote>();
     public DbSet<Deployment> Deployments => Set<Deployment>();
+    public DbSet<UrlAction> UrlActions => Set<UrlAction>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
