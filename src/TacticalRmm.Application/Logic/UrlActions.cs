@@ -22,7 +22,7 @@ public static partial class UrlActions
         if (pattern.Length > 2000) return "The URL must be 2000 characters or less.";
         // The scheme has to be literal text, so a placeholder can never turn the link into something other than http(s).
         if (!pattern.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !pattern.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return "The URL must start with http:// or https://.";
-        if (pattern.Any(char.IsWhiteSpace)) return "The URL must not contain spaces.";
+        if (Tag().Replace(pattern, "x").Any(char.IsWhiteSpace)) return "The URL must not contain spaces.";
         foreach (Match m in Tag().Matches(pattern))
             if (!Placeholders.Contains(m.Groups[1].Value.ToLowerInvariant())) return $"Unknown placeholder {{{{{m.Groups[1].Value}}}}}. Use one of: {string.Join(", ", Placeholders.Select(p => "{{" + p + "}}"))}.";
         return Uri.TryCreate(Tag().Replace(pattern, "x"), UriKind.Absolute, out _) ? null : "That does not look like a valid URL.";
