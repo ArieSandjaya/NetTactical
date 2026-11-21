@@ -93,12 +93,7 @@ public class DeploymentPostgresTests
     public async Task BadRequestsAreRejected()
     {
         var (svc, db, _, _, site) = await SetupAsync(); await using var _ = db;
-        Assert.Equal(OutcomeStatus.Invalid, (await svc.CreateAsync(Admin, Req(site) with2(), "https://rmm.example.com")).Status);
+        Assert.Equal(OutcomeStatus.Invalid, (await svc.CreateAsync(Admin, new DeploymentRequest { ClientId = site.ClientId, SiteId = site.Id, AgentType = "laptop" }, "https://rmm.example.com")).Status);
         Assert.Equal(OutcomeStatus.NotFound, (await svc.CreateAsync(Admin, new DeploymentRequest { ClientId = 999, SiteId = 999, ExpiresHours = 24 }, "https://rmm.example.com")).Status);
     }
-}
-
-internal static class DeploymentTestExtensions
-{
-    public static DeploymentRequest with2(this DeploymentRequest r) { r.AgentType = "laptop"; return r; }
 }
