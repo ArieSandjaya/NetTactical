@@ -9,6 +9,7 @@ import { patchesView } from './views/patches.js';
 import { vncView } from './views/vnc.js';
 import { clientsView } from './views/clients.js';
 import { installerView } from './views/installer.js';
+import { deploymentsView } from './views/deployments.js';
 import { usersView } from './views/users.js';
 import { rolesView } from './views/roles.js';
 import { securityView } from './views/security.js';
@@ -25,9 +26,9 @@ import { reportsView } from './views/reports.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['reports', '#/reports', 'Reports'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['reports', '#/reports', 'Reports'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['deployments', '#/deployments', 'Deployments'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
 const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView],
-  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/security': ['security', 'Security', securityView],
+  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/deployments': ['deployments', 'Deployments', deploymentsView], '#/security': ['security', 'Security', securityView],
   '#/checks': ['checks', 'Checks', checksView], '#/tasks': ['tasks', 'Tasks', tasksView], '#/policies': ['policies', 'Policies', policiesView], '#/scripts': ['scripts', 'Scripts', scriptsView], '#/audit': ['audit', 'Audit log', auditView], '#/notifications': ['notifications', 'Notifications', notificationsView], '#/alert-templates': ['alerttemplates', 'Alert templates', alertTemplatesView], '#/custom-fields': ['customfields', 'Custom fields', customFieldsView], '#/snippets': ['snippets', 'Snippets', snippetsView], '#/reports': ['reports', 'Reports', reportsView] };
 
 // Line icons for the sidebar (24x24 grid, drawn with the current text colour).
@@ -49,6 +50,7 @@ const ICONS = {
   snippets: ['M8 6l-5 6 5 6', 'M16 6l5 6-5 6', 'M14 4l-4 16'],
   customfields: ['M4 5h16', 'M4 12h16', 'M4 19h10', 'M18 17v4', 'M16 19h4'],
   alerttemplates: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
+  deployments: ['M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7', 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'],
   installer: ['M22 12H2', 'M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z', 'M6 16h.01', 'M10 16h.01'],
   security: ['M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
   vnc: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],

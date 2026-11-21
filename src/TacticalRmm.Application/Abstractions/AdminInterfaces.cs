@@ -210,3 +210,13 @@ public interface IEventLogService
 {
     Task<Outcome<EventLogDto>> ReadAsync(string agentId, string? log, string? level, int hours, int max, string? text, int? eventId, CancellationToken ct = default);
 }
+
+/// <summary>Shareable install links (deployments) and the public script they serve.</summary>
+public interface IDeploymentService
+{
+    Task<Outcome<IReadOnlyList<DeploymentDto>>> ListAsync(User caller, CancellationToken ct = default);
+    Task<Outcome<DeploymentDto>> CreateAsync(User caller, DeploymentRequest req, string defaultApi, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>Public: the install script for a link, or NotFound when it is unknown, expired or used up (never says which).</summary>
+    Task<Outcome<string>> ScriptAsync(string uid, CancellationToken ct = default);
+}

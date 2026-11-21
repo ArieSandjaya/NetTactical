@@ -323,6 +323,33 @@ public class InstallerController(IInstallerService svc) : ControllerBase
     }
 }
 
+/// <summary>Deployment links: create, list and delete (dashboard), and the public script a link serves.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("deployments")]
+public class DeploymentsController(IDeploymentService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListDeployments)]
+    public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(HttpContext.GetUser(), ct));
+
+    [HttpPost, RequirePerm(Perm.ManageDeployments)]
+    public async Task<IActionResult> Create(DeploymentRequest req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, $"{Request.Scheme}://{Request.Host}", ct));
+
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageDeployments)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
+/// <summary>Public (no login): the link itself is the secret. Never cached; unknown, expired and used-up links all answer 404 the same way.</summary>
+[ApiController, AllowAnonymous, Route("deploy")]
+public class DeployLinkController(IDeploymentService svc) : ControllerBase
+{
+    [HttpGet("{uid}")]
+    public async Task<IActionResult> Script(string uid, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-store";
+        var r = await svc.ScriptAsync(uid, ct);
+        return r.Status == OutcomeStatus.Ok ? Content(r.Value!, "text/plain; charset=utf-8") : NotFound("This link is not valid.");
+    }
+}
+
 /// <summary>Push install: the server installs the agent on remote Windows computers with a domain administrator account (WinRM).</summary>
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("installer/push"), RequirePerm(Perm.PushInstall)]
 public class PushInstallController(IPushInstallService svc) : ControllerBase

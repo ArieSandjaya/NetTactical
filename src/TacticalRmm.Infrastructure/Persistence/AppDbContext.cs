@@ -34,6 +34,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WinUpdatePolicy> WinUpdatePolicies => Set<WinUpdatePolicy>();
     public DbSet<InstalledSoftware> InstalledSoftware => Set<InstalledSoftware>();
     public DbSet<AgentNote> AgentNotes => Set<AgentNote>();
+    public DbSet<Deployment> Deployments => Set<Deployment>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -111,6 +112,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.AgentId).IsUnique();
         });
         b.Entity<AgentNote>().HasIndex(x => x.AgentId);
+        b.Entity<Deployment>(e => { e.HasIndex(x => x.Uid).IsUnique(); e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<CheckMetric>(e =>
         {
             e.HasIndex(x => new { x.AgentId, x.CheckType, x.Time });
