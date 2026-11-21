@@ -48,7 +48,9 @@ public static class Perm
         UseVnc = "can_use_vnc", ManageVnc = "can_manage_vnc", InstallAgents = "can_install_agents", ManageNotifications = "can_manage_notifications", PushInstall = "can_push_install", ManageWinUpdates = "can_manage_winupdates", ManageCustomFields = "can_manage_custom_fields",
         // As in Tactical RMM's Role: finer permissions for the live tools. UseMesh is Tactical's "Remote Background" permission; here it opens the file browser.
         UpdateAgents = "can_update_agents", ManageProcs = "can_manage_procs", RunBulk = "can_run_bulk", ListNotes = "can_list_notes", ManageNotes = "can_manage_notes",
-        ManageSoftware = "can_manage_software", UseMesh = "can_use_mesh";
+        ManageSoftware = "can_manage_software", UseMesh = "can_use_mesh",
+        ViewEventLogs = "can_view_eventlogs", DoServerMaint = "can_do_server_maint", RunUrlActions = "can_run_urlactions", EditCoreSettings = "can_edit_core_settings",
+        ListDeployments = "can_list_deployments", ManageDeployments = "can_manage_deployments";
 
     /// <summary>Complete list of valid permissions; used for Role validation.</summary>
     public static readonly IReadOnlyList<string> All =
@@ -56,6 +58,7 @@ public static class Perm
         ListClients, ManageClients, ListSites, ManageSites, ListAgents, ManageAgents, EditAgent, UninstallAgents,
         RebootAgents, RunScripts, RunCommands, ListScripts, ManageScripts, ListChecks, ManageChecks, RunChecks,
         ListTasks, ManageTasks, RunTasks, ListAlerts, ManageAlerts, ListPolicies, ManagePolicies, ViewAuditLog, ManageAccounts, UseVnc, ManageVnc, InstallAgents, ManageNotifications, PushInstall, ManageWinUpdates, ManageCustomFields,
-        UpdateAgents, ManageProcs, RunBulk, ListNotes, ManageNotes, ManageSoftware, UseMesh
+        UpdateAgents, ManageProcs, RunBulk, ListNotes, ManageNotes, ManageSoftware, UseMesh,
+        ViewEventLogs, DoServerMaint, RunUrlActions, EditCoreSettings, ListDeployments, ManageDeployments
     ];
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using TacticalRmm.Api.Auth;
 using TacticalRmm.Application.Abstractions;
 using TacticalRmm.Application.Dtos;
+using TacticalRmm.Application.Logic;
 using TacticalRmm.Domain;
 
 namespace TacticalRmm.Api.Controllers;
@@ -359,6 +360,20 @@ public class RemoteToolsController(IRemoteToolsService svc, IPermissionService p
     [HttpPost("processes/kill"), RequirePerm(Perm.ManageProcs)]
     public async Task<IActionResult> Kill(string agentId, KillRequest req, CancellationToken ct) =>
         !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.KillAsync(HttpContext.GetUser(), agentId, req, ct));
+}
+
+// ------------------------------------------------------------------------------------------ Windows event log of an asset
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}/eventlog")]
+public class EventLogController(IEventLogService svc, IPermissionService perms) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ViewEventLogs)]
+    public async Task<IActionResult> Read(string agentId, [FromQuery] string? log, [FromQuery] string? level, [FromQuery] int hours = 24, [FromQuery] int max = EventLogs.DefaultEntries,
+        [FromQuery] string? text = null, [FromQuery(Name = "event_id")] int? eventId = null, CancellationToken ct = default)
+    {
+        if (!await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct)) return Forbid();
+        Response.Headers.CacheControl = "no-store";
+        return this.ToResult(await svc.ReadAsync(agentId, log ?? "System", level ?? "all", hours, max, text, eventId, ct));
+    }
 }
 
 // ------------------------------------------------------------------------------------------ file browser of an asset

@@ -204,3 +204,9 @@ public interface IFileBrowserService
     Task<Outcome<ToolResult>> DeleteAsync(User caller, string agentId, FileDeleteRequest req, CancellationToken ct = default);
     Task<Outcome<ToolResult>> RenameAsync(User caller, string agentId, FileRenameRequest req, CancellationToken ct = default);
 }
+
+/// <summary>Reads the Windows event log of an asset live from its agent (Get-WinEvent through a script).</summary>
+public interface IEventLogService
+{
+    Task<Outcome<EventLogDto>> ReadAsync(string agentId, string? log, string? level, int hours, int max, string? text, int? eventId, CancellationToken ct = default);
+}

@@ -36,3 +36,20 @@ public class PermissionUpgradePostgresTests
         Assert.DoesNotContain("can_use_mesh", (await db.Roles.AsNoTracking().SingleAsync(r => r.Name == "ops")).Permissions);
     }
 }
+
+public class PermissionUpgradeV12PostgresTests
+{
+    [PostgresFact]
+    public async Task EventLogsUrlActionsAndDeploymentsFollowTheOldPermissions()
+    {
+        await using var db = await PgDb.CreateAsync();
+        db.Roles.AddRange(new Role { Name = "ops", Permissions = ["can_send_cmd", "can_list_agents", "can_install_agents"] }, new Role { Name = "none", Permissions = ["can_list_clients"] });
+        await db.SaveChangesAsync();
+        await SchemaUpgrade.RunAsync(db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        var roles = await db.Roles.AsNoTracking().ToDictionaryAsync(r => r.Name, r => r.Permissions);
+        Assert.Superset(new HashSet<string> { "can_view_eventlogs", "can_run_urlactions", "can_list_deployments", "can_manage_deployments" }, roles["ops"].ToHashSet());
+        Assert.DoesNotContain("can_do_server_maint", roles["ops"]);          // administrators only until granted
+        Assert.DoesNotContain("can_edit_core_settings", roles["ops"]);
+        Assert.Equal(["can_list_clients"], roles["none"]);
+    }
+}

@@ -140,6 +140,18 @@ public static class SchemaUpgrade
           END IF;
         END $$
         """,
+        // v12: the same, once, for event logs, URL actions and deployments. Server maintenance and core settings start as administrator-only (new features).
+        """
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM schema_marks WHERE name = 'perms_v12') THEN
+            UPDATE roles SET permissions = permissions || ARRAY['can_view_eventlogs']::text[] WHERE 'can_send_cmd' = ANY(permissions);
+            UPDATE roles SET permissions = permissions || ARRAY['can_run_urlactions']::text[] WHERE 'can_list_agents' = ANY(permissions);
+            UPDATE roles SET permissions = permissions || ARRAY['can_list_deployments','can_manage_deployments']::text[] WHERE 'can_install_agents' = ANY(permissions);
+            UPDATE roles SET permissions = COALESCE((SELECT array_agg(DISTINCT p) FROM unnest(permissions) AS p), ARRAY[]::text[]);
+            INSERT INTO schema_marks (name) VALUES ('perms_v12');
+          END IF;
+        END $$
+        """,
 ];
 
     public static async Task RunAsync(AppDbContext db, ILogger log, CancellationToken ct = default)

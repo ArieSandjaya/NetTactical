@@ -18,24 +18,7 @@ public sealed class FileBrowserService(AppDbContext db, IAgentCommandBus bus, IA
         return a is null ? null : (a.Id, a.Hostname, a.Plat ?? "");
     }
 
-    /// <summary>Runs the script on the agent and returns what it printed after the marker, or why that failed.</summary>
-    private async Task<(string? Payload, string? Error)> RunAsync(string agentId, string script, TimeSpan timeout, CancellationToken ct)
-    {
-        var data = new Dictionary<string, object?>
-        {
-            ["func"] = "runscript",
-            ["timeout"] = (int)timeout.TotalSeconds,
-            ["script_args"] = new List<string>(),
-            ["payload"] = new Dictionary<string, object?> { ["code"] = script, ["shell"] = "powershell" },
-            ["run_as_user"] = false,
-            ["env_vars"] = new List<string>(),
-            ["nushell_enable_config"] = false,
-            ["deno_default_permissions"] = "",
-            ["id"] = 0,
-        };
-        var (text, err) = FileBrowser.Output(await bus.RequestAsync(agentId, data, timeout + TimeSpan.FromSeconds(3), ct));
-        return err is not null ? (null, err) : FileBrowser.Payload(text);
-    }
+    private Task<(string? Payload, string? Error)> RunAsync(string agentId, string script, TimeSpan timeout, CancellationToken ct) => AgentScripts.RunAsync(bus, agentId, script, timeout, ct);
 
     private static Outcome<T>? NotWindows<T>(string plat) =>
         string.Equals(plat, "windows", StringComparison.OrdinalIgnoreCase) ? null : Outcome.Invalid<T>("The file browser is only available for Windows assets.");
