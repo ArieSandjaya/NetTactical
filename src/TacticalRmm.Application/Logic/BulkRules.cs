@@ -8,11 +8,11 @@ namespace TacticalRmm.Application.Logic;
 public static class BulkRules
 {
     public const int MaxTargets = 100, MaxOutput = 1000, MaxCommand = 4000, MaxTimeout = 300;
-    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off", AgentUpdateAction = "agent_update", InstallMsiAction = "install_msi";
+    public const string Command = "command", Script = "script", Reboot = "reboot", MaintenanceOn = "maintenance_on", MaintenanceOff = "maintenance_off", AgentUpdateAction = "agent_update", InstallMsiAction = "install_msi", HardwareRefreshAction = "hardware_refresh";
 
     public const string Queued = "queued", Running = "running", Ok = "ok", Failed = "failed", Offline = "offline";
 
-    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff, AgentUpdateAction, InstallMsiAction];
+    public static readonly IReadOnlyList<string> Actions = [Command, Script, Reboot, MaintenanceOn, MaintenanceOff, AgentUpdateAction, InstallMsiAction, HardwareRefreshAction];
     private static readonly string[] Shells = ["cmd", "powershell", "/bin/bash"];
 
     /// <summary>The permission needed to run the action, or null for an unknown action.</summary>
@@ -24,6 +24,7 @@ public static class BulkRules
         MaintenanceOn or MaintenanceOff => Perm.EditAgent,
         AgentUpdateAction => Perm.UpdateAgents,
         InstallMsiAction => Perm.ManageSoftware,
+        HardwareRefreshAction => Perm.ViewHardware,
         _ => null,
     };
 
@@ -62,7 +63,7 @@ public static class BulkRules
     {
         if (action is MaintenanceOn or MaintenanceOff)   // changed in the database; the agent is not asked
             return reply as string == "ok" ? (Ok, action == MaintenanceOn ? "Maintenance mode is on." : "Maintenance mode is off.") : (Failed, "Could not change it.");
-        if (action is AgentUpdateAction or InstallMsiAction)   // reply is "started:/skipped:/ok:<text>", or "fail:<text>" / "offline:<text>" from the update or install code
+        if (action is AgentUpdateAction or InstallMsiAction or HardwareRefreshAction)   // reply is "started:/skipped:/ok:<text>", or "fail:<text>" / "offline:<text>" from the update or install code
         {
             var t = Convert.ToString(reply) ?? "";
             var i = t.IndexOf(':');

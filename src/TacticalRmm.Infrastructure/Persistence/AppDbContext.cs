@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AgentNote> AgentNotes => Set<AgentNote>();
     public DbSet<Deployment> Deployments => Set<Deployment>();
     public DbSet<UrlAction> UrlActions => Set<UrlAction>();
+    public DbSet<HardwareInfo> HardwareInfos => Set<HardwareInfo>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -113,6 +114,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.AgentId).IsUnique();
         });
         b.Entity<AgentNote>().HasIndex(x => x.AgentId);
+        b.Entity<HardwareInfo>(e => { e.HasIndex(x => x.AgentId).IsUnique(); e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<Deployment>(e => { e.HasIndex(x => x.Uid).IsUnique(); e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<CheckMetric>(e =>
         {

@@ -80,6 +80,7 @@ public static class DependencyInjection
         s.AddScoped<IDeploymentService, DeploymentService>();
         s.AddScoped<IServerMaintenanceService, ServerMaintenanceService>();
         s.AddScoped<IUrlActionService, UrlActionService>();
+        s.AddScoped<IHardwareService, HardwareService>();
         s.AddScoped<INotificationAdminService, NotificationAdminService>();
         s.AddSingleton<Notifications.NotificationQueue>();
         s.AddSingleton<INotificationQueue>(sp => sp.GetRequiredService<Notifications.NotificationQueue>());
@@ -88,6 +89,7 @@ public static class DependencyInjection
         s.AddHostedService<AgentOutagesJob>();
         s.AddHostedService<TaskSyncJob>();
         s.AddHostedService<MetricRetentionJob>();
+        s.AddHostedService<HardwareRefreshJob>();
         return s;
     }
 }

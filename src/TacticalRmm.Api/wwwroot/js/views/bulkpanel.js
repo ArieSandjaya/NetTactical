@@ -2,7 +2,7 @@ import { h } from '../dom.js';
 import { api } from '../api.js';
 import { field, input, select, btn, notice } from '../forms.js';
 
-const ACTIONS = [['command', 'Run command'], ['script', 'Run script'], ['reboot', 'Restart'], ['maintenance_on', 'Maintenance on'], ['maintenance_off', 'Maintenance off'], ['agent_update', 'Update agent'], ['install_msi', 'Install .msi']];
+const ACTIONS = [['command', 'Run command'], ['script', 'Run script'], ['reboot', 'Restart'], ['maintenance_on', 'Maintenance on'], ['maintenance_off', 'Maintenance off'], ['agent_update', 'Update agent'], ['install_msi', 'Install .msi'], ['hardware_refresh', 'Hardware check']];
 const STATUS = { queued: ['neutral', 'Waiting'], running: ['info', 'Running'], ok: ['good', 'Done'], failed: ['crit', 'Failed'], offline: ['warn', 'Offline'] };
 
 // Actions on the assets ticked in the list: one form, one job, a live result per asset. Created once by the page and reused,
@@ -35,7 +35,7 @@ export function bulkPanel() {
       if (!st.url.trim()) { st.notice = { ok: false, msg: 'Enter the address of the .msi file.' }; paint(); return; }
       Object.assign(body, { url: st.url.trim(), sha256: st.sha.trim() || null, install_args: st.msiArgs.trim() || null, reinstall: st.reinstall, timeout: Math.max(60, Math.min(3600, parseInt(st.msiTimeout, 10) || 900)) });
     }
-    const what = { install_msi: 'Install the .msi on', reboot: 'Restart', script: 'Run the script on', command: 'Run the command on', maintenance_on: 'Turn maintenance mode on for', maintenance_off: 'Turn maintenance mode off for', agent_update: 'Update the agent on' }[st.action];
+    const what = { install_msi: 'Install the .msi on', reboot: 'Restart', script: 'Run the script on', command: 'Run the command on', maintenance_on: 'Turn maintenance mode on for', maintenance_off: 'Turn maintenance mode off for', agent_update: 'Update the agent on', hardware_refresh: 'Check the hardware of' }[st.action];
     if (!confirm(`${what} ${ids.length} asset${ids.length === 1 ? '' : 's'}?${st.action === 'reboot' ? '\n\nUnsaved work on those computers will be lost.' : ''}`)) return;
     st.busy = true; st.notice = null; st.job = null; paint();
     try { st.job = await api('bulk-actions', { method: 'POST', body }); poll(); }
@@ -65,6 +65,7 @@ export function bulkPanel() {
             h('label', { style: { display: 'flex', gap: '6px', alignItems: 'center', fontSize: '13px' } },
               h('input', { type: 'checkbox', checked: st.reinstall, onchange: (e) => { st.reinstall = e.target.checked; } }), 'Reinstall even if already installed'),
             h('span', { class: 'muted', style: { flex: '1 1 100%', fontSize: '12px' } }, 'Each computer downloads the file itself (https) or copies it from the share, then runs msiexec silently as the agent account. The share must be readable by that account (computer account for SYSTEM).'))
+          : st.action === 'hardware_refresh' ? h('span', { class: 'muted' }, 'Reads serial number, disk health and battery wear from each online Windows asset. Results are on the Hardware page.')
           : st.action === 'agent_update' ? h('span', { class: 'muted' }, 'Windows agents that are online download the newest agent and restart themselves. Already up to date or offline assets are reported, not changed.')
           : h('span', { class: 'muted' }, st.action === 'maintenance_on' ? 'Selected assets stop opening new alerts and notifications. Alerts already open stay.' : 'Selected assets create alerts and notifications again.');
     root.replaceChildren(...[

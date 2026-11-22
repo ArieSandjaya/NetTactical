@@ -70,6 +70,7 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
             BulkRules.MaintenanceOff => "maintenance mode off",
             BulkRules.AgentUpdateAction => "agent update",
             BulkRules.InstallMsiAction => "install .msi",
+            BulkRules.HardwareRefreshAction => "hardware check",
             _ => "restart",
         };
         await sp.GetRequiredService<IAuditService>().LogAsync(caller.Username, AuditAction.BulkAction, "agent",
@@ -140,6 +141,14 @@ public sealed class BulkService(IServiceScopeFactory scopes, IAgentCommandBus bu
                 if (err is not null) return (err.Contains("did not answer") ? "offline:" : "fail:") + err;
                 var (payload, perr) = FileBrowser.Payload(text);
                 return perr is not null ? "fail:" + perr : "ok:" + payload;
+            }
+            case BulkRules.HardwareRefreshAction:
+            {
+                using var scope = scopes.CreateScope();
+                var r = await scope.ServiceProvider.GetRequiredService<IHardwareService>().RefreshAsync(agentId);
+                if (r.Status == OutcomeStatus.NotFound) throw new KeyNotFoundException();
+                if (!r.IsOk) return (r.Error?.Contains("did not answer") == true ? "offline:" : "fail:") + r.Error;
+                return r.Value!.Risk == HardwareHealth.Ok ? "ok:No hardware problems found." : $"ok:Risk {r.Value.Risk}: {string.Join(" ", r.Value.Reasons.Select(x => x.Text))}";
             }
             case BulkRules.AgentUpdateAction:
             {

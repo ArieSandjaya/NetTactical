@@ -95,6 +95,8 @@ public class TacticalOptions
     public AgentRuntimeOptions Agent { get; set; } = new();
     /// <summary>How many days historical metrics are kept before the retention job deletes them.</summary>
     public int MetricRetentionDays { get; set; } = 90;
+    /// <summary>Hours between automatic hardware checks of each online Windows asset (checked every hour); 0 turns the automatic check off.</summary>
+    public int HardwareRefreshHours { get; set; } = 24;
     /// <summary>Minimum gap between metric points per check (seconds), to keep the table from bloating.</summary>
     public int MetricMinIntervalSeconds { get; set; } = 240;
     public HealthWeights Health { get; set; } = new();

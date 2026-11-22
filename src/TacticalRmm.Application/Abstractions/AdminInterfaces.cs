@@ -238,3 +238,14 @@ public interface IUrlActionService
     /// <summary>The action's link with the asset's values filled in. The caller must already have checked access to the asset.</summary>
     Task<Outcome<UrlActionRunDto>> RunAsync(User caller, int id, string agentId, CancellationToken ct = default);
 }
+
+/// <summary>Hardware check of Windows assets (serial, disk health, battery), a risk per asset, and warranty dates.</summary>
+public interface IHardwareService
+{
+    Task<Outcome<HardwareDto>> GetAsync(string agentId, CancellationToken ct = default);
+    /// <summary>Asks the agent now (a PowerShell script) and saves the answer.</summary>
+    Task<Outcome<HardwareDto>> RefreshAsync(string agentId, CancellationToken ct = default);
+    Task<Outcome<HardwareDto>> SetWarrantyAsync(User caller, string agentId, WarrantyRequest req, CancellationToken ct = default);
+    /// <summary>Every asset the caller may see that has been checked or has a warranty date, worst first.</summary>
+    Task<Outcome<IReadOnlyList<HardwareRowDto>>> ListAsync(User caller, CancellationToken ct = default);
+}

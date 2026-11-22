@@ -570,3 +570,26 @@ public class UrlActionsController(IUrlActionService svc, IPermissionService perm
         return this.ToResult(await svc.RunAsync(HttpContext.GetUser(), id, req.AgentId, ct));
     }
 }
+
+// ------------------------------------------------------------------------------------------ hardware check and warranty
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("hardware")]
+public class HardwareController(IHardwareService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ViewHardware)]
+    public async Task<IActionResult> List(CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return this.ToResult(await svc.ListAsync(HttpContext.GetUser(), ct)); }
+}
+
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("agents/{agentId}/hardware")]
+public class AgentHardwareController(IHardwareService svc, IPermissionService perms) : ControllerBase
+{
+    private async Task<bool> MayAsync(string agentId, CancellationToken ct) => await perms.HasPermissionOnAgentAsync(HttpContext.GetUser(), agentId, ct);
+
+    [HttpGet, RequirePerm(Perm.ViewHardware)]
+    public async Task<IActionResult> Get(string agentId, CancellationToken ct) { Response.Headers.CacheControl = "no-store"; return !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.GetAsync(agentId, ct)); }
+
+    [HttpPost("refresh"), RequirePerm(Perm.ViewHardware)]
+    public async Task<IActionResult> Refresh(string agentId, CancellationToken ct) => !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.RefreshAsync(agentId, ct));
+
+    [HttpPut("warranty"), RequirePerm(Perm.EditAgent)]
+    public async Task<IActionResult> Warranty(string agentId, WarrantyRequest req, CancellationToken ct) => !await MayAsync(agentId, ct) ? Forbid() : this.ToResult(await svc.SetWarrantyAsync(HttpContext.GetUser(), agentId, req, ct));
+}

@@ -10,12 +10,13 @@ import { servicesPanel, processesPanel } from './remotetools.js';
 import { filesPanel } from './filebrowser.js';
 import { eventLogPanel } from './eventlog.js';
 import { urlActionsMenu } from './urlactions.js';
+import { hardwarePanel } from './hardware.js';
 import {
   ago, fmtDate, levelClass, levelWord, sevClass, sevWord, statusClass, statusWord, syncWord,
   checkType, KIND_LABELS, HINTS, METRIC_NAMES,
 } from '../format.js';
 
-const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['software', 'Software'], ['notes', 'Notes'], ['history', 'History'], ['services', 'Services'], ['processes', 'Processes'], ['files', 'Files'], ['eventlog', 'Event log'], ['system', 'Disks & services']];
+const TABS = [['issues', 'Issues'], ['checks', 'Check'], ['tasks', 'Task'], ['patches', 'Patch'], ['software', 'Software'], ['notes', 'Notes'], ['history', 'History'], ['services', 'Services'], ['processes', 'Processes'], ['files', 'Files'], ['eventlog', 'Event log'], ['hardware', 'Hardware'], ['system', 'Disks & services']];
 
 export function deviceView(root, agentId) {
   const st = { data: null, tab: 'issues', issue: 0, metric: 'cpu', days: 7, series: null, seriesErr: null, vnc: { busy: false, ok: null, msg: '' }, actions: newActionsState() };
@@ -103,7 +104,7 @@ export function deviceView(root, agentId) {
   function paint() {
     const d = st.data; if (!d) return;
     const a = d.agent, hl = d.health, lvl = levelClass(hl.level);
-    const counts = { issues: d.issues.length, checks: d.checks.length, tasks: d.tasks.length, patches: d.patches.length, software: null, system: d.disks.length + d.services.length };
+    const counts = { issues: d.issues.length, checks: d.checks.length, tasks: d.tasks.length, patches: d.patches.length, software: null, eventlog: null, hardware: null, system: d.disks.length + d.services.length };
 
     const facts = [
       ['Last check-in', a.online ? 'just now' : `${ago(a.last_seen)} (${fmtDate(a.last_seen)})`], ['Public IP', a.public_ip || '—'],
@@ -160,7 +161,7 @@ export function deviceView(root, agentId) {
           h('button', { role: 'tab', 'aria-selected': String(st.tab === k), onclick: () => { st.tab = k; paint(); } }, label,
             counts[k] === null ? null : h('span', { class: `count${k === 'issues' && counts[k] ? ' bad' : ''}` }, String(counts[k]))))),
         st.tab === 'issues' ? issuesTab(d) : st.tab === 'checks' ? checksTab(d) : st.tab === 'tasks' ? tasksTab(d)
-          : st.tab === 'patches' ? patchesTab() : st.tab === 'software' ? softwareTab() : st.tab === 'notes' ? notesTab() : st.tab === 'history' ? historyTab() : st.tab === 'services' ? servicesTab() : st.tab === 'processes' ? processesTab() : st.tab === 'files' ? filesTab() : st.tab === 'eventlog' ? eventLogTab() : systemTab(d)));
+          : st.tab === 'patches' ? patchesTab() : st.tab === 'software' ? softwareTab() : st.tab === 'notes' ? notesTab() : st.tab === 'history' ? historyTab() : st.tab === 'services' ? servicesTab() : st.tab === 'processes' ? processesTab() : st.tab === 'files' ? filesTab() : st.tab === 'eventlog' ? eventLogTab() : st.tab === 'hardware' ? hardwareTab() : systemTab(d)));
   }
 
   function seg(items, current, fn, label) {
@@ -219,6 +220,7 @@ export function deviceView(root, agentId) {
   const historyTab = () => (st.historyPanel ??= historyPanel(agentId)).el;
   const servicesTab = () => (st.servicesPanel ??= servicesPanel(agentId)).el;
   const eventLogTab = () => (st.eventPanel ??= eventLogPanel(id)).el;
+  const hardwareTab = () => (st.hwPanel ??= hardwarePanel(id, st.data?.agent?.plat)).el;
   const filesTab = () => { const p = (st.filesPanel ??= filesPanel(agentId)); p.start(); return p.el; };
   const processesTab = () => (st.processesPanel ??= processesPanel(agentId)).el;
 
