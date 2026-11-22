@@ -184,6 +184,8 @@ public static class SchemaUpgrade
           END IF;
         END $$
         """,
+        // v16: tasks of agents migrated to the renamed agent are pushed again once
+        "ALTER TABLE agents_agent ADD COLUMN IF NOT EXISTS tasks_resynced boolean NOT NULL DEFAULT false",
         // v15: hardware checks and warranty dates; existing roles that can list assets may see them
         """
         CREATE TABLE IF NOT EXISTS hardware_infos (

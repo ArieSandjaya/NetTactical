@@ -112,7 +112,7 @@ public class CrudLogicTests
             T("role ok", AccountRules.ValidateRole("Helpdesk", [Perm.ListAgents]) is null);
             T("role needs name", AccountRules.ValidateRole(" ", []) is not null);
             T("Perm.All has no duplicates", Perm.All.Distinct().Count() == Perm.All.Count);
-            T("WinTaskName format", AutomatedTask.GenerateWinTaskName() is { Length: 47 } n && n.StartsWith("TacticalRMM_") && n[12..].All(char.IsLetter));
+            T("WinTaskName format", AutomatedTask.GenerateWinTaskName() is { Length: 47 } n && n.StartsWith("NetTactical_") && n[12..].All(char.IsLetter));
             T("WinTaskName unique", AutomatedTask.GenerateWinTaskName() != AutomatedTask.GenerateWinTaskName());
     }
 

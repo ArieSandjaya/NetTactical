@@ -90,7 +90,7 @@ public class TacticalOptions
     public string NatsTlsKeyFile { get; set; } = "";
     public string AllowResponseExpiration { get; set; } = "1435m";
     public int UserTokenTtlHours { get; set; } = 5;
-    public string LatestAgentVer { get; set; } = "2.12.0";
+    public string LatestAgentVer { get; set; } = "3.0.0";
     public int MaxRequestSizeBytes { get; set; } = 10 * 1024 * 1024; // = TRMM_MAX_REQUEST_SIZE
     public AgentRuntimeOptions Agent { get; set; } = new();
     /// <summary>How many days historical metrics are kept before the retention job deletes them.</summary>

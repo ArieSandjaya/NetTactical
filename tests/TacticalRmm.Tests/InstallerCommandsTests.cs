@@ -8,9 +8,9 @@ public class InstallerCommandsTests
     private static readonly string Tok = new('a', 64);
 
     [Fact]
-    public void DownloadUrlPointsToOfficialRelease()
+    public void DownloadUrlPointsToTheNetTacticalRelease()
     {
-        Assert.True(InstallerCommands.DownloadUrl("2.12.0", "amd64") == "https://github.com/amidaware/rmmagent/releases/download/v2.12.0/tacticalagent-v2.12.0-windows-amd64.exe", "amd64 url");
+        Assert.True(InstallerCommands.DownloadUrl("2.12.0", "amd64") == "https://github.com/ArieSandjaya/NetTactical/releases/download/agent-v2.12.0/nettacticalagent-v2.12.0-windows-amd64.exe", "amd64 url");
         Assert.True(InstallerCommands.DownloadUrl("2.12.0", "386")!.EndsWith("windows-386.exe"), "386 url");
         Assert.True(InstallerCommands.DownloadUrl("2.12.0/../x", "amd64") is null, "bad version rejected");
         Assert.True(InstallerCommands.DownloadUrl("2.12.0", "arm") is null, "bad arch rejected");
@@ -49,7 +49,7 @@ public class InstallerCommandsTests
     {
         var args = InstallerCommands.InstallArguments("https://a.com", 1, 2, "server", Tok, false, false, false);
         var cmd = InstallerCommands.CommandPrompt("agent.exe", args);
-        Assert.True(cmd.StartsWith("\"agent.exe\" /VERYSILENT /SUPPRESSMSGBOXES && ping 127.0.0.1 -n 5 && \"C:\\Program Files\\TacticalAgent\\tacticalrmm.exe\" -m install"), "cmd");
+        Assert.True(cmd.StartsWith("\"agent.exe\" /VERYSILENT /SUPPRESSMSGBOXES && ping 127.0.0.1 -n 5 && \"C:\\Program Files\\NetTacticalAgent\\nettactical.exe\" -m install"), "cmd");
         var ps = InstallerCommands.PowerShell("https://example.com/agent.exe", "agent.exe", args);
         Assert.True(ps.Contains("Invoke-WebRequest -Uri 'https://example.com/agent.exe'") && ps.Contains("-m install"), "powershell");
     }

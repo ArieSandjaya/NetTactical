@@ -9,7 +9,10 @@ public static partial class InstallerCommands
     public static readonly IReadOnlyList<string> Architectures = ["amd64", "386"];
     public static readonly IReadOnlyList<int> ValidHours = [1, 8, 24, 72, 168, 720];
 
-    public const string InstallDir = @"C:\Program Files\TacticalAgent\tacticalrmm.exe";
+    public const string InstallDir = @"C:\Program Files\NetTacticalAgent\nettactical.exe";
+
+    /// <summary>Where the installers built from the agent/ folder are published (the "agent" workflow, on a tag agent-vX.Y.Z).</summary>
+    public const string ReleaseBase = "https://github.com/ArieSandjaya/NetTactical/releases/download/";
 
     [GeneratedRegex(@"^https?://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:\d{1,5})?$")]
     private static partial Regex ApiRx();
@@ -29,12 +32,12 @@ public static partial class InstallerCommands
 
     public static string NormalizeApi(string api) => api.Trim().TrimEnd('/');
 
-    public static string FileName(string version, string arch) => $"tacticalagent-v{version}-windows-{arch}.exe";
+    public static string FileName(string version, string arch) => $"nettacticalagent-v{version}-windows-{arch}.exe";
 
-    /// <summary>Official release of the unchanged Tactical RMM Go agent.</summary>
+    /// <summary>Release of the NetTactical agent (the renamed Tactical RMM agent in agent/).</summary>
     public static string? DownloadUrl(string version, string arch) =>
         VerRx().IsMatch(version) && Architectures.Contains(arch)
-            ? $"https://github.com/amidaware/rmmagent/releases/download/v{version}/{FileName(version, arch)}" : null;
+            ? $"{ReleaseBase}agent-v{version}/{FileName(version, arch)}" : null;
 
     public static string InstallArguments(string api, int clientId, int siteId, string agentType, string token, bool rdp, bool ping, bool power, int? natsPort = null)
     {

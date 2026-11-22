@@ -16,6 +16,7 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
 
     public async Task<int> SyncPendingAsync(CancellationToken ct = default)
     {
+        await ResyncMigratedAgentsAsync(ct);
         await EnsurePolicyResultsAsync(ct);
         await PurgeOrphanDeletionsAsync(ct);
 
@@ -110,6 +111,17 @@ public sealed class TaskSyncService(AppDbContext db, IAgentCommandBus bus, ILogg
             await db.SaveChangesAsync(ct);
         }
         finally { _dbLock.Release(); }
+    }
+
+    /// <summary>An agent that moved from the old tacticalrmm agent to the renamed one (version 3 or later) still has Task Scheduler entries that start the old
+    /// file. Mark its synced tasks as not synced once, so the next round writes them again with the new name and folder.</summary>
+    private async Task ResyncMigratedAgentsAsync(CancellationToken ct)
+    {
+        var candidates = await db.Agents.AsNoTracking().Where(a => !a.TasksResynced && a.Plat == AgentPlat.Windows).Select(a => new { a.Id, a.Version }).Take(2000).ToListAsync(ct);
+        var ids = candidates.Where(a => System.Version.TryParse((a.Version ?? "").TrimStart('v'), out var v) && v.Major >= 3).Select(a => a.Id).ToList();
+        if (ids.Count == 0) return;
+        await db.TaskResults.Where(r => ids.Contains(r.AgentId) && r.SyncStatus == TaskSyncStatus.Synced).ExecuteUpdateAsync(u => u.SetProperty(r => r.SyncStatus, TaskSyncStatus.NotSynced), ct);
+        await db.Agents.Where(a => ids.Contains(a.Id)).ExecuteUpdateAsync(u => u.SetProperty(a => a.TasksResynced, true), ct);
     }
 
     /// <summary>An active policy task must have a TaskResult row for every agent that inherits it (new agent / policy change).</summary>

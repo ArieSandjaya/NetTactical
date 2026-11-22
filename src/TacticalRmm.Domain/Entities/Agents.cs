@@ -31,6 +31,8 @@ public class Agent : AuditableEntity
     public bool ChocoInstalled { get; set; }
     public bool MaintenanceMode { get; set; }
     public bool BlockPolicyInheritance { get; set; }
+    /// <summary>Set once the scheduled tasks of an agent running the renamed NetTactical agent (3.x) have been pushed again; tasks made by the old agent point to its old file name.</summary>
+    public bool TasksResynced { get; set; }
     public string? TimeZone { get; set; }
     public int SiteId { get; set; }
     public Site Site { get; set; } = null!;

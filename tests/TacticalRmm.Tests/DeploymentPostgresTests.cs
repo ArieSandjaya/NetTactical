@@ -47,7 +47,7 @@ public class DeploymentPostgresTests
         Assert.StartsWith("https://rmm.example.com/deploy/", d.Link);
         var uid = d.Link.Split('/').Last();
         var s1 = (await svc.ScriptAsync(uid)).Value!;
-        Assert.Contains("tacticalagent-v2.12.0-windows-amd64.exe", s1);
+        Assert.Contains("nettacticalagent-v2.12.0-windows-amd64.exe", s1);
         Assert.Contains($"--client-id {site.ClientId} --site-id {site.Id}", s1);
         Assert.Contains(new string('a', 64), s1);
         await svc.ScriptAsync(uid);

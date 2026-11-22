@@ -84,15 +84,15 @@ public static partial class PushInstall
     /// <summary>Script that runs ON the target (as the domain admin). Its only inputs are values already validated by InstallerCommands.</summary>
     public static string RemoteScript(string downloadUrl, string fileName, string installArgs, bool force)
     {
-        if (!Regex.IsMatch(fileName, @"^tacticalagent-v[0-9.]+-windows-(amd64|386)\.exe$")) throw new ArgumentException("invalid file name");
-        if (!downloadUrl.StartsWith("https://github.com/amidaware/rmmagent/releases/download/", StringComparison.Ordinal)) throw new ArgumentException("invalid download url");
-        var dir = @"C:\Program Files\TacticalAgent";
+        if (!Regex.IsMatch(fileName, @"^nettacticalagent-v[0-9.]+-windows-(amd64|386)\.exe$")) throw new ArgumentException("invalid file name");
+        if (!downloadUrl.StartsWith(InstallerCommands.ReleaseBase, StringComparison.Ordinal)) throw new ArgumentException("invalid download url");
+        var dir = @"C:\Program Files\NetTacticalAgent";
         return
             "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'\n" +
             $"$force = ${(force ? "true" : "false")}\n" +
             "$me=[Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()\n" +
             "if(-not $me.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){ throw 'The account is not a local administrator on this computer.' }\n" +
-            $"$exe='{dir}\\tacticalrmm.exe'; $un='{dir}\\unins000.exe'\n" +
+            $"$exe='{dir}\\nettactical.exe'; $un='{dir}\\unins000.exe'\n" +
             "if(Test-Path $exe){\n" +
             "  if(-not $force){ return 'already_installed' }\n" +
             "  if(Test-Path $un){ Start-Process -FilePath $un -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES' -Wait; Start-Sleep -Seconds 5 }\n" +

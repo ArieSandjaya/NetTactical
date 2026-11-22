@@ -1,0 +1,83 @@
+name: agent
+
+# Builds the NetTactical Windows agent (a renamed fork of the Tactical RMM agent, see agent/NOTICE.md) and its installers.
+# Every push that touches agent/ compiles and builds the installers as artifacts. A tag agent-vX.Y.Z also publishes them as a release.
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths: ["agent/**", ".github/workflows/agent.yml"]
+    tags: ["agent-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.20.13"
+          cache-dependency-path: agent/go.sum
+
+      - name: Version from the source
+        id: ver
+        run: |
+          $v = (Select-String -Path agent/main.go -Pattern '^\s*version\s*=\s*"([0-9.]+)"').Matches[0].Groups[1].Value
+          if (-not $v) { throw "version not found in agent/main.go" }
+          if ($env:GITHUB_REF -like 'refs/tags/agent-v*' -and $env:GITHUB_REF_NAME -ne "agent-v$v") { throw "tag $env:GITHUB_REF_NAME does not match version $v in agent/main.go" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build nettactical.exe (64-bit and 32-bit)
+        working-directory: agent
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.0
+          New-Item -ItemType Directory -Force -Path ../dist | Out-Null
+          foreach ($arch in 'amd64', '386') {
+            Remove-Item -ErrorAction SilentlyContinue resource.syso
+            $flags = @('-manifest=build/rmm.exe.manifest', '-o', 'resource.syso')
+            if ($arch -eq 'amd64') { $flags = @('-64') + $flags }
+            & "$(go env GOPATH)/bin/goversioninfo" @flags
+            if ($LASTEXITCODE -ne 0) { throw "goversioninfo failed" }
+            $env:GOOS = 'windows'; $env:GOARCH = $arch
+            go build -ldflags "-s -w" -o "../dist/nettactical-$arch.exe" .
+            if ($LASTEXITCODE -ne 0) { throw "go build failed for $arch" }
+          }
+          Remove-Item -ErrorAction SilentlyContinue resource.syso
+
+      - name: Installers (Inno Setup)
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup not found" }
+          $v = "${{ steps.ver.outputs.version }}"
+          foreach ($arch in 'amd64', '386') {
+            $isArgs = @("/DMyAppVersion=$v", "/DExeSource=$((Resolve-Path "dist/nettactical-$arch.exe").Path)", "/O$((Resolve-Path dist).Path)", "/Fnettacticalagent-v$v-windows-$arch")
+            if ($arch -eq 'amd64') { $isArgs += '/DArch64' }   # the 64-bit setup runs in 64-bit mode so it sees the same registry view as the 64-bit agent
+            & $iscc @isArgs agent/build/setup.iss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC failed for $arch" }
+          }
+          Get-ChildItem dist/nettacticalagent-v*.exe | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content dist/SHA256SUMS.txt
+          Get-Content dist/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nettactical-agent-${{ steps.ver.outputs.version }}
+          path: |
+            dist/nettacticalagent-v*.exe
+            dist/SHA256SUMS.txt
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/agent-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" dist/nettacticalagent-v*.exe dist/SHA256SUMS.txt --title "NetTactical agent ${{ steps.ver.outputs.version }}" --notes "Windows agent and installers. Source: the agent/ folder at this tag (a renamed fork of the Tactical RMM agent, under the Tactical RMM License Version 1.0)."

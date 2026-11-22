@@ -116,7 +116,7 @@ public class AutomatedTask : AuditableEntity
     public static string GenerateWinTaskName()
     {
         const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        return "TacticalRMM_" + string.Create(35, 0, (span, _) =>
+        return "NetTactical_" + string.Create(35, 0, (span, _) =>
         {
             for (var i = 0; i < span.Length; i++) span[i] = chars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(chars.Length)];
         });

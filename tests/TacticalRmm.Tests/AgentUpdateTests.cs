@@ -12,9 +12,9 @@ public class AgentUpdateTests
         Assert.Null(p.Error); Assert.Null(p.Skip);
         Assert.Equal("agentupdate", p.Payload!["func"]);
         var pl = (IDictionary<string, object?>)p.Payload["payload"]!;
-        Assert.Equal("https://github.com/amidaware/rmmagent/releases/download/v2.12.0/tacticalagent-v2.12.0-windows-amd64.exe", pl["url"]);
+        Assert.Equal("https://github.com/ArieSandjaya/NetTactical/releases/download/agent-v2.12.0/nettacticalagent-v2.12.0-windows-amd64.exe", pl["url"]);
         Assert.Equal("2.12.0", pl["version"]);
-        Assert.Equal("tacticalagent-v2.12.0-windows-amd64.exe", pl["inno"]);
+        Assert.Equal("nettacticalagent-v2.12.0-windows-amd64.exe", pl["inno"]);
     }
 
     [Fact] public void ACurrentAgentIsSkipped() => Assert.NotNull(AgentUpdatePlan.Decide("windows", "amd64", "2.12.0", "2.12.0").Skip);
