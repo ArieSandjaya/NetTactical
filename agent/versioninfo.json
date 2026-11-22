@@ -38,6 +38,5 @@
             "CharsetID": "04B0"
         }
     },
-    "IconPath": "build/onit.ico",
     "ManifestPath": "build/rmm.exe.manifest"
 }

@@ -30,6 +30,7 @@ public class TaskResyncPostgresTests
             new TaskResult { Agent = oldAgent, Task = t1, SyncStatus = TaskSyncStatus.Synced }, new TaskResult { Agent = newAgent, Task = t2, SyncStatus = TaskSyncStatus.Synced });
         await db.SaveChangesAsync();
 
+        db.ChangeTracker.Clear();   // the service runs in its own scope in production; do not let this context's stale copies hide what the SQL did
         var bus = new Bus();
         var svc = new TaskSyncService(db, bus, NullLogger<TaskSyncService>.Instance);
         await svc.SyncPendingAsync();
