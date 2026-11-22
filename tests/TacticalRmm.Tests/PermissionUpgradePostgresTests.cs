@@ -22,7 +22,7 @@ public class PermissionUpgradePostgresTests
         await SchemaUpgrade.RunAsync(db, NullLogger.Instance);
         var roles = await db.Roles.AsNoTracking().ToDictionaryAsync(r => r.Name, r => r.Permissions);
         Assert.Superset(new HashSet<string> { "can_manage_procs", "can_use_mesh", "can_manage_software", "can_update_agents", "can_run_bulk", "can_list_notes", "can_manage_notes" }, roles["ops"].ToHashSet());
-        Assert.Equal(["can_list_agents", "can_list_notes", "can_run_urlactions"], roles["viewer"].Order());   // read-only permissions only
+        Assert.Equal(["can_list_agents", "can_list_notes", "can_run_urlactions", "can_view_hardware"], roles["viewer"].Order());   // read-only permissions only
         Assert.Empty(roles["empty"]);
         Assert.Equal(["can_list_clients"], roles["clients"]);
 
