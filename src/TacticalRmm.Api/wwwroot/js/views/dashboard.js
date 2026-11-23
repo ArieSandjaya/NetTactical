@@ -66,6 +66,8 @@ export function dashboardView(root) {
           [h('b', { style: { color: 'var(--crit)' } }, `${d.alerts.error} critical`), ` · ${d.alerts.warning} warnings`]),
         kpi('Pending updates', String(d.patch.pending_devices), `devices · ${d.patch.needs_reboot} need a reboot`)),
 
+      categoriesCard(d),
+
       h('section', { class: 'row' },
         h('div', { class: 'card', style: { flex: '2 1 460px' } },
           h('div', { class: 'page-head' },
@@ -78,6 +80,7 @@ export function dashboardView(root) {
         clientCard(d)),
 
       h('section', { class: 'row' }, riskCard(d), alertsCard(d)),
+      d.hardware ? hardwareCard(d.hardware) : null,
       h('section', { class: 'row' }, patchCard(d, total), osCard(d, total), versionCard(d))].filter(Boolean));
   }
 
@@ -155,6 +158,63 @@ export function dashboardView(root) {
     return h('div', { class: 'card', style: { flex: '1 1 300px' } }, h('h2', null, 'Agent version'),
       h('div', { class: 'kv' }, h('span', null, ['Latest ', h('span', { class: 'mono muted' }, v.latest)]), h('span', { class: 'mono' }, String(v.current))),
       h('div', { class: 'kv' }, h('span', null, 'Needs update'), h('span', { class: 'mono', style: { color: v.outdated ? 'var(--warn)' : '', fontWeight: '600' } }, String(v.outdated))));
+  }
+
+  const CATEGORIES = {
+    availability: ['Availability', 'devices online'],
+    patching: ['Patching', 'no pending updates or reboot'],
+    alerts: ['Alerts', 'no open alerts'],
+    resources: ['Resources', 'disk, CPU and memory within limits'],
+    hardware: ['Hardware', 'checked devices with no hardware risk'],
+    agent: ['Agent version', 'running the latest agent'],
+  };
+
+  // The share of devices that are fine in each area (what the health score is made of, one area at a time).
+  function categoriesCard(d) {
+    if (!d.categories?.length) return null;
+    return h('section', { class: 'card stack', style: { gap: '12px' }, 'aria-label': 'Scores by area' },
+      h('div', { class: 'stack' }, h('h2', null, 'Score by area'), h('div', { class: 'muted' }, 'Share of devices that are fine in each area')),
+      h('div', { class: 'row', style: { gap: '14px' } }, d.categories.map((c) => {
+        const [name, note] = CATEGORIES[c.code] || [c.code, ''];
+        return h('div', { class: 'stack', style: { flex: '1 1 150px', gap: '6px' } },
+          h('div', { class: 'eyebrow' }, name),
+          h('div', { class: 'big', style: { color: c.score == null ? '' : `var(--${scoreClass(c.score)})` } }, c.score == null ? '–' : `${c.score}%`),
+          h('div', { class: 'bar thin' }, h('i', { class: c.score == null ? 'accent' : scoreClass(c.score), style: { width: `${c.score ?? 0}%` } })),
+          h('div', { class: 'muted', style: { fontSize: '12px' } }, c.devices ? `${c.good} of ${c.devices} ${note}` : 'No data yet'));
+      })));
+  }
+
+  // Disk and battery health and warranty of the Windows assets (from the Hardware checks).
+  function hardwareCard(hw) {
+    const total = Math.max(hw.checked, 1);
+    const w = (n) => ({ width: `${(n / total) * 100}%` });
+    const row = (cls, text, n, warn) => h('div', { class: 'kv', style: { border: '0', padding: '0' } },
+      h('span', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, cls ? h('span', { class: `dot ${cls}`, style: { margin: '0', borderRadius: '3px' } }) : null, text),
+      h('span', { class: 'mono', style: warn && n ? { color: 'var(--warn)', fontWeight: '600' } : {} }, String(n)));
+    const reason = (r) => r.reasons.slice(0, 2).map((x) => x.text).join(' ');
+    return h('section', { class: 'row', 'aria-label': 'Hardware' },
+      h('div', { class: 'card', style: { flex: '1 1 300px' } },
+        h('div', { class: 'page-head' }, h('h2', null, 'Hardware'), h('a', { href: '#/hardware' }, 'Open')),
+        h('div', { class: 'bar', style: { height: '14px', display: 'flex' } }, h('i', { class: 'good', style: w(hw.ok) }), h('i', { class: 'warn', style: w(hw.watch) }), h('i', { class: 'crit', style: w(hw.high) })),
+        h('div', { class: 'stack', style: { gap: '10px' } },
+          row('good', 'No problems found', hw.ok), row('warn', 'Watch', hw.watch), row('crit', 'High risk', hw.high),
+          h('div', { class: 'kv', style: { borderTop: '1px solid var(--line-soft)', borderBottom: '0' } }, h('span', null, 'Disk issues'), h('span', { class: 'mono' }, String(hw.disk_issues))),
+          row('', 'Battery issues', hw.battery_issues), row('', 'Not checked yet (Windows)', hw.not_checked, true))),
+      h('div', { class: 'card', style: { flex: '1 1 300px' } }, h('h2', null, 'Warranty'),
+        h('div', { class: 'stack', style: { gap: '10px' } },
+          row('crit', 'Ended', hw.warranty_expired), row('warn', `Ends within ${60} days`, hw.warranty_ending_soon), row('', 'No date entered', hw.warranty_unknown)),
+        h('div', { class: 'muted', style: { marginTop: '10px' } }, 'Enter the end date on the Hardware tab of an asset.')),
+      h('div', { class: 'card', style: { flex: '1 1 300px' } }, h('h2', null, 'Models'),
+        h('div', { class: 'stack', style: { gap: '10px' } },
+          hw.models.map((m) => h('div', { class: 'stack', style: { gap: '5px' } },
+            h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: '8px' } }, h('span', null, m.name), h('span', { class: 'mono' }, String(m.count))),
+            h('div', { class: 'bar thin' }, h('i', { class: 'accent', style: w(m.count) })))),
+          hw.models.length === 0 ? h('div', { class: 'empty' }, 'No hardware checked yet.') : null)),
+      hw.at_risk.length ? h('div', { class: 'card', style: { flex: '2 1 460px' } },
+        h('div', { class: 'stack' }, h('h2', null, 'Hardware to look at'), h('div', { class: 'muted' }, 'Disk, battery and warranty findings, worst first')),
+        h('div', { class: 'stack', style: { gap: '8px' } }, hw.at_risk.map((r) => h('div', { class: 'kv', style: { alignItems: 'flex-start', gap: '12px' } },
+          h('span', null, h('a', { href: `#/device/${encodeURIComponent(r.agent_id)}` }, r.hostname), h('div', { class: 'muted', style: { fontSize: '12px' } }, reason(r))),
+          h('span', { class: `pill ${r.risk === 'high' ? 'crit' : 'warn'}` }, r.risk === 'high' ? 'High' : 'Watch'))))) : null);
   }
 
   load();

@@ -15,7 +15,9 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
     private HealthWeights W => opt.Value.Health;
 
     private sealed record AgentRow(int Id, string AgentId, string Hostname, string? Os, string Version, DateTime? LastSeen, int OfflineTime,
-        double? BootTime, bool NeedsReboot, string? Disks, int SiteId, string SiteName, int ClientId, string ClientName, bool Maintenance);
+        double? BootTime, bool NeedsReboot, string? Disks, int SiteId, string SiteName, int ClientId, string ClientName, bool Maintenance, string Plat = "");
+
+    private sealed record HwRow(int AgentId, string? Data, DateOnly? WarrantyEnd, DateTime? CollectedAt);
 
     private sealed record AlertRow(int Id, int AgentId, string Severity, string? Message, DateTime Time, bool Snoozed);
 
@@ -29,7 +31,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var rows = await db.Agents.AsNoTracking()
             .Where(a => (clientId == null || a.Site.ClientId == clientId) && (siteId == null || a.SiteId == siteId))
             .Select(a => new AgentRow(a.Id, a.AgentId, a.Hostname, a.OperatingSystem, a.Version, a.LastSeen, a.OfflineTime, a.BootTime, a.NeedsReboot,
-                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode))
+                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat))
             .ToListAsync(ct);
         rows = rows.Where(r => PermissionEvaluator.CanSeeSite(caller, new Site { Id = r.SiteId, ClientId = r.ClientId })).ToList();
 
@@ -81,9 +83,21 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
 
         var trends = await BuildTrendsAsync(ids, days, now, ct);
 
+        // hardware and warranty: the hardware numbers need the permission to see hardware, the category scores do not
+        var hw = new List<HwRow>();
+        if (ids.Count > 0)
+            hw = await db.HardwareInfos.AsNoTracking().Where(h => ids.Contains(h.AgentId)).Select(h => new HwRow(h.AgentId, h.Data, h.WarrantyEnd, h.CollectedAt)).ToListAsync(ct);
+        var hwById = hw.ToDictionary(h => h.AgentId, h => (Snap: HardwareHealth.Deserialize(h.Data), h.WarrantyEnd, h.CollectedAt));
+        var categories = FleetInsights.Categories(scored.Select(s => new FleetInsights.Device(inputs[s.Row.Id], s.Row.Plat == "windows", hwById.TryGetValue(s.Row.Id, out var x) ? x.Snap : null)).ToList(), W);
+        FleetHardware? hardware = !PermissionEvaluator.Has(caller, Perm.ViewHardware) ? null : FleetInsights.Hardware(rows.Select(r =>
+        {
+            hwById.TryGetValue(r.Id, out var x);
+            return new FleetInsights.HardwareItem(r.AgentId, r.Hostname, r.ClientName, r.SiteName, r.Plat == "windows", x.Snap, x.WarrantyEnd, x.CollectedAt);
+        }).ToList(), DateOnly.FromDateTime(now), 8);
+
         var scopeName = siteId is not null ? rows.FirstOrDefault()?.SiteName ?? "Site"
             : clientId is not null ? rows.FirstOrDefault()?.ClientName ?? "Client" : "All clients";
-        return Outcome.Ok(new FleetSummaryDto(new FleetScope(clientId, siteId, scopeName), totals, alertSummary, patch, clientRows, risk, recent, os, versions, trends));
+        return Outcome.Ok(new FleetSummaryDto(new FleetScope(clientId, siteId, scopeName), totals, alertSummary, patch, clientRows, risk, recent, os, versions, trends, categories, hardware));
     }
 
     private async Task<Dictionary<int, HealthInput>> BuildInputsAsync(List<AgentRow> rows, List<int> ids, DateTime now, CancellationToken ct)

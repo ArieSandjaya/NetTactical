@@ -22,7 +22,8 @@ public record FleetSummaryDto(
     IReadOnlyList<FleetClientRow> Clients, IReadOnlyList<FleetRiskRow> AtRisk,
     IReadOnlyList<FleetAlertRow> RecentAlerts, IReadOnlyList<CountRow> OperatingSystems,
     FleetAgentVersions AgentVersions,
-    IReadOnlyDictionary<string, IReadOnlyList<TrendPoint>> Trends);
+    IReadOnlyDictionary<string, IReadOnlyList<TrendPoint>> Trends,
+    IReadOnlyList<CategoryScoreDto>? Categories = null, FleetHardware? Hardware = null);
 
 /// <summary>One asset in the asset list, with its health score and the main reason for it.</summary>
 public record FleetAssetRow(string AgentId, string Hostname, string Client, string Site, string Os, string? Version, int Score, string Level, bool Online,
@@ -62,3 +63,9 @@ public record AgentOverviewDto(
     AgentFactsDto Agent, HealthDto Health, AgentMetricsDto Metrics, IReadOnlyList<DiskDto> Disks,
     IReadOnlyList<IssueDto> Issues, IReadOnlyList<AgentCheckRow> Checks, IReadOnlyList<AgentTaskRow> Tasks,
     IReadOnlyList<AgentPatchRow> Patches, IReadOnlyList<ServiceIssueDto> Services);
+
+/// <summary>One score tile: the share of devices that are fine for this category (0-100). Score is null when no device has data for it.</summary>
+public record CategoryScoreDto(string Code, int Devices, int Good, int? Score);
+
+public record FleetHardware(int Checked, int NotChecked, int Ok, int Watch, int High, int DiskIssues, int BatteryIssues,
+    int WarrantyExpired, int WarrantyEndingSoon, int WarrantyUnknown, IReadOnlyList<CountRow> Models, IReadOnlyList<HardwareRowDto> AtRisk);
