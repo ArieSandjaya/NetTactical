@@ -159,7 +159,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var rows = await db.Agents.AsNoTracking()
             .Where(a => (clientId == null || a.Site.ClientId == clientId) && (siteId == null || a.SiteId == siteId))
             .Select(a => new AgentRow(a.Id, a.AgentId, a.Hostname, a.OperatingSystem, a.Version, a.LastSeen, a.OfflineTime, a.BootTime, a.NeedsReboot,
-                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode))
+                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat))
             .ToListAsync(ct);
         rows = rows.Where(r => PermissionEvaluator.CanSeeSite(caller, new Site { Id = r.SiteId, ClientId = r.ClientId })).ToList();
         var name = siteId is not null ? rows.FirstOrDefault()?.SiteName ?? "Site"
