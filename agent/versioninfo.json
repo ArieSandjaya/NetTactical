@@ -3,13 +3,13 @@
         "FileVersion": {
             "Major": 3,
             "Minor": 0,
-            "Patch": 0,
+            "Patch": 1,
             "Build": 0
         },
         "ProductVersion": {
             "Major": 3,
             "Minor": 0,
-            "Patch": 0,
+            "Patch": 1,
             "Build": 0
         },
         "FileFlagsMask": "3f",
@@ -22,14 +22,14 @@
         "Comments": "",
         "CompanyName": "NetTactical",
         "FileDescription": "NetTactical Agent",
-        "FileVersion": "v3.0.0.0",
+        "FileVersion": "v3.0.1.0",
         "InternalName": "nettactical.exe",
         "LegalCopyright": "Copyright (c) 2026 AmidaWare Inc",
         "LegalTrademarks": "",
         "OriginalFilename": "nettactical.exe",
         "PrivateBuild": "",
         "ProductName": "NetTactical Agent",
-        "ProductVersion": "v3.0.0.0",
+        "ProductVersion": "v3.0.1.0",
         "SpecialBuild": ""
     },
     "VarFileInfo": {

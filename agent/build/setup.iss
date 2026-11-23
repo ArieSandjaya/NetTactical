@@ -1,6 +1,6 @@
 #define MyAppName "NetTactical Agent"
 #ifndef MyAppVersion
-  #define MyAppVersion "3.0.0"
+  #define MyAppVersion "3.0.1"
 #endif
 #ifndef ExeSource
   #define ExeSource "..\nettactical.exe"
@@ -43,7 +43,7 @@ AppCopyright="Copyright (C) 2026 {#MyAppPublisher}"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "{#ExeSource}"; DestDir: "{app}"; Flags: ignoreversion;
+Source: "{#ExeSource}"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion;
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
