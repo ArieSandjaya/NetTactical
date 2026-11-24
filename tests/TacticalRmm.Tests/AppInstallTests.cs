@@ -12,7 +12,7 @@ public class AppInstallTests
 
     [Fact] public void AnMsiNeedsNoOptionsButAnExeDoes()
     {
-        Assert.Null(AppInstall.Validate(new() { Name = "7-Zip", InstallerType = "msi", Source = "https://files.example.com/7z.msi" }));
+        Assert.Null(AppInstall.Validate(new SoftwarePackageRequest { Name = "7-Zip", InstallerType = "msi", Source = "https://files.example.com/7z.msi" }));
         var r = Exe(); r.SilentArgs = "";
         Assert.Contains("silent", AppInstall.Validate(r)!, StringComparison.OrdinalIgnoreCase);
     }
