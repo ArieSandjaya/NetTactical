@@ -10,6 +10,7 @@ import { vncView } from './views/vnc.js';
 import { clientsView } from './views/clients.js';
 import { installerView } from './views/installer.js';
 import { deploymentsView } from './views/deployments.js';
+import { agentLinksView } from './views/agentlinks.js';
 import { maintenanceView } from './views/maintenance.js';
 import { urlActionsView } from './views/urlactions.js';
 import { hardwareView } from './views/hardware.js';
@@ -29,9 +30,9 @@ import { reportsView } from './views/reports.js';
 
 const app = document.getElementById('app');
 let cleanup = () => {};
-const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['reports', '#/reports', 'Reports'], ['hardware', '#/hardware', 'Hardware'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['deployments', '#/deployments', 'Deployments'], ['maintenance', '#/maintenance', 'Server maintenance'], ['urlactions', '#/url-actions', 'URL actions'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
+const NAV = [['home', '#/', 'Overview'], ['assets', '#/assets', 'Assets'], ['alerts', '#/alerts', 'Alerts'], ['patches', '#/patches', 'Patches'], ['section', '', 'Monitoring'], ['checks', '#/checks', 'Checks'], ['tasks', '#/tasks', 'Tasks'], ['policies', '#/policies', 'Policies'], ['scripts', '#/scripts', 'Scripts'], ['snippets', '#/snippets', 'Snippets'], ['reports', '#/reports', 'Reports'], ['hardware', '#/hardware', 'Hardware'], ['audit', '#/audit', 'Audit log'], ['section', '', 'Manage'], ['clients', '#/clients', 'Clients & Sites'], ['users', '#/users', 'Users'], ['roles', '#/roles', 'Roles'], ['notifications', '#/notifications', 'Notifications'], ['alerttemplates', '#/alert-templates', 'Alert templates'], ['customfields', '#/custom-fields', 'Custom fields'], ['installer', '#/installer', 'Install agent'], ['deployments', '#/deployments', 'Deployments'], ['agentlinks', '#/agent-links', 'Agent links'], ['maintenance', '#/maintenance', 'Server maintenance'], ['urlactions', '#/url-actions', 'URL actions'], ['security', '#/security', 'Security'], ['vnc', '#/vnc', 'VNC passwords']];
 const PAGES = { '#/assets': ['assets', 'Assets', assetsView], '#/alerts': ['alerts', 'Alerts', alertsView], '#/patches': ['patches', 'Patches', patchesView], '#/vnc': ['vnc', 'VNC passwords', vncView],
-  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/deployments': ['deployments', 'Deployments', deploymentsView], '#/maintenance': ['maintenance', 'Server maintenance', maintenanceView], '#/url-actions': ['urlactions', 'URL actions', urlActionsView], '#/hardware': ['hardware', 'Hardware', hardwareView], '#/security': ['security', 'Security', securityView],
+  '#/clients': ['clients', 'Clients & Sites', clientsView], '#/users': ['users', 'Users', usersView], '#/roles': ['roles', 'Roles', rolesView], '#/installer': ['installer', 'Install agent', installerView], '#/deployments': ['deployments', 'Deployments', deploymentsView], '#/agent-links': ['agentlinks', 'Agent links', agentLinksView], '#/maintenance': ['maintenance', 'Server maintenance', maintenanceView], '#/url-actions': ['urlactions', 'URL actions', urlActionsView], '#/hardware': ['hardware', 'Hardware', hardwareView], '#/security': ['security', 'Security', securityView],
   '#/checks': ['checks', 'Checks', checksView], '#/tasks': ['tasks', 'Tasks', tasksView], '#/policies': ['policies', 'Policies', policiesView], '#/scripts': ['scripts', 'Scripts', scriptsView], '#/audit': ['audit', 'Audit log', auditView], '#/notifications': ['notifications', 'Notifications', notificationsView], '#/alert-templates': ['alerttemplates', 'Alert templates', alertTemplatesView], '#/custom-fields': ['customfields', 'Custom fields', customFieldsView], '#/snippets': ['snippets', 'Snippets', snippetsView], '#/reports': ['reports', 'Reports', reportsView] };
 
 // Line icons for the sidebar (24x24 grid, drawn with the current text colour).
@@ -53,7 +54,8 @@ const ICONS = {
   snippets: ['M8 6l-5 6 5 6', 'M16 6l5 6-5 6', 'M14 4l-4 16'],
   customfields: ['M4 5h16', 'M4 12h16', 'M4 19h10', 'M18 17v4', 'M16 19h4'],
   alerttemplates: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
-  deployments: ['M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7', 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'],
+  agentlinks: ['M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7', 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'],
+  deployments: ['M21 8l-9-5-9 5v8l9 5 9-5z', 'M3 8l9 5 9-5', 'M12 13v8'],
   maintenance: ['M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z'],
   urlactions: ['M15 3h6v6', 'M10 14L21 3', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'],
   hardware: ['M4 4h16v12H4z', 'M8 20h8', 'M12 16v4', 'M9 9l2 2 4-4'],

@@ -249,3 +249,21 @@ public interface IHardwareService
     /// <summary>Every asset the caller may see that has been checked or has a warranty date, worst first.</summary>
     Task<Outcome<IReadOnlyList<HardwareRowDto>>> ListAsync(User caller, CancellationToken ct = default);
 }
+
+/// <summary>Application catalog and rollouts: install a package (for example Acrobat Reader) on many assets, waiting for offline ones.</summary>
+public interface IAppDeploymentService
+{
+    Task<Outcome<IReadOnlyList<SoftwarePackageDto>>> ListPackagesAsync(CancellationToken ct = default);
+    Task<Outcome<SoftwarePackageDto>> CreatePackageAsync(User caller, SoftwarePackageRequest req, CancellationToken ct = default);
+    Task<Outcome<SoftwarePackageDto>> UpdatePackageAsync(User caller, int id, SoftwarePackageRequest req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeletePackageAsync(User caller, int id, CancellationToken ct = default);
+    Task<Outcome<IReadOnlyList<AppDeploymentDto>>> ListAsync(User caller, CancellationToken ct = default);
+    Task<Outcome<AppDeploymentDto>> GetAsync(User caller, int id, CancellationToken ct = default);
+    Task<Outcome<AppDeploymentDto>> CreateAsync(User caller, AppDeploymentRequest req, CancellationToken ct = default);
+    Task<Outcome<AppDeploymentDto>> RetryFailedAsync(User caller, int id, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    /// <summary>For the background runner: expires old waits, claims up to max waiting targets whose asset is online and returns what to run.</summary>
+    Task<IReadOnlyList<AppWork>> ClaimDueAsync(int max, CancellationToken ct = default);
+    /// <summary>For the background runner: records what the asset answered.</summary>
+    Task FinishAsync(AppWork work, string? payload, string? error, CancellationToken ct = default);
+}

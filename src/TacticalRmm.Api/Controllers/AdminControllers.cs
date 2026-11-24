@@ -337,6 +337,26 @@ public class DeploymentsController(IDeploymentService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+/// <summary>Application catalog (what can be installed) and rollouts of it to assets.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("software-packages"), RequirePerm(Perm.ManageSoftware)]
+public class SoftwarePackagesController(IAppDeploymentService svc) : ControllerBase
+{
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListPackagesAsync(ct));
+    [HttpPost] public async Task<IActionResult> Create(SoftwarePackageRequest req, CancellationToken ct) => this.ToResult(await svc.CreatePackageAsync(HttpContext.GetUser(), req, ct));
+    [HttpPut("{id:int}")] public async Task<IActionResult> Update(int id, SoftwarePackageRequest req, CancellationToken ct) => this.ToResult(await svc.UpdatePackageAsync(HttpContext.GetUser(), id, req, ct));
+    [HttpDelete("{id:int}")] public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeletePackageAsync(HttpContext.GetUser(), id, ct));
+}
+
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("app-deployments"), RequirePerm(Perm.ManageSoftware)]
+public class AppDeploymentsController(IAppDeploymentService svc) : ControllerBase
+{
+    [HttpGet] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(HttpContext.GetUser(), ct));
+    [HttpGet("{id:int}")] public async Task<IActionResult> Get(int id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
+    [HttpPost] public async Task<IActionResult> Create(AppDeploymentRequest req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+    [HttpPost("{id:int}/retry")] public async Task<IActionResult> Retry(int id, CancellationToken ct) => this.ToResult(await svc.RetryFailedAsync(HttpContext.GetUser(), id, ct));
+    [HttpDelete("{id:int}")] public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+}
+
 /// <summary>Public (no login): the link itself is the secret. Never cached; unknown, expired and used-up links all answer 404 the same way.</summary>
 [ApiController, AllowAnonymous, Route("deploy")]
 public class DeployLinkController(IDeploymentService svc) : ControllerBase

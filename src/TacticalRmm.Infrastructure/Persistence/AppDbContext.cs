@@ -37,6 +37,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Deployment> Deployments => Set<Deployment>();
     public DbSet<UrlAction> UrlActions => Set<UrlAction>();
     public DbSet<HardwareInfo> HardwareInfos => Set<HardwareInfo>();
+    public DbSet<SoftwarePackage> SoftwarePackages => Set<SoftwarePackage>();
+    public DbSet<AppDeployment> AppDeployments => Set<AppDeployment>();
+    public DbSet<AppDeploymentTarget> AppDeploymentTargets => Set<AppDeploymentTarget>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -115,6 +118,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
         b.Entity<AgentNote>().HasIndex(x => x.AgentId);
         b.Entity<HardwareInfo>(e => { e.HasIndex(x => x.AgentId).IsUnique(); e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Cascade); });
+        b.Entity<SoftwarePackage>().HasIndex(x => x.Name).IsUnique();
+        b.Entity<AppDeployment>(e => { e.HasOne(x => x.Package).WithMany().HasForeignKey(x => x.PackageId).OnDelete(DeleteBehavior.Cascade); e.HasMany(x => x.Targets).WithOne(x => x.Deployment).HasForeignKey(x => x.DeploymentId).OnDelete(DeleteBehavior.Cascade); });
+        b.Entity<AppDeploymentTarget>(e => { e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Cascade); e.HasIndex(x => new { x.Status, x.DeploymentId }); });
         b.Entity<Deployment>(e => { e.HasIndex(x => x.Uid).IsUnique(); e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Cascade); });
         b.Entity<CheckMetric>(e =>
         {
