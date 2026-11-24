@@ -31,7 +31,7 @@ public class AppDeploymentPostgresTests
         public Task RecordCommandAsync(string agentId, string username, string command, CancellationToken ct = default) { Commands.Add(command); return Task.CompletedTask; }
     }
 
-    private const string On = "A1", Off = "A2", Lin = "A3";
+    private const string On = "app-agent-number-0001", Off = "app-agent-number-0002", Lin = "app-agent-number-0003";
     private static readonly User Admin = new() { Id = 1, Username = "admin", IsSuperuser = true };
 
     private static async Task<(AppDeploymentService svc, AppDbContext db, Audit audit, Log log, Site site, int pkg)> SetupAsync(params string[] deny)
@@ -115,9 +115,11 @@ public class AppDeploymentPostgresTests
         Assert.Equal(1, (await svc.GetAsync(Admin, d.Id)).Value!.Failed);
         Assert.Empty(await svc.ClaimDueAsync(8));
 
+        db.ChangeTracker.Clear();      // the updates above went straight to the database
         var retried = (await svc.RetryFailedAsync(Admin, d.Id)).Value!;
         Assert.Equal(1, retried.Pending);
         Assert.Single(await svc.ClaimDueAsync(8));
+        db.ChangeTracker.Clear();
         Assert.Equal(OutcomeStatus.Conflict, (await svc.RetryFailedAsync(Admin, d.Id)).Status);   // nothing failed now (it is running)
     }
 
@@ -130,6 +132,7 @@ public class AppDeploymentPostgresTests
         Assert.Empty(await svc.ClaimDueAsync(8));
         var after = (await svc.GetAsync(Admin, d.Id)).Value!;
         Assert.Equal(2, after.ExpiredCount); Assert.Equal(0, after.Pending);
+        db.ChangeTracker.Clear();
         Assert.True((await svc.RetryFailedAsync(Admin, d.Id)).IsOk);       // retry extends the time and queues them again
     }
 
