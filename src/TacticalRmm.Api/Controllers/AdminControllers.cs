@@ -337,6 +337,19 @@ public class DeploymentsController(IDeploymentService svc) : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
 }
 
+/// <summary>Asset groups. Listing needs the asset list permission; changes need the group permission.</summary>
+[ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("asset-groups")]
+public class AssetGroupsController(IAssetGroupService svc) : ControllerBase
+{
+    [HttpGet, RequirePerm(Perm.ListAgents)] public async Task<IActionResult> List(CancellationToken ct) => this.ToResult(await svc.ListAsync(ct));
+    [HttpGet("{id:int}"), RequirePerm(Perm.ListAgents)] public async Task<IActionResult> Get(int id, CancellationToken ct) => this.ToResult(await svc.GetAsync(HttpContext.GetUser(), id, ct));
+    [HttpPost, RequirePerm(Perm.ManageGroups)] public async Task<IActionResult> Create(AssetGroupUpsert req, CancellationToken ct) => this.ToResult(await svc.CreateAsync(HttpContext.GetUser(), req, ct));
+    [HttpPut("{id:int}"), RequirePerm(Perm.ManageGroups)] public async Task<IActionResult> Update(int id, AssetGroupUpsert req, CancellationToken ct) => this.ToResult(await svc.UpdateAsync(HttpContext.GetUser(), id, req, ct));
+    [HttpDelete("{id:int}"), RequirePerm(Perm.ManageGroups)] public async Task<IActionResult> Delete(int id, CancellationToken ct) => this.ToResult(await svc.DeleteAsync(HttpContext.GetUser(), id, ct));
+    [HttpPost("{id:int}/members"), RequirePerm(Perm.ManageGroups)] public async Task<IActionResult> Add(int id, GroupMembersRequest req, CancellationToken ct) => this.ToResult(await svc.AddMembersAsync(HttpContext.GetUser(), id, req, ct));
+    [HttpPost("{id:int}/members/remove"), RequirePerm(Perm.ManageGroups)] public async Task<IActionResult> Remove(int id, GroupMembersRequest req, CancellationToken ct) => this.ToResult(await svc.RemoveMembersAsync(HttpContext.GetUser(), id, req, ct));
+}
+
 /// <summary>Application catalog (what can be installed) and rollouts of it to assets.</summary>
 [ApiController, Authorize(AuthDefaults.DashboardPolicy), Route("software-packages"), RequirePerm(Perm.ManageSoftware)]
 public class SoftwarePackagesController(IAppDeploymentService svc) : ControllerBase

@@ -15,7 +15,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
     private HealthWeights W => opt.Value.Health;
 
     private sealed record AgentRow(int Id, string AgentId, string Hostname, string? Os, string Version, DateTime? LastSeen, int OfflineTime,
-        double? BootTime, bool NeedsReboot, string? Disks, int SiteId, string SiteName, int ClientId, string ClientName, bool Maintenance, string Plat = "");
+        double? BootTime, bool NeedsReboot, string? Disks, int SiteId, string SiteName, int ClientId, string ClientName, bool Maintenance, string Plat = "", string? Group = null);
 
     private sealed record HwRow(int AgentId, string? Data, DateOnly? WarrantyEnd, DateTime? CollectedAt);
 
@@ -31,7 +31,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var rows = await db.Agents.AsNoTracking()
             .Where(a => (clientId == null || a.Site.ClientId == clientId) && (siteId == null || a.SiteId == siteId))
             .Select(a => new AgentRow(a.Id, a.AgentId, a.Hostname, a.OperatingSystem, a.Version, a.LastSeen, a.OfflineTime, a.BootTime, a.NeedsReboot,
-                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat))
+                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat, a.Group != null ? a.Group.Name : null))
             .ToListAsync(ct);
         rows = rows.Where(r => PermissionEvaluator.CanSeeSite(caller, new Site { Id = r.SiteId, ClientId = r.ClientId })).ToList();
 
@@ -159,7 +159,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
         var rows = await db.Agents.AsNoTracking()
             .Where(a => (clientId == null || a.Site.ClientId == clientId) && (siteId == null || a.SiteId == siteId))
             .Select(a => new AgentRow(a.Id, a.AgentId, a.Hostname, a.OperatingSystem, a.Version, a.LastSeen, a.OfflineTime, a.BootTime, a.NeedsReboot,
-                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat))
+                a.Disks, a.SiteId, a.Site.Name, a.Site.ClientId, a.Site.Client.Name, a.MaintenanceMode, a.Plat, a.Group != null ? a.Group.Name : null))
             .ToListAsync(ct);
         rows = rows.Where(r => PermissionEvaluator.CanSeeSite(caller, new Site { Id = r.SiteId, ClientId = r.ClientId })).ToList();
         var name = siteId is not null ? rows.FirstOrDefault()?.SiteName ?? "Site"
@@ -183,7 +183,7 @@ public sealed class FleetService(AppDbContext db, ICheckService checks, IOptions
             var res = HealthScorer.Score(inputs[r.Id], W);
             return new FleetAssetRow(r.AgentId, r.Hostname, r.ClientName, r.SiteName, r.Os ?? "", r.Version, res.Score, res.Level,
                 AgentDataParser.IsOnline(r.LastSeen, r.OfflineTime, now), r.LastSeen, inputs[r.Id].PendingUpdates, openAlerts.GetValueOrDefault(r.Id),
-                r.NeedsReboot, inputs[r.Id].UptimeDays, res.Factors.FirstOrDefault()?.Detail, r.Maintenance);
+                r.NeedsReboot, inputs[r.Id].UptimeDays, res.Factors.FirstOrDefault()?.Detail, r.Maintenance, r.Group);
         }).OrderBy(a => a.Score).ThenBy(a => a.Hostname).ToList();
 
         return Outcome.Ok(new FleetAssetsDto(new FleetScope(clientId, siteId, scopeName), assets));

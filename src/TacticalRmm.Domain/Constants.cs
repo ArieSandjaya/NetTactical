@@ -50,7 +50,7 @@ public static class Perm
         UpdateAgents = "can_update_agents", ManageProcs = "can_manage_procs", RunBulk = "can_run_bulk", ListNotes = "can_list_notes", ManageNotes = "can_manage_notes",
         ManageSoftware = "can_manage_software", UseMesh = "can_use_mesh",
         ViewEventLogs = "can_view_eventlogs", DoServerMaint = "can_do_server_maint", RunUrlActions = "can_run_urlactions", EditCoreSettings = "can_edit_core_settings",
-        ListDeployments = "can_list_deployments", ManageDeployments = "can_manage_deployments", ViewHardware = "can_view_hardware";
+        ListDeployments = "can_list_deployments", ManageDeployments = "can_manage_deployments", ViewHardware = "can_view_hardware", ManageGroups = "can_manage_groups";
 
     /// <summary>Complete list of valid permissions; used for Role validation.</summary>
     public static readonly IReadOnlyList<string> All =
@@ -59,6 +59,6 @@ public static class Perm
         RebootAgents, RunScripts, RunCommands, ListScripts, ManageScripts, ListChecks, ManageChecks, RunChecks,
         ListTasks, ManageTasks, RunTasks, ListAlerts, ManageAlerts, ListPolicies, ManagePolicies, ViewAuditLog, ManageAccounts, UseVnc, ManageVnc, InstallAgents, ManageNotifications, PushInstall, ManageWinUpdates, ManageCustomFields,
         UpdateAgents, ManageProcs, RunBulk, ListNotes, ManageNotes, ManageSoftware, UseMesh,
-        ViewEventLogs, DoServerMaint, RunUrlActions, EditCoreSettings, ListDeployments, ManageDeployments, ViewHardware
+        ViewEventLogs, DoServerMaint, RunUrlActions, EditCoreSettings, ListDeployments, ManageDeployments, ViewHardware, ManageGroups
     ];
 }

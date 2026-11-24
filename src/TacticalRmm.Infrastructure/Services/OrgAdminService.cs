@@ -191,6 +191,16 @@ public sealed class OrgAdminService(AppDbContext db, IAuditService audit) : IOrg
             if (req.TimeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(req.TimeZone, out _)) return Outcome.Invalid<bool>("Unknown time_zone");
             a.TimeZone = req.TimeZone == "" ? null : req.TimeZone;
         }
+        if (req.ClearGroup == true || req.Group is not null)
+        {
+            if (!PermissionEvaluator.Has(caller, Perm.ManageGroups)) return Outcome.Forbidden<bool>("Changing the group needs the group permission");
+            if (req.ClearGroup == true) a.GroupId = null;
+            else
+            {
+                if (!await db.AssetGroups.AnyAsync(x => x.Id == req.Group, ct)) return Outcome.NotFound<bool>("Group not found");
+                a.GroupId = req.Group;
+            }
+        }
         if (req.ClearPolicy == true) a.PolicyId = null;
         else if (req.Policy is { } pid)
         {

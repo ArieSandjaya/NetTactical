@@ -38,6 +38,9 @@ public class Agent : AuditableEntity
     public Site Site { get; set; } = null!;
     public int? PolicyId { get; set; }
     public Policy? Policy { get; set; }
+    /// <summary>The group this asset belongs to; a policy on the group applies to it (below the asset's own policy, above site and client).</summary>
+    public int? GroupId { get; set; }
+    public AssetGroup? Group { get; set; }
 }
 
 public class AgentHistory

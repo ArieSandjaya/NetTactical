@@ -181,6 +181,9 @@ public class AgentUpdate
     public int? Policy { get; set; }
     public bool? ClearPolicy { get; set; }
     public bool? BlockPolicyInheritance { get; set; }
+    /// <summary>Put the asset in this group (needs the group permission); ClearGroup takes it out.</summary>
+    public int? Group { get; set; }
+    public bool? ClearGroup { get; set; }
     public string? TimeZone { get; set; }
 }
 public class PolicyUpsert { public string? Name { get; set; } public string? Desc { get; set; } public bool? Active { get; set; } public bool? Enforced { get; set; } }

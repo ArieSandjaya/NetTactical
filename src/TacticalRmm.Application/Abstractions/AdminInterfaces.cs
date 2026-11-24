@@ -267,3 +267,15 @@ public interface IAppDeploymentService
     /// <summary>For the background runner: records what the asset answered.</summary>
     Task FinishAsync(AppWork work, string? payload, string? error, CancellationToken ct = default);
 }
+
+/// <summary>Groups of assets. A policy on a group applies to every member.</summary>
+public interface IAssetGroupService
+{
+    Task<Outcome<IReadOnlyList<AssetGroupDto>>> ListAsync(CancellationToken ct = default);
+    Task<Outcome<AssetGroupDetailDto>> GetAsync(User caller, int id, CancellationToken ct = default);
+    Task<Outcome<AssetGroupDetailDto>> CreateAsync(User caller, AssetGroupUpsert req, CancellationToken ct = default);
+    Task<Outcome<AssetGroupDetailDto>> UpdateAsync(User caller, int id, AssetGroupUpsert req, CancellationToken ct = default);
+    Task<Outcome<bool>> DeleteAsync(User caller, int id, CancellationToken ct = default);
+    Task<Outcome<AssetGroupDetailDto>> AddMembersAsync(User caller, int id, GroupMembersRequest req, CancellationToken ct = default);
+    Task<Outcome<AssetGroupDetailDto>> RemoveMembersAsync(User caller, int id, GroupMembersRequest req, CancellationToken ct = default);
+}

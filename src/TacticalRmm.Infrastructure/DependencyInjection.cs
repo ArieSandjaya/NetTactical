@@ -79,6 +79,7 @@ public static class DependencyInjection
         s.AddScoped<IEventLogService, EventLogService>();
         s.AddScoped<IDeploymentService, DeploymentService>();
         s.AddScoped<IAppDeploymentService, AppDeploymentService>();
+        s.AddScoped<IAssetGroupService, AssetGroupService>();
         s.AddHostedService<AppDeploymentJob>();
         s.AddScoped<IServerMaintenanceService, ServerMaintenanceService>();
         s.AddScoped<IUrlActionService, UrlActionService>();
