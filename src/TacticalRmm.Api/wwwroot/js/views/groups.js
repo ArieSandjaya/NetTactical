@@ -28,14 +28,18 @@ export function groupsView(root) {
   }
 
   const policyBody = (v) => (v === '' ? { clear_policy: true } : { policy: Number(v) });
-  const create = () => act(async () => {
+  const create = () => {
+    if (!st.form.name.trim()) { st.notice = { ok: false, msg: 'Enter a name for the group.' }; paint(); return; }
+    return act(createNow, 'Group created.');
+  };
+  const createNow = async () => {
     const f = st.form;
     const payload = { name: f.name, description: f.description };
     if (f.policy !== '') payload.policy = Number(f.policy);
     const g = await api('asset-groups', { method: 'POST', body: payload });
     st.form = { name: '', description: '', policy: '' };
     await reload(); await openGroup(g.id, g);
-  }, 'Group created.');
+  };
 
   async function openGroup(id, known) {
     if (st.open === id) { st.open = null; st.detail = null; paint(); return; }
@@ -130,7 +134,7 @@ export function groupsView(root) {
         h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end' } },
           field('Name', input('text', f, 'name', 'Reception PCs'), '2 1 200px'), field('Description (optional)', input('text', f, 'description', ''), '3 1 240px'),
           st.policies ? field('Policy (optional)', policySelect(f), '2 1 220px') : null,
-          btn(st.busy ? 'Creating…' : 'Create group', create, { primary: true, disabled: st.busy || !f.name.trim() }))),
+          btn(st.busy ? 'Creating…' : 'Create group', create, { primary: true, disabled: st.busy }))),
       notice(st.notice),
       ...(st.groups.length ? st.groups.map(row) : [h('div', { class: 'empty' }, 'No groups yet.')]),
     ].filter(Boolean));
